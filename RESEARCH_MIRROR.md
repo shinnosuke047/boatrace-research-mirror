@@ -13,7 +13,7 @@
 
 ## 現在の研究フェーズ
 
-**第1波(W1)の登録実験を全消化(2026-09-04)**。done 6本 = NG-E10(両ゲートPASS)+ **NG-I1 / NG-N1 / NG-E1 / NG-E5W / NG-E23(5本とも主ゲートFAIL・全て事前登録ルールの機械適用)**。残 = NG-E19SG(常時・締切前オッズ蓄積待ち)+ NG-E8SWAP(filed)。全実験で「事前登録→操作的定義の凍結→機械判定」を完走、判定ルールの事後変更ゼロ。次 = **Owner 判断3点**(N1 較正層の再ゲート / E5W 非線形方向の起票 / E1 入力側再学習の起票)+ W2 設計。
+**第1波(W1)の登録実験を全消化(2026-09-04)**。done 6本 = NG-E10(両ゲートPASS)+ **NG-I1 / NG-N1 / NG-E1 / NG-E5W / NG-E23(5本とも主ゲートFAIL・全て事前登録ルールの機械適用)**。残 = NG-E19SG(常時・締切前オッズ蓄積待ち)+ NG-E8SWAP(filed)。全実験で「事前登録→操作的定義の凍結→機械判定」を完走、判定ルールの事後変更ゼロ。**Owner 裁定受領 (2026-09-04): #6 GO → NG-N1C (Calibration-specific Gate) 事前登録済 / #7 GO → NG-E5NR (Nonlinear Environmental Regime) 事前登録済 / #8 DEFER (格 = 現象 SUPPORTED・入力側再学習は保留)**。W2 方針 = 後付け薄層の枯渇を受け「真の新情報 / regime / Calibration / Market / Current State 推定」へ重心移動 (最重要候補 = Motor Current State / Maintenance 系)。W2 Candidate Audit 完了 (2026-09-04・beforeinfo 356,476 ファイル実測)。**決定的発見: 部品交換データは 6.5 年間パーサ取り違えで実質未収集だった** (前向き修理 ≈0.5日・過去分バックフィルは Owner GO 必須)。W2 優先順位 5 本を提案済み (①NG-N1C ②Motor Current State PoC ③部品交換修理+前向き収集 ④E5NR Phase A ⑤Player Adjustment Skill — Owner 確定待ち)。
 
 ## Current Best Model / Baseline
 
@@ -37,13 +37,13 @@
 ## 現在の問題
 
 - conditional_finish に class_code 残留(再利用前に再GATE必須)
-- **N1 の閾値設計問題**: 採用ライン ΔNLL≥0.003 は「単一セルの較正補正」に対して原理的に到達不能(理論上限 ≈0.0013〜0.0015)。較正目的の実験には別スコープのゲートが必要 — Owner 判断 #6(事後変更はせず新規事前登録で対応する方針)
+- N1 の閾値設計問題 → **裁定済み (2026-09-04 Owner #6 GO)**: Calibration-specific Gate を NG-N1C として新規事前登録 (閾値は理論SEから事前設定)。NG-N1 の旧判定は「旧ゲートでは FAIL」のまま保持 — FAIL 実験を成功扱いに書き換えない
 - **まくり筋の確定は「AIの較正の歪み」であって「買える歪み」ではない**(P2 に締切前オッズが無く市場比較は不可のまま。市場側の判定は NG-E19SG / 締切前オッズ蓄積が受け皿)
 - 2026-09-04 バッチ成果物は同日 commit 済み(本セッション)
 
 ## 次にやること
 
-`NEXT_ACTIONS.md` 参照。1行版: **Owner 判断3点(#6 N1再ゲート / #7 E5W非線形 / #8 E1入力側)の裁定 → W2 設計の再優先度付け**(常時: NG-E19SG 蓄積、holdout 封印 11/1 まで)。
+`NEXT_ACTIONS.md` 参照。1行版: **W2 順位の Owner 確定 → ①NG-N1C ②Motor Current State PoC ③部品交換修理+前向き収集 ④E5NR Phase A ⑤Player Adjustment Skill の順で実行**(常時: NG-E19SG 蓄積、holdout 封印 11/1 まで)。
 
 ## 更新ルール(2026-09-04 Owner 指示で制定)
 
@@ -55,36 +55,49 @@
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-04(W1 第1波バッチ完了を反映)。第1波の登録実験は全消化(E10 両ゲートPASS + I1/N1/E1/E5W/E23 主ゲートFAIL)。
-いま研究の主導権は **Owner 判断3点** にある。裁定が出るまで新規の重い実験は起票しない。
+最新更新: 2026-09-04(W2 Candidate Audit 完了 → W2 優先順位提案を反映)。Owner 裁定: #6 GO / #7 GO / #8 DEFER。
+監査の決定的発見: **部品交換データは 6.5 年間パーサ取り違えで実質未収集だった**(前走成績を保存していた。前向き修理 ≈0.5 日・過去分は再スクレイプ 35 万ページ ≒12 日で Owner GO 必須)。
 
-## 1. 【Owner 判断 #6】N1 まくり筋較正層の再ゲート起票
+## W2 優先順位(L1 提案・Owner 確定待ち)
 
-- **論点**: N1 は主ゲート(レース全体 ΔNLL≥0.003)FAIL。だが完全 OOS でまくり筋 gap +26.3%→+2.7%(z=10.2→1.3)・副作用ゼロ・鏡像の過大評価も同時解消を実証済み。FAIL の主因は「閾値 0.003 が単一セル補正の理論上限(≈0.0013〜0.0015)より高い」という物差しのスコープ違い
-- **推奨**: 「セル較正ゲート」(①まくり筋 gap の CI が 0 を跨ぐまで縮小 ②全体 NLL 非悪化 ③非対象セルの較正非悪化)を**新規事前登録**して再判定。凍結ルールの事後変更はしない
-- **やらない場合**: まくり筋補正は AI艇報の定量根拠(表示用)としてのみ利用し、確率出力への接続は見送り
+### 1. NG-N1C — まくり筋 Calibration-specific Gate(登録済み・即実行可)
 
-## 2. 【Owner 判断 #7】E5W 風の非線形方向の起票
+- 唯一の OOS 確定歪みの回収。実装はほぼ済(N1 の凍結 λ を流用)・ゲート 6 本は事前設定済み
+- EIG: 高 / コスト: 極小
 
-- **論点**: 線形2パラメータ形は効果不在で棄却(同一形再提案禁止を registry に固定するか)。一方で**風速 7m/s+ で効果の符号が逆転**(−0.002174)= 線形仮定の破綻を発見。安定板×強風のイン受難仮説(n=3 逸話・untested)と方向が整合
-- **推奨**: 同一形禁止を固定 + 非線形(風速帯別 / 安定板交互作用)を W2 で起票。beforeinfo の stabilizer 列が使える
-- **注意**: bi 由来クリーン風向は 2026 年のみ = 過去分は 8 方位量子化の希釈あり。検証設計はデータの薄さ前提で
+### 2. W2-A — Motor Current State PoC
 
-## 3. 【Owner 判断 #8】E1 格特徴の入力側追加+再学習の起票可否
+- 監査で「今すぐ使える」が揃った: チルト(充足 94-97%・未利用 100%)+ 展示の節内日次推移 + 安定板 + モーター識別キー(物理 11,669 機・中央値 202 走/機)
+- 進め方は規律どおり: 存在確認(モーター状態の分散が着順残差に出るか統計 PoC)→ 最小特徴 → OOS 再現 → それでも表現できない場合のみ latent/アーキ投資。**単一スカラー化しない・正解ラベルを固定しすぎない**(Owner 指示 §6)
+- as-of: beforeinfo 由来で清潔。**features.parquet の展示/気象列は K(レース後)由来のため流用禁止 — beforeinfo 由来へ張替えが前提**
+- EIG: 高
 
-- **論点**: 出力への後付け薄層は「織り込み済み」で閉じた。入力側(F41→F42+)追加+再学習は未検証。ただし「モデル改造12連敗・効いたのは情報追加のみ」の法則で言えば格は"新情報"だが、E1 の焼き直し検査では setsu_day 等から 65% 再構成可能 = 新情報成分が薄い
-- **推奨**: W2 で判断(優先度は低め。再学習コスト大に対し期待増分が薄い)
+### 3. W2-B — 部品交換パーサ修理 + 前向き収集開始(≈0.5 日)
 
-## 4. 常時 — NG-E19SG(SG/G1 祭り市場効率)
+- 待つほど損する資産系。fetch_beforeinfo_ext.py の正解実装(部品=tds[7]・ペラ=tds[6])を日次取り込みへ移植し、新ペラフラグも相乗りで取る
+- Maintenance 分析本体(Problem→Intervention→Response)は蓄積後 or バックフィル GO 後
+- EIG: 高(遅延回収)/ コスト: 極小
 
-- 締切前オッズ蓄積(2026-07-10〜)待ち。**E1 副産物 venue_date_grade.parquet(29,715行)でグレードラベルは準備完了**(caveat: 2023-01〜04中旬の上流欠落)
-- 市場アノマリー3テーマの holdout は封印中(2026-09-01〜10-31)。集計・閲覧は 2026-11-01 以降
+### 4. NG-E5NR Phase A — 強風 regime 統計 PoC(登録済み)
 
-## 5. W2 設計の再優先度付け(裁定後)
+- 安定板フラグは監査で準備完了(2026 年 openapi 欠測の caveat 付き)。モデル無改変・コスト小
 
-- W1 の構造的教訓: **「凍結 B2 出力への後付け薄層」で取れる残差はほぼ枯渇**(5実験連続 FAIL。B2 は格も勝負駆けも既に織り込み、残る歪みはまくり筋のような較正セル単位のみ)
-- 含意: 次の伸びしろは ①入力側の新情報+再学習ゲート(Intent / Player Evolution 系)②較正・市場評価側(領域別較正 / E19SG)③E0/E10 個人プロファイリング路線(E23 の lane 見解でも合理的)
-- 資産: i1_features.parquet(206万行・leak test PASS)は Player Technique Expert(W2)の素材にそのまま使える
+### 5. W2-C — Player Adjustment Skill
+
+- W2-A の産物(motor state panel)に依存するため後続。partial pooling / shrinkage / as-of 前提・小標本選手を固定評価しない
+
+## 後回し(理由付き)
+
+- **D Setup Confidence**: コメントが手元に無く前向き収集の蓄積待ち(チルト変更・展示 volatility 部分は W2-A に内包)
+- **F Local×難水面**: E8SWAP の着手条件(W2-4 全滅時)のまま
+- **G Dynamic Player Trajectory**: I1 の教訓により segment 評価設計を先に固めてから
+- **H Market Recognition Lag**: 締切前オッズ蓄積 + holdout 解封(2026-11-01)後
+
+## 常時 / 保留
+
+- NG-E19SG: 締切前オッズ蓄積継続。市場分離原則の絶対維持(較正採用しても「市場 Edge」とは扱わない)
+- 格の入力側再学習: Owner #8 DEFER(現象 SUPPORTED のまま再検討条件 3 つを保持)
+- 市場アノマリー3テーマ holdout 封印中(集計・閲覧は 2026-11-01 以降)
 
 
 
@@ -1097,7 +1110,7 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
   "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
   "architecture_version": "v2.1",
   "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
-  "current_phase": "W1 第1波の登録実験を全て消化 (2026-09-04)。done = E10 (両ゲートPASS) + I1/N1/E1/E5W/E23 (5本とも主ゲートFAIL・全て事前登録ルールの機械適用)。残 = NG-E19SG (常時・蓄積待ち) + NG-E8SWAP (filed)。次 = Owner 判断3点 (N1較正層の再ゲート / E1入力側再学習の起票 / E5W非線形方向の起票) + W2 設計",
+  "current_phase": "W1 第1波の登録実験を全消化 (2026-09-04) → Owner 裁定受領 (同日): #6 GO=NG-N1C (Calibration-specific Gate) 事前登録済 / #7 GO=NG-E5NR (Nonlinear Environmental Regime・Phase A統計PoC) 事前登録済 / #8 DEFER (格の入力側再学習は保留・現象はSUPPORTEDのまま)。W2 設計方針: B2出力への後付け薄層は枯渇 → ①真に新しい入力情報 ②条件付き/regime情報 ③Calibration ④Market Evaluation ⑤Current State推定へ重心移動。最重要候補 = Motor Current State / Maintenance / Player Adjustment Skill 系。次 = W2 Candidate Audit (データ監査・実行中) → EIG再計算 → W2順位確定 → NG-N1C実行",
   "baseline_model": {
     "id": "b2f41_prod2026_prod3",
     "description": "B2構造化着順NN (41特徴・6艇self-attention・120通り直接softmax・3seed平均) + exh120展示補正層(θ9) + 市場ブレンド(w=0.85・推論後段)",
@@ -1268,7 +1281,7 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
   },
   "data_status": {
     "official_bk": "2020〜全国・ほぼ完全 (K結果はレース後公開=ラベル専用)",
-    "beforeinfo": "2020〜 (2023-01〜04欠落=素データ自体なし)。7/28-9/2の5,880R回収済(2026-09-03)。風向は復活作業中・部品交換はパーサ修理待ち",
+    "beforeinfo": "2020〜 (2023-01〜04欠落=素データ自体なし)。全356,476ファイルのフルスキャン実測 (2026-09-04 W2監査・エラー0): チルト充足94-97% (F41未収載=未利用100%)・安定板true率4.5-9.8%/年 (場別分布は物理と整合・2026はopenapi由来で構造的欠測0.6%)・気温98.7%/水温95%。**部品交換列は6.5年間パーサ取り違えで前走成績(同日前走のレース番号)を保存していた=部品交換データは実質未収集** (選手ID照合119/119で確定。正解実装は fetch_beforeinfo_ext.py に既在。前向き修理≈0.5日・過去分は生HTML未保存のため再スクレイプ35万ページ≒12日=Owner GO必須・openapiでは取れない)",
     "era5": "2020〜2026-09 毎時24場 140万行 (気圧/湿度/突風/空気密度)。事後再解析=本番は予報アーカイブ要",
     "odds_preclose": "全国 2026-07-10〜蓄積中 (real EV評価はこれのみ)",
     "setsu_master": "全期間5,311節 (artifacts/research/nextgen/setsu_master.parquet)",
@@ -1293,14 +1306,41 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
     {"n": 3, "item": "風向16方位パーサ", "recommend": "適用"},
     {"n": 4, "item": "openapi日次取り込みを夜間ジョブへ", "recommend": "追加"},
     {"n": 5, "item": "同日ソートキー修正の本番適用", "recommend": "見送り (研究ビルドのみ)"},
-    {"n": 6, "item": "N1 まくり筋較正層の扱い — 主ゲートFAILだがP2完全OOSでgap+26.3%→+2.7%・副作用ゼロ。閾値0.003は単一セル補正の理論上限(≈0.0013〜0.0015)より高く原理的に到達不能だった", "recommend": "「セル較正ゲート」(まくり筋gap消去+全体NLL非悪化+副作用ゼロ) を新規事前登録して再判定。ルールの事後変更ではなく新実験として起票"},
-    {"n": 7, "item": "E5W 風の再挑戦方向 — 線形2パラメータ形の同一形再提案禁止をregistryに固定するか", "recommend": "禁止を固定+非線形/安定板交互作用 (強風7m/s+の符号逆転・U-1) を W2 で起票"},
-    {"n": 8, "item": "E1 格特徴のB2入力側追加+再学習の起票 (出力薄層は閉じた。入力側は未検証)", "recommend": "W2 で判断 (再学習コスト大・12連敗の法則と衝突しないか要検討)"}
+    {"n": 6, "item": "N1 まくり筋較正層の扱い", "decision": "GO (Owner 2026-09-04)。Calibration-specific Gate を NG-N1C として新規事前登録済み (①対象セル|z|<2+CI 0跨ぎ ②全体NLL非劣性 ③非対象セル非悪化 ④walk-forward 3期再現 ⑤場別致命的過補正ゼロ ⑥福岡・唐津の主因診断)。NG-N1 の旧判定は変更しない (旧ゲートではFAILのまま保持)。場別λは診断のみ・本番採用せず過学習リスク評価"},
+    {"n": 7, "item": "E5W 風の再挑戦方向", "decision": "GO (Owner 2026-09-04)。線形2パラメータ形はFAIL固定・同一形再提案禁止。NG-E5NR (Nonlinear Environmental Regime) を事前登録済み — まず「強風でレース生成過程が変わるか」の最小統計PoC (逃げ率/ST/決まり手/まくり率/外艇Top3/展示→本番の分布変化)。巨大interactionモデルの一括実装は禁止。安定板はn小逸話を真実扱いせず新規仮説として扱う"},
+    {"n": 8, "item": "E1 格特徴のB2入力側追加+再学習", "decision": "DEFER (Owner 2026-09-04)。「レース格は無意味」とは扱わない — 現象 (ST・逃げ率変化) はSUPPORTED・追加予測価値は現B2では薄い (F41から65%再構成可・新情報量薄・再学習コスト大・モデル改造12連敗)。他の新規入力とまとめて再学習するタイミング / architecture revision / Stage Expert の明確な追加証拠が出た場合に再検討"}
   ],
+  "w2_directives_owner_20260904": {
+    "design_shift": "B2出力への後付け薄層は枯渇 → ①真に新しい入力情報 ②条件付き/regime-specific情報 ③Calibration ④Market Evaluation ⑤Current State推定へ重心移動。「公開静的情報をもう1個足す」より「レース当日のCurrent State推定」を優先",
+    "motor_current_state": "W2最重要候補の1つ。単一スカラー化しない (Stretch/Acceleration/Turn Exit/Turning/Handling/起こし/Stability/Setup Confidence 等の複数軸latent候補)。人間が正解ラベルを固定しすぎない — 観測可能proxyは明示・不明部はlatent表現",
+    "maintenance": "部品名フラグで終わらせない。Latent Problem → Intervention → Observed Response の構造 (交換前の不調・交換後の展示/ST/着順残差/コメント変化・翌日以降の改善・選手差)",
+    "player_adjustment_skill": "同じ悪モーターからの改善能力の選手差。partial pooling / shrinkage / as-of更新前提。小標本選手を固定評価しない",
+    "setup_confidence": "ペラ形状が直接取れなくても調整発言/頻度/チルト変更/展示推移/本番結果から Setup Confidence / Adjustment Volatility / Convergence を推定できないか",
+    "discipline": "Expert群/GAT/Master Integratorを一気に実装しない。存在確認→最小PoC→OOS再現→単純特徴で表現できない場合のみアーキ投資 (E10でGATを即起票しなかった規律を維持)",
+    "market_separation": "Fundamental→Calibration→Market Evaluation→Betting Decisionの分離を絶対維持。まくり筋補正が較正採用されても「市場Edgeがある」とは扱わない。市場側は締切前オッズ蓄積後に別途検証 (E19SG常時継続)",
+    "w2_candidates": "A=Motor Current State / B=Maintenance・Parts / C=Player Adjustment Skill / D=Propeller・Setup Confidence latent / E=Nonlinear Wind・Stabilizer Regime / F=Local×Difficult Conditions / G=Dynamic Player Skill Trajectory / H=Market Evaluation・Recognition Lag — 各候補を期待予測価値/未利用情報量/データ品質/as-of化/leakage/実装コスト/n/B2重複/市場織り込み/EIGで評価して順位提案 (監査実行中)",
+    "new_concepts_hypothesis_only": "Daily Race Regime (当日1R〜現在Rの逐次推定) / Player×Motor Compatibility / Attack×Resistance (受け側の抵抗) / Tactical Predictability / Value of Information — 真実として実装せず、適合性とEIGで順位付けして必要なら研究候補化",
+    "segment_eval": "Dynamic Player State系は全国平均NLLだけでなく若手/急成長/急低下/特定コース/特定Stageのsegment valueも確認 (I1の教訓: 現象説明できても全国NLLに効かない可能性)"
+  },
+  "w2_audit_20260904": {
+    "source": "lane-reports/w2_data_audit_20260904.md + artifacts/research/nextgen/w2audit/w2_data_audit.json (beforeinfo 356,476ファイル・フルスキャン実測)",
+    "ready_now": ["チルト (24場2020-26・充足94-97%・節内変更追跡可・未利用100%)", "安定板 (true率4.5-9.8%/年・場別分布が物理と整合・2026年openapi欠測caveat)", "展示の未利用粒度 (節内日次推移・スタ展進入変化13.06%=スタブ疑い検証済みシロ)", "モーター識別 (場,motor_no,交換年度キー成立・物理11,669機・中央値202走/機)", "節マスタ/standing_panel (356,580行/2,059,541行)", "気象 ERA5 1,403,136行"],
+    "repair_needed": ["部品交換: パーサ修正+前向き収集=小(≈0.5日・fetch_beforeinfo_ext.pyの正解実装を移植)。過去分バックフィル=大(再スクレイプ35万ページ≒12日・Owner GO必須)"],
+    "acquisition_needed": ["新ペラフラグ (beforeinfoページに列は実在→部品交換修理に相乗り可)", "選手・調整コメント (手元に無し・前向きのみ・fetched_at付きingest guard設計)"],
+    "leakage_top3": ["features.parquetの展示/進入/ST/気象はK(レース後)由来 — 新規Motor研究が素で読むと即事故。beforeinfo由来へ張替え必須", "national buildの同日ソート順欠陥 — 節内Motor State等の同日集計の前に研究ビルドのソートキー修正が前提", "2026年のソース断層 (openapi: 部品/安定板欠測) — 年×ソース交絡につき_sourceフラグ伝搬必須"],
+    "w2_priority_proposal": [
+      {"rank": 1, "id": "NG-N1C", "why": "登録済・実装ゼロに近い・唯一のOOS確定歪みの回収。即実行可", "eig": "高/コスト極小"},
+      {"rank": 2, "id": "W2-A Motor Current State PoC", "why": "未利用100%のチルト+展示節内推移+安定板+モーター識別が全部「今すぐ使える」。as-ofはbeforeinfo由来で清潔。B2重複は成績3本+展示z9本のみ", "eig": "高"},
+      {"rank": 3, "id": "W2-B 部品交換パーサ修理+前向き収集開始", "why": "≈0.5日で資産が毎日積み上がり始める (待つほど損)。分析自体は蓄積後orバックフィルGO後", "eig": "高(遅延回収)/コスト極小"},
+      {"rank": 4, "id": "NG-E5NR Phase A", "why": "登録済・統計PoCのみでコスト小。安定板データ準備完了", "eig": "中〜高"},
+      {"rank": 5, "id": "W2-C Player Adjustment Skill", "why": "W2-Aの産物 (motor state panel) に依存するため後続。partial pooling前提", "eig": "中〜高"}
+    ],
+    "deferred_candidates": {"D": "Setup Confidence — コメント前向き収集の蓄積待ち (チルト変更・展示volatility部分は W2-A に内包)", "F": "Local×難水面 — E8SWAP着手条件のまま", "G": "Dynamic Player Trajectory — I1教訓によりsegment評価設計を先に固めてから", "H": "Market Recognition Lag — 締切前オッズ蓄積+holdout解封 (11/1) 後"}
+  },
   "next_actions": [
-    "Owner判断3点 (pending #6 N1再ゲート / #7 E5W非線形起票 / #8 E1入力側) の裁定待ち — 詳細は NEXT_ACTIONS.md",
-    "常時: NG-E19SG (SG/G1市場効率。締切前オッズ蓄積 2026-07-10〜。grade表は E1 副産物が利用可)",
-    "W2 設計の再優先度付け: W1の教訓=「B2出力への後付け薄層」で取れる残差はほぼ枯渇 → 情報は入力側 (再学習ゲート) か、較正・市場評価側 (Calibration領域別/E19SG) へ",
+    "W2優先順位 (2026-09-04 L1提案・Owner確定待ち): ①NG-N1C(即実行可) ②W2-A Motor Current State PoC ③W2-B 部品交換パーサ修理+前向き収集(≈0.5日) ④NG-E5NR Phase A ⑤W2-C Player Adjustment Skill(②依存)。詳細=w2_audit_20260904.w2_priority_proposal",
+    "部品交換の過去分バックフィル (再スクレイプ35万ページ≒12日・polite必須) は別途Owner GO",
+    "常時: NG-E19SG (締切前オッズ蓄積 2026-07-10〜。grade表=E1副産物が利用可)",
     "市場アノマリー3テーマ holdout 封印中 (2026-09-01〜10-31)。集計・閲覧は 2026-11-01 以降"
   ]
 }
