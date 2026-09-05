@@ -12,19 +12,17 @@
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: NG-MS3 (実行中 04:17〜) / NG-G3 (registered・MS3完了後に直列実行)(実行中なし。第1波5本 (NG-I1/N1/E1/E5W/E23) は 2026-09-04 に並列レーンで実行し全て done_primary。詳細は registry と lane-reports/{i1_proxy,n1_rewei…)
-- 自走ジョブ: 部品層化バックフィル PID 50737(status=running・1132/49968 ページ・残り目安 7.87 日)
+- 実行中の実験: なし(W3完走 (2026-09-06 06:08)。実行中の自走=部品バックフィル (PID 50737) のみ。次はOwner裁定待ち: NG-EXIN1/SC2/SOB1将来窓ほかNEXT_ACTIONS参照)
+- 自走ジョブ: 部品層化バックフィル PID 50737(status=running・1622/49968 ページ・残り目安 7.39 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
-- NG-MS3(registered): 5アーム ablation — 当日展示z × 現在モーター状態MS6 の増分帰属分解 (Owner必須検証5比較・パネル窓・MS2と同一プロトコル)
-- NG-G3(registered): 本番相当窓ゲート — F41 vs F41+MS6 (train 2020-01-01..2026-07-01・本番と同一手順)・exh120併用 stacked 評価 = MS2 PASS の昇格判定の本丸
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-MS2**(2026-09-06・done_primary・PASS): **PASS** — 凍結2条件 (ΔNLL point≤−0.003 かつ CI95上端<0) を両fold通過・符号反転なし。Δ=(F41+MS6)−同一窓再学習F41 (3seed・cluster bootstrap B=2000): fold1 (test 2025-07〜12, n=25,367) **ΔNLL −0.0136** CI95[−0.0170,−0.0103] / fold2 (test 2026-01〜06, n=25,559)…
-- **NG-SC1**(2026-09-06・done_exploratory・—): eligible 341,174R (96.9%)。①粗抽出=可: P(S) 年別最大乖離1.35pp・kimarite 分布は定義に使わず明確分離 (WK_IN_LEAD 逃げ71.3% / WK_KADO まくり32.9% / Cramér's V 0.162)・閾値±摂動8変種で top3 順位 Spearman≥0.96。②同一3連単の多起源=強く支持: 頻出top-20 全てで mixture(1-max P(S|T))=0.60-0.68・H…
 - **NG-RC2**(2026-09-06・done_primary・—): v1 = C2_top6mass (p120上位6点の確率質量・単独指標)。凍結tie_breakどおり: 軸A hit6-AUC で C2=C4学習型=0.6435 同着 (C5ランク平均0.6401 / C1負entropy 0.6383 / C3負n80 0.6341)・軸B差0.001≦0.05 → 単純側採用。学習型合成が単独指標に勝てない=加重平均の必要性自体が否定された。軸A OOS (2026H1 n=25,559): 2025H2凍結t…
 - **NG-SOB1**(2026-09-06・done_primary・PASS): **PASS** (凍結基準の機械判定: 宣言14検定中8本成立・うちtop1結果スケール4本≥1・n=280,783)。成立8本= top2残差: 4→5(+0.617)/2→1(+1.043側の3→1含む: 2→1 +0.546・3→1 +1.043)/4→2(−0.625)、top1結果: 4→5(+0.345)/2→1(−0.927)/3→1(−1.247)/4→1(−1.423)。全て両半期CI95非跨ぎ+placebo(識別置換)p≤0.01…
 - **NG-WPOC1**(2026-09-06・done_primary・—): 不支持 (凍結基準の機械判定・n=313,020 R2-R12・|ΔW|群 152k/119k/42k)。primary: 展示ST→本番ST レース内Spearman の theta_dW2plus=-0.00188 CI95[-0.00832,+0.00504] p=0.63・半期符号不一致 (H1 +0.0030/H2 -0.0065)・theta_dW1=-0.00026。全群の平均Spearman自体が~0.076と低く低下余地が小さい (床効…
+- **NG-MS3**(2026-09-06・done_primary・—): MS_NET_ZERO (harness_suspect=False・placebo健全)。5アーム帰属分解 (パネル窓2fold・3seed・cluster bootstrap): fold2 Δ(ex−base)=−0.0209 [−0.0241,−0.0179] = 当日展示z単独がMS6 (−0.0160) より強い / Δ(exms−ex)=+0.0023 [+0.0001,+0.0045] = 当日展示併用下でMS6純増分は無し・むしろ僅かに…
+- **NG-G3**(2026-09-06・done_primary・FAIL): FAIL_STACKED — MS6の本番昇格なし (凍結2条件の機械判定)。本番相当窓 (train 2020-01..2026-07・base=本番バンドル再利用・mu/sd一致assertで窓不変証明): 生ΔNLL=−0.0146 (方向一致・副判定PASS) だが exh120併用スタックのholdout (2026-07-01..08-03, n=4,681R) で stacked Δ=+0.00576 CI95[+0.0002,+0.011…
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
 1. **G3 起票 = モーター状態特徴の本番相当窓での再検証**(2020〜フル学習で増分が残るか+exh120併用下の純増分)→ PASS なら本番昇格判断。**AI推奨=最優先で起票**
@@ -75,6 +73,7 @@
 - **NG-N1C**(done_primary): FAIL (①②⑤成立 / ③④不成立 → 凍結decision_ruleどおり不採用のまま原因報告)。①対象セル: P2完全OOSでgap +0.001298→+0.000166 CI95[−0.000076,+0.000419] z=+1.32=成立 ②全体NLL非劣性: 6集合すべてCI下端>−0.0005・Δ…
 - **NG-PXR1**(done_primary): Step1 FAIL / Step2 FAIL (凍結基準の機械判定・n=280,783)。Step1: 攻撃チャネル6中PASS1のみ (4→5 +0.617 [+0.480,+0.751]。2→1/3→1は宣言と逆符号で有意=攻め手在席時にAIは1号艇top2を**過小**評価) — 基準≥3/6未達。別枠1→2…
 - **NG-N1R**(done_primary): FAIL (①②③⑤成立・④のみ2/3で不成立→凍結decision_ruleどおり不採用。N1/N1CのFAIL不変)。①P2全窓 gap_after −0.000013 (z=−0.10・CI 0跨ぎ) = N1C固定λ (z=+1.32) から1桁改善 ②全体NLL非劣性4集合成立 ③BH族補正 (3期×11帯…
+- **NG-G3**(done_primary): FAIL_STACKED — MS6の本番昇格なし (凍結2条件の機械判定)。本番相当窓 (train 2020-01..2026-07・base=本番バンドル再利用・mu/sd一致assertで窓不変証明): 生ΔNLL=−0.0146 (方向一致・副判定PASS) だが exh120併用スタックのholdout …
 
 ## 7. Data Collection Status(正本 = DATA_STATUS.md・全文は下部に連結)
 - 部品交換 層化バックフィル(B 案)
@@ -96,8 +95,6 @@
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-06 | 部品交換 層化バックフィル B 案 | 起動 — 49,968 ページ・PID 50737・polite sleep≥2.5s・日次 8,000 上限・ETA ≈7 日。全量 35 万は未承認のまま
-- 2026-09-06 | NG-MS2(現在モーター状態 特徴ゲート) | **PASS** — ΔNLL −0.0136/−0.0160(両 fold CI クリーン・12 ヶ月連続負)= extra3 以来の入力側特徴勝利・exh120 級。本番昇格は G3(本番相当窓再…
 - 2026-09-06 | NG-PXR1(展開圧力×対応力 Step1-2) | **FAIL** — B 側個人差は検出不能(p=0.992)・A 側 slope は宣言と逆符号あり → **GAT・pairwise は棚上げ確定(2 重の否定)**。副産物=攻め手在席時の条件付…
 - 2026-09-06 | NG-N1R(rolling/as-of λ) | **FAIL(④のみ不成立)** — 不採用のまま。主成果= λ 軌跡 +0.172→+0.281(約 1.6 倍上昇)=歪みの時間変化を確定記述。縮小局面の過補正が本番接続時の最重要リスク
 - 2026-09-06 | NG-RC1(読めるレース診断) | done_exploratory — 「読めるレース」は実在しレース前に entropy/自信で識別可能(上位 10% で 3 点 42%/6 点 60.8%)。読める≠儲かる(オッズ未評価)。運用化は事前固定閾値+…
@@ -106,6 +103,8 @@
 - 2026-09-06 | NG-SC1(Scenario 分解診断) | done_exploratory — 分解は「説明」として成立(同一3連単の多起源を強く支持)。ただし P(S) の事前予測が律速(AUC≤0.57 では不足)・Meaningful Tail はこの粒度で不在
 - 2026-09-06 | NG-RC2(Compressibility Score v1) | **判定確定(v1=C2_top6mass)** — 単独指標が学習型合成と同着 → 凍結 tie_break で単純側採用。用途は確実性メーター(選別・点数圧縮)でありエッジ検出器ではない。読める≒儲かるは No(T-3 オッズ・…
 - 2026-09-06 | NG-SOB1(二次受益艇 as-of 検定) | **PASS(留保付き)** — 宣言 14 検定中 8 本成立・スケール反転仮説を初の正式検定で確認。ただし宣言符号は PXR1 記述由来 in-sample → 将来窓での再確認まで仮説昇格に使わない
+- 2026-09-06 | NG-MS3 | 判定 MS_NET_ZERO — 当日展示z併用下でMS6純増分なし (Δ(exms−ex)=+0.0023 CI[+0.0001,+0.0045])・placebo健全
+- 2026-09-06 | NG-G3 | 判定 FAIL_STACKED → MS6本番昇格なし — stacked Δ=+0.0058 CI[+0.0002,+0.0112] (凍結2条件)。生−0.0146は方向一致。b2f41不変
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -197,14 +196,20 @@
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-06 早朝(**W3 = Owner 研究指令の実行中・中間同期**)。実行中の自走 = 部品バックフィル(PID 50737)+ NG-MS3 学習 → NG-G3。
-**研究の主導権は 2026-09-06 の Owner 研究指令 (W3) にある。**
+最新更新: 2026-09-06 06:30(**W3 = Owner 研究指令 完走**)。実行中の自走 = 部品バックフィル(PID 50737)のみ。
+**W3 の 9 判定は research_state.json / DECISION_LOG / MORNING_BRIEF_20260906 参照。production 変更ゼロ(b2f41 不変)。**
 
-## W3 中間状況(2026-09-06 早朝・詳細は research_state.json の current_phase)
+## W3 完走後の優先キュー(Owner 裁定待ち・推奨順)
 
-- 確定: NG-RC2 done_primary(RC Score v1 = top6_mass・読める≠儲かる)/ NG-SC1 done_exploratory(scenario 分解成立・Meaningful Tail 不在・SC2 起票候補)/ NG-SOB1 PASS(2着スケール反転・in-sample caveat 付き)/ NG-WPOC1 不支持(副産物 = 風変化で ST +3.7ms)/ W-2 R1 気象汚染確定(恒久規律 = R1 除外)/ W-1 風コレクタ実装済(crontab = shin)
-- 実行中: NG-MS3(5 アーム帰属分解)→ NG-G3(本番相当窓 + exh120 併用 stacked ゲート = MS6 昇格の本丸)
-- 旧 Owner 判断リストとの対応: #1=G3 実行中 / #5=R1 汚染確定で解決 / #6=コレクタ実装済(crontab 待ち)。#2 T-3 ドリフト・#3 バンドル突合・#7 較正歪み・#8 打診文面は未裁定のまま
+1. **NG-EXIN1 起票 = 当日展示の「入力側」特徴化 vs exh120 後段補正の stacked 直接対決**(W3 最大の発見の回収: MS3 で ex アーム raw −0.0209 実測・G3 型ゲート流用で設計済み同然。入力側が勝てば本番構造変更に値する)**AI 推奨 = 最優先**
+2. **SC2 起票 = scenario 条件付き較正ゲート**(SC1 の較正ズレ: イン逃げ実現時 +7.2pp 過小 / 攻め実現時 −8〜12pp 過大を N1C 同型の凍結ゲートで回収。成功条件は P(S) 予測精度でなく S 条件付き ΔNLL)
+3. **SOB1 将来窓再確認**(in-sample caveat の解消。2026-07 以降蓄積+11/1 holdout 開封で。B2 残存の「4→1 攻め時勝率低下」が最有力チャネル)
+4. 旧リスト未裁定分: T-3 ドリフト追試 / バンドル突合 G1-G5 / 攻め手在席較正 / 打診文面(実送信=Owner)
+5. shin 設置待ち: 部品日次 crontab 1 行 + **風コレクタ crontab 2 行**(wind_w123_20260906.md 記載)
+
+## 旧 Owner 判断リストとの対応(2026-09-06 完走時点)
+
+#1 G3 = **完走 FAIL_STACKED**(MS6 昇格なし・当日展示入力側へ主戦線移動)/ #5 R1 気象 = **汚染確定・解決**(恒久規律 R1 除外)/ #6 風 = コレクタ実装検証済(crontab 待ち)/ #4 ADJMS1 = MS_NET_ZERO を受けて設計見直し推奨(展示先読みの価値が下がったため優先度低下)/ #2・#3・#7・#8 = 未裁定のまま
 
 ## 完走した判定(2026-09-06)
 
@@ -293,6 +298,8 @@
 - **#1〜#5 のうち残作業の確認**: #5 同日ソートキー修正は「見送り(研究ビルドのみ)」の裁定で確定済みだが、#2 7/27 劣化 153 件修復の完了確認は未記録
 - G3(NG-MS2 の本番相当窓再検証)の起票 = NEXT_ACTIONS.md Owner 判断リスト 1(AI 推奨=最優先)
 - T-3 ドリフト追試 / バンドル突合ゲート G1-G5 / NG-ADJMS1 起票 ほか = NEXT_ACTIONS.md Owner 判断リスト 2〜9
+| 2026-09-06 | NG-MS3 | 判定 MS_NET_ZERO | 当日展示z併用下でMS6純増分なし (Δ(exms−ex)=+0.0023 CI[+0.0001,+0.0045])・placebo健全 | 機械判定 (凍結プラン) |
+| 2026-09-06 | NG-G3 | 判定 FAIL_STACKED → MS6本番昇格なし | stacked Δ=+0.0058 CI[+0.0002,+0.0112] (凍結2条件)。生−0.0146は方向一致。b2f41不変 | 機械判定 (凍結プラン) |
 
 
 
@@ -1472,11 +1479,11 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 ```json
 {
   "updated_at": "2026-09-06",
-  "updated_by": "claude/w3-session (elpsykongroo, Owner研究指令W3の中間同期)",
+  "updated_by": "claude/w3-session (Owner研究指令W3 完走)",
   "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
   "architecture_version": "v2.1",
   "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
-  "current_phase": "W3 (Owner研究指令 2026-09-06) 実行中・中間同期。確定4本+診断2本: NG-RC2 done_primary (RC Score v1=top6_mass単独指標・学習型合成と同着=加重平均不要をデータが証明・OOS上位10%でhit6 62.4%=+21.8pp・24/24場プラス・閾値半年先まで移転。ただしT-3オッズとのutility相関≈0 =「読める」は本物だが用途はレース選別/点数圧縮メーターでありエッジ検出器ではない) / NG-SC1 done_exploratory (scenario 10クラスrule分解成立・決まり手不使用・同一3連単の多起源を定量確認・Meaningful Tail不在=集中は穴でなくイン先行bodyに住む・S実現条件付きでB2に系統較正ズレ: イン先行実現時+7.2pp過小 z=+19.2/攻め実現時-8〜12pp過大→SC2=S条件付き較正ゲート起票候補) / NG-SOB1 PASS 14検定中8本 (second-order beneficiary初の正式as-of検定・「まくりは1着を奪うが2着は残す」スケール反転成立・4カド攻め→5号艇追随は両スケール成立・「AIの1号艇過小評価」はLGB代理の癖の疑い(B2で逆符号)だが4→1攻め時の勝率低下はB2でも残存=織り込み不足候補。宣言符号が同一パネル由来のin-sample caveat→将来窓再確認まで昇格禁止) / NG-WPOC1 不支持 (ΔW×展示予言力は床効果。副産物=|ΔW|>=2で本番ST+3.7ms遅延+SD増が半期完全再現=環境「変化」成分の実在) / W-2 R1気象汚染 確定 (3検定全てp=0.001・6.5年×24場・R1スタンプは当日終値。E5NR主検定とB2本番特徴はK風使用で無傷0行。恒久規律=beforeinfo気象解析はR1除外) / W-1 風コレクタ2本実装+単発検証PASS (crontab 2行=shin設置待ち)。実行中: NG-MS3 5アームablation (当日展示/MS帰属分解・MPS) → 完了後 NG-G3 (2020〜本番相当窓+exh120併用stacked純増分ゲート=MS6本番昇格の本丸)。docs: §16 mirror再構成済 (DECISION_LOG.md/DATA_STATUS.md/designs 3枚新設)",
+  "current_phase": "W3 (Owner研究指令 2026-09-06) 完走。9件の判定: NG-MS3 MS_NET_ZERO (当日展示z単独−0.0209がMS6−0.0160より強く、当日展示併用下でMS6純増分は+0.0023=無し。MS2 PASSの実体=当日展示の冗長エンコード) / NG-G3 FAIL_STACKED (本番相当窓で生−0.0146だがexh120併用スタック+0.0058 CI[+0.0002,+0.0112]=MS6本番昇格なし・b2f41不変) / NG-SOB1 PASS (2着スケール反転=まくりは1着を奪うが2着は残す・in-sample caveat付き・4→1攻め時勝率低下はB2でも残存=織り込み不足候補) / NG-SC1 done_exploratory (scenario 10クラス分解成立・Meaningful Tail不在=集中はbodyに住む・S実現条件付きでB2に系統較正ズレ→SC2起票候補) / NG-RC2 done_primary (RC Score v1=top6_mass・OOS上位10%でhit6 62.4%=+21.8pp・24/24場・utility相関ゼロ=読める≠儲かる) / NG-WPOC1 不支持 (副産物=風変化でST+3.7ms遅延+SD増・半期完全再現) / W-2 R1気象汚染確定 (6.5年×24場・恒久規律=beforeinfo気象解析はR1除外・E5NR主検定とB2本番特徴は無傷) / W-1 風コレクタ2本実装検証済 (crontab 2行=shin設置待ち) / docs §16 mirror再構成済 (DECISION_LOG/DATA_STATUS/designs新設)。次の主戦線 = NG-EXIN1 (当日展示の入力側特徴化 vs exh120後段のstacked直接対決・MS3でex raw−0.0209実測) + SC2 (S条件付き較正ゲート) + SOB1将来窓再確認。production変更ゼロ (b2f41_prod2026_prod3不変)",
   "baseline_model": {
     "id": "b2f41_prod2026_prod3",
     "description": "B2構造化着順NN (41特徴・6艇self-attention・120通り直接softmax・3seed平均) + exh120展示補正層(θ9) + 市場ブレンド(w=0.85・推論後段)",
@@ -1487,8 +1494,8 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
     "id": "b2f41_prod2026_prod3",
     "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
   },
-  "current_experiment": "NG-MS3 (実行中 04:17〜) / NG-G3 (registered・MS3完了後に直列実行)",
-  "current_experiment_note": "実行中なし。第1波5本 (NG-I1/N1/E1/E5W/E23) は 2026-09-04 に並列レーンで実行し全て done_primary。詳細は registry と lane-reports/{i1_proxy,n1_reweight,e1_stage,e5w_wind,e23_utility}_20260904.md",
+  "current_experiment": null,
+  "current_experiment_note": "W3完走 (2026-09-06 06:08)。実行中の自走=部品バックフィル (PID 50737) のみ。次はOwner裁定待ち: NG-EXIN1/SC2/SOB1将来窓ほかNEXT_ACTIONS参照",
   "experiments": {
     "registry_path": "artifacts/research/experiment_registry.jsonl",
     "adopted": [
