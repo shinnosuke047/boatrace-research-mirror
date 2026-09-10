@@ -4,50 +4,47 @@
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
 
-- 更新: 2026-09-10 16:10(Owner 研究指令 第 2 弾「AI と市場の意見差を較正し、本当に買えるエッジが現実的な頻度で残るか決着させる」の実行後)
-- 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / DATA_STATUS / FINDINGS / registry)の人間向け要約。内部 ID は括弧で添えるだけ。数値の細部は各正本と lane-reports/t3d3_market_shrinkage_20260910.md へ
+- 更新: 2026-09-10 22:20(Owner 研究指令 第 3 弾「高配当側の過信を最後に検証し、その後の主戦線を決める」の実行後)
+- 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / DATA_STATUS / FINDINGS / registry)の人間向け要約。内部 ID は括弧で添えるだけ。数値の細部は各正本と lane-reports/t3d4_payout_tail_20260910.md、情報の棚卸しは designs/prediction_information_gap_audit_20260910.md へ
 - 最終ゴール: 未来の未見レースで、締切前に固定したルールだけを使って、実際に取得可能なオッズで BET / NO BET を決め、資金を増やせるかを判定すること
 
 ## 1. 今何が分かったか(今回)
 
-- **AI の確率を市場の確率へ 3〜6 割寄せるだけ(調整つまみ 1〜2 個・新しい AI は作らない)で、予測そのものは良くなった**。3連複・2連単・2連複では「AI 単独」「市場単独」のどちらより当たりの見立てが正確になり、3連単は市場と同じ精度まで、単勝だけは AI 単独のままが最も良い。寄せ幅は市場の丸写しにはなっていない(NG-T3D3)
-- **「EV がある」と選んだ後の過信も、的中率で見ればほぼ直った**。2連単は完全に(言った確率どおり当たる)、2連複・3連複もほぼ。3連単だけは直り切らない(実際の的中は言った確率の 6 割)
-- **買える候補は大量に残る。頻度はまったく問題にならない**。EV 1.15 以上が 1 レースに 0.6〜1.5 組、全国換算で年 2〜8 万点。1 レース 1 点に絞っても 1 日 100 点前後。真偽の判定は数か月〜1 年でつく(20 年かかる戦略は 1 つも無かった)
-- **ところが、実際に受け取る額(確定配当)で見ると 4 券種とも 1 を割る(0.64〜0.85)**。理由は 2 段: ①選んだ組の配当は締切までに 8〜15% 下がる(1〜3 分で。3 分前なら 3〜4 割、単勝は 6 割)②的中率では較正できていても、金額を支配する「高配当の組」ではまだ AI の確率が高すぎる。つまり残った過信は「オッズの高さ」に沿って偏っている
-- 事前に固めた機械判定は**ケース1(3連複・2連単・2連複が Market Gate 候補・3連単は却下)**。しかし実際の受取額まで見ると**ケース3 寄り(AI と市場の食い違いは主に AI の誤差で、買える歪みはまだ証明できていない)**。判定ルールに「実際の受取額」を入れていなかったのは私の設計漏れで、ルールは事後に変えていない(別掲で示した)
-- 唯一の例外候補: 桐生・住之江の 2連複を締切 3 分前の板で選んだとき、実際の受取額が 1.07〜1.24(300〜600 点・偶然の範囲かどうかまだ言えない)= もっとデータが要る
-- 3連単を主商品にする理由は残っていない。1 分前の板では却下、8 分前の板の「合格」は締切までに消え、収束も一番遅い
-- 知人(競艇 AI 研究者)の研究ノート 161 項目と照合: 一致 28 / 食い違い 9(測り方の差で説明可)/ 未検証 7。「問題は選び方」「EV で選ぶと誤差を拾う」「2連複が相対的に有望」「単勝は締切までに半減」は一致。知人が唯一残した候補は「市場と市場の食い違い」で今回の AI ブレンドとは別物。今回の「食い違いに応じて縮める」は知人が試していない分岐
+- **「配当の高さに応じて AI の確率をさらに市場側へ縮める」補正は効かなかった(NG-T3D4・4 券種とも不合格)**。予測のズレ(NLL)で最適化した補正は 0 か逆向き(希少な組ほど AI を信じる)になり、EV で選んだ後の高配当側の金額加重の較正は 0.35〜0.73 → 0.23〜0.43 と悪化か不変。実際に受け取る額(確定払戻・診断)は 3連複 0.58 / 2連単 0.69 / 2連複 0.69 / 3連単 0.35 で、閾値 6 段 × 買い方 2 通り × 4 券種の全 48 通りで 1 を超えるものは無かった(最大 2連複 1 点買い 0.91)
+- **理由は構造的で、直せる種類のものではなかった**: 市場の確率で 10 等分して見ると、**AI も市場も同じ形で高配当側を過信している**(2連複 36 倍〜・2連単 90 倍〜・3連複 35 倍〜・3連単 350 倍〜から的中が予測を下回り、最も希少な 1 割では予測の 1〜3 割しか当たらない。AI と市場の較正比はどの帯でも ±0.05 で一致)。「AI と市場の間を取る」補正では、両方が高すぎる帯を下げられない。直すなら「希少な組ほど確率をゼロ側へ縮める」という別の構造が要るが、指令どおり起票しない(記録のみ)
+- **意外な発見(重要)**: EV で選んだ後に生き残るのは**「AI と市場の意見が大きく食い違う・10〜50 倍の組」**だった(2連単 47 倍帯 実現 1.10 [0.73,1.45]・2連複 13〜23 倍帯 0.95〜1.03・金額加重でも較正 0.9〜1.07)。負けているのは**「意見の差は僅かなのに 100 倍超だから EV が立つ組」**(実現 0.2〜0.5 = 誤差をオッズで増幅して拾っている)。指令 §9 の「大きい乖離ほど AI の誤差」は逆だった。ただし生き残り帯でも損益分岐点前後(表示→確定で払戻が 25% 減る)で、+EV の証明ではない
+- **負けの分解**: 予測の問題(A)が主(対数で −0.44〜−0.69)、価格の問題(B)が次(−0.26〜−0.29 = 的中した組の払戻は表示の 75%)、選び方(C)がそれを増幅。3 つとも実在し、順序は A > B ≒ C。「市場研究ではなく、AI の条件付き精度不足」と判定
+- 唯一 1 を超えた桐生・住之江の 2連複 3 分前(1.03 [0.68,1.43])は、同じモデルの再現 0.99・別期間 0.82 で再現せず = 11/1 の再判定リストに載せるだけ
+- **情報の棚卸し(Prediction Information Gap Audit)**: 今の AI が持つのは「成績の袋 + 節内フォーム + 場×コース率 + ST 分布 + 風速/波 + 当日展示(別層)」。持っていないのは**「状態の変化」(ST の傾き・直近の外し方・攻め率の変化)と「展開の型」(攻め手×受け手×コース構造)**。採点(5 項目)は **C 展開の型 9 点 > A 選手の動的状態 8 点** > E 場×難条件 7 > B 調整能力×現在状態 6 = D 専門家の観察 6
 
 ## 2. それで何が変わったか
 
-- 「AI vs 市場」の勝負は、**予測精度では AI+市場のブレンドが勝つのに、財布では負けている**という形で決着しつつある。負け方が「頻度」でも「的中率」でもなく「価格」と「高配当側の過信」に絞れた
-- 直すべき箇所は 1 つ: **配当の高さに応じて AI の確率をさらに縮める**(つまみ +1〜2 個)。それで実際の受取額が 1 を超えるかを、次は最初から「受取額」で判定する
-- 締切直前〜締切後のオッズは今日 15:45 から自前で貯まり始めた(24 場・5 券種・1 日約 3,000 リクエスト)。11/1 まで値は見ない
-- 仮想運用(shadow)の単勝は、今夜から「3連単から逆算した単勝価格」で EV を判定する(本番の買い方は不変)
-- 本番モデルと 11/1 の holdout 判定ルールは変更なし
+- **市場較正レーンは閉鎖**(T3D1 → T3D2 → TS1 → T3D3 → T3D4 の 5 本で決着・ケース3 確定)。Market Gate は開けない。市場ブレンドのパラメータ追加(T3D5, T3D6…)は禁止
+- **主戦線は「予測精度」に戻る**: 市場と意見が違う条件(乖離が大きい 10〜50 倍の帯)で AI の方が本当に正しくなる情報を増やす。新しいアーキテクチャは作らない
+- 本番モデル・11/1 の holdout 判定ルール・forward collector・shadow・部品バックフィルは変更なし
 
 ## 3. 儲けるまで何が足りないか
 
-- **高配当側の過信を直しても、実際の受取額で +EV が残るか**(次の 1 手)。残らなければ「現 AI では市場に勝てていない」を認め、11/1 の開封と自前の締切直前価格を待つ
-- 締切直前(10 秒前〜締切後)の実価格の自前データ(今日から蓄積・11/1 まで封印)
+- **AI の本当の情報が住む帯(乖離大 × 10〜50 倍 = 攻めで決まる中穴)で条件付き精度を上げる情報**。候補は「攻め手×受け手×コース構造」(C)と「選手の動的状態」(A)
+- 表示価格から確定払戻までの 25% の価格減の実測(11/1 に forward collector の締切直前価格で再測定)
+- Market Gate を再開するときの選び方(「乖離の絶対量」か「オッズ上限」を持つ選択規則)— 今は実験しない
 - 実弾の資金管理設計は未着手のまま(候補が出てから)
 
 ## 4. 今動いているもの
 
-- 部品交換履歴のバックフィル: 約 5 万ページのうち 8,453(9/16 完走目安)
-- 締切直前オッズの自動収集(3連単 = 7/10〜・単勝 = 7/16〜・**5 券種の締切直前〜締切後 = 9/10〜**)と holdout の封印
+- 部品交換履歴のバックフィル: 約 5 万ページのうち進行中(9/16 完走目安)
+- 締切直前オッズの自動収集(3連単 = 7/10〜・単勝 = 7/16〜・5 券種の締切直前〜締切後 = 9/10〜)と holdout の封印
 - 仮想運用の単勝(方式 A 判定・毎晩 23:30)
-- 実行中の実験: なし(T3D3 完了)
+- 実行中の実験: なし(T3D4 完了)
 
 ## 5. 次の 1 手
 
-- **「配当の高さに応じて縮める」較正を 1 本だけ事前登録して実行し、判定を「実際に受け取る額」に置く(Owner GO)**。合格した券種だけ Market Gate へ。全滅なら Market Gate を閉じる
+- **Prediction Edge Discovery 第 1 弾を 2 本だけ事前登録する(Owner GO = Q-024)**: a) **NG-SOB1F** = 「攻め手が枠にいるだけで 1 号艇の勝率が下がる」等 8 本のシフトが未使用の 2026-07〜08 で再現するか(設計済み・学習なし・計算 10 分・実装半日)。再現すれば次に SC2 → 両方合格で「展開の型」(H-A)本体へ。b) **NG-PDS1** = 選手の「いつもとのズレ」3 本(ST の傾き・直近の外し方・攻め率の変化)が次走の AI の外し方を予測し、当日展示を統制しても消えないか(新規・学習なし・実装 1 日)。推奨 = 両方 GO・順序 a → b。市場ブレンド系は提案しない
 
 ## 6. Backlog に送った面白い仮説(実験はしない・次の 1 手より先に着手しない)
 
-- コース構造 × 攻め手の型 × 受け手の型(H-A)/ 特定水面への習熟 × 調整能力(H-B)/ レース形成の感度マップ(H-C)/ 上手い予想家の逆解析(H-D)
-- 次点で回収するもの(設計済み・実行は Owner GO): SOB1 の将来窓再現 / 小さい SC2(優先度低)/ Historical Replay の最小試作(8 時間・設計済み)
+- E 場 × 難条件 × 習熟(U-2 → U-35 の順)/ B 調整能力 × 現在状態(部品バックフィル完走後に ADJMS1 の起票可否)/ D 専門家の観察(部品交換のイベントスタディは 9/16 以降・選手コメントは権利調査が先で Owner GO)/ SC2(SOB1F の後)/ H-A 本体(SOB1F ∧ SC2)
+- 保存: Historical Replay 最小試作(Market Gate 再開時に起票)/ SOB1 の将来窓再現は上の a に格上げ
 
 ## 7. 棄却済みで再研究しないもの(同じ形では再提案しない)
 
@@ -56,10 +53,11 @@
 - レースの格の後付け / 風の線形 2 パラメータ / 勝負駆けの utility / 行動 proxy 薄層 / まくり筋の固定 λ・rolling λ
 - 受け手側の「圧力への対応力」の個人差(検出不能)→ GAT は棚上げ / モーター状態の入力昇格 / 当日展示の入力側化(clean 窓でも FAIL)/ 読める=儲かる
 - 「3連単の選択後の過信は着順順序付けの問題」→ 否定 / 「全券種で 60〜150 倍を見る」は禁止のまま
-- **今回追加: 「表示オッズで EV を判定する」は運用前提として棄却済みだったが、「ブレンドで的中率を較正すれば表示 EV が実現する」も否定(実現値は全券種 <1)** / 「3連単を主商品にする理由」は消えた
+- 「表示オッズで EV を判定する」→ 棄却済 / 「ブレンドで的中率を較正すれば表示 EV が実現する」→ 否定 / 「3連単を主商品にする理由」は消えた
+- **今回追加: 「配当の高さに応じて AI を市場側へ縮めれば実払戻で +EV が残る」→ 否定(AI と市場が同じ形で過信)/ 「乖離が大きいほど AI の誤差」→ 逆 / 市場ブレンド・較正のパラメータ追加(T3D5 以降)は禁止**
 - Owner 禁止(作らない): 大型 Scenario Generator / Race Simulator / Portfolio Optimizer 本番化 / GAT 再起票 / 券種専用 NN・券種専用特徴・巨大 calibration network / 拡連複・複勝への拡張 / バックフィルの停止・再起動・35 万拡張 / holdout の閲覧
 
-(棄却理由の全文と内部 ID = HYPOTHESES.md §5 / 今回の詳細 = lane-reports/t3d3_market_shrinkage_20260910.md)
+(棄却理由の全文と内部 ID = HYPOTHESES.md §5 / 今回の詳細 = lane-reports/t3d4_payout_tail_20260910.md / 情報の棚卸し = designs/prediction_information_gap_audit_20260910.md)
 
 ---
 # §16 サマリ層(機械生成 — 編集しない・正本は下部の連結全文)
@@ -72,21 +70,21 @@
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: なし(Owner 指令 第 2 弾 完走 (2026-09-10 16:10)。実行中の実験なし。自走 = 部品バックフィル PID 12667 + forward collector 試験 (NG-FC1・9/11〜9/24 メタデータ評価)…)
-- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・8953/49968 ページ・残り目安 5.6 日)
+- 実行中の実験: なし(Owner 指令 第 3 弾 完走 (2026-09-10 22:00)。実行中の実験なし。自走 = 部品バックフィル PID 12667 + forward collector 試験 (NG-FC1・9/11〜9/24 メタデータ) +…)
+- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・10803/49968 ページ・残り目安 5.36 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-T3D1**(2026-09-09・done_primary・PASS): H1 PASS: fire 41本の drift 中央値 phase1 2場全艇 0.526 [0.43,0.65] / 24場勝者 0.417 [0.39,0.45] / phase2 (先方 final 全艇 910R) T-3 0.667 [0.48,0.81]・T-3再判定 0.569 [0.36,0.75]・T-5 0.474 [0.39,0.74]、placebo p=0.000。先方申告 0.446 は CI 内。H2 INCONCLUSI…
 - **NG-T3D2**(2026-09-10・done_primary・PASS): 方式 A (3連単含意単勝 0.75/p3t) PASS・優位: T-3 判定 EV≥1.15 の締切価格 EV>1 survival 58% [52,66] (n_sel 200) vs naive (AI×表示単勝) 32% [29,36] (n=678)・FPR 42% vs 68%・closing price error 0.28 vs 0.46。方式 B (drift 補正 EB 9帯×7ビン×選択) FAIL 33% [27,38]・OOS …
 - **NG-EXIN1**(2026-09-10・done_primary・FAIL): FAIL_STACKED (凍結窓 holdout S n=4,530・B=2000): B−A +0.00711 [+0.00154,+0.01292] / C−A +0.00781 [+0.00230,+0.01357] / C−B +0.00070 [−0.00007,+0.00150] = RESIDUAL_ZERO。raw B−A0 (θ なし) −0.0144 だが θ_A の便益 −0.0213 が上回る。パネル fold2: B−base…
 - **NG-TS1**(2026-09-10・done_primary・—): ケース D (選択そのもの)。AI-only 選択 (S1/S2/S3) は 4 券種すべて CALIBRATED (replica 59,923R: CR 0.99〜1.01・ECE ≤0.0023・傾き 0.99〜1.01)。EV≥1.15 上位 3 組 (S5) は T-1 (24 場) で 3連単 0.61 [0.52,0.71] / 3連複 0.73 [0.67,0.78] / 2連単 0.74 [0.68,0.80] / 2連複 0.76 […
 - **NG-T3D3**(2026-09-10・done_primary・—): 機械判定 (凍結 t3d3_frozen.json・test = prod3 2026-07-01〜08-31・B=2000): 選ばれた λ は全券種で内点 (3連単 T-1 B_abs λ̄0.59 / 3連複 A 0.50 / 2連単 A 0.41 / 2連複 B_signed 0.31+0.047z / 単勝 ≈0.09)。NLL: 3連複・2連単・2連複はブレンドが AI・市場の両方より良い (NLL_BETTER)、3連単は市場と同等 (TI…
+- **NG-T3D4**(2026-09-10・done_primary・—): 機械判定 (凍結 t3d4_frozen.json 21:25・test = prod3 2026-07-01〜08-31・T-1・τ1.15 top3・B=2000): 4 券種 FAIL (3連複 FAIL_CALIB / 2連単 FAIL_TAIL / 2連複 FAIL_CALIB / 3連単 FAIL_CALIB) → route B PREDICTION_EDGE_ROUTE。NLL で選ばれた追加項は全セル 0 か負 (3連複 C2_pos …
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-10 16:10(**Owner 指令 第 2 弾「AI と市場の意見差を較正し、本当に買えるエッジが現実的な頻度で残るか決着させる」完走: NG-T3D3 = 凍結判定ケース1(3連複・2連単・2連複 = MARKET GATE CANDIDATE・3連単 = REJECT・CORE なし)/ 実質ケース3 寄り(hit 較正は回復・表示価格の EV は残る・確定配当ベースの実現値は全券種 <1)/ Frontier・Time-to-Evidence(頻度は制約でない)/ 知人 Crosswalk / forward collector 稼働 / shadow 方式 A 稼働 / Replay 設計**。Owner 表示 = research/OWNER_VIEW.md)。実行中の自走 = 部品バックフィル(PID 12667・ETA 9/16)+ forward collector 試験運用(NG-FC1・9/11〜9/24)+ shadow 方式 A(nightly 23:30) …
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-10 22:20(**Owner 指令 第 3 弾「高配当側の過信を最後に検証し、その後の主戦線を決める」完走: NG-T3D4 = 4 券種 FAIL → route B (PREDICTION EDGE ROUTE)・ケース3 確定・Market Gate 閉鎖・T3D5 以降のパラメータ追加禁止。高配当側は AI も市場も同じ形で過信(内分では直らない)。生き残るのは乖離 large/extreme × 10〜50 倍(損益分岐点前後)。Prediction Information Gap Audit 完了(採点 C 9 > A 8 > E 7 > B 6 = D 6)**。Owner 表示 = research/OWNER_VIEW.md)。実行中の自走 = 部品バックフィル(PID 12667・ETA 9/16)+ forward collector 試験運用(NG-FC1・9/11〜9/24)+ shadow 方式 A(nightly 23:30) **production …
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -160,19 +158,20 @@
 - #21 研究成果の commit + research mirror push (Q-007 e の扱い)(推奨: GO)
 - #22 NG-T3D4 起票 = オッズ帯条件付き λ + 判定を『確定配当ベースの実現値 CI 下端 > 1』に置く (実現値が 1 を超えなければケース3 確定・Market Gate 閉鎖)(推奨: GO (Q-022))
 - #23 forward collector 試験後 (9/24) の checkpoint 確定 (D-0:30/D-0:10 存廃・3f/2tf 継続) と raw HTML gz の削除(推奨: 試験結果を見て裁定 (メタデータのみ))
+- #24 Prediction Edge Discovery 第 1 弾の事前登録 GO: a NG-SOB1F (C・設計済み) / b NG-PDS1 (A・新規)(推奨: a GO / b GO (順序 a → b・Q-024))
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-10 | NG-T3D3 の設計 | **設計確定 = gap 条件付きブレンド(順序較正ではない)**・起票は Owner GO — log p' = (1−λ)log p + λ log q・λ = λ0 + λ1·z_gap・券種 × lead 別。判定 = S5 後の CR 回復 ∧ EV≥1.15 が残…
-- 2026-09-10 | 市場データ可用性監査(Lane M) | 分類確定 — 5 券種とも D なし。全国の締切前「複数時点」があるのは 3連単のみ(nv2 T-8 / 先方 snapshot)。3連複・2連単・2連複の全国締切前は先方直前板 T-1(6.…
-- 2026-09-10 | forward collector(締切直前〜締切後の前向き収集) | 実装可能状態(登録は Owner GO) — 7 項目再確認(負荷 +7%・1R 12 req・≈1,950 req/日・polite 1.5 s + 同一秒キュー・失敗処理・保存 2.9 KB/checkpoint・送受信…
-- 2026-09-10 | 研究成果の GitHub 同期(commit + push + mirror) | **恒久 GO(shin 2026-09-10「毎回更新されるようにして go」)** — 研究サイクルの closure で `sync_all.sh` を必ず実行(再 GO 不要)。Q-007 e / Q-021 d は本裁定で CLOSED。allowlist 方…
 - 2026-09-10 | Owner 研究指令 (第 2 弾)「AI と市場の意見差を較正し、本当に買えるエッジが現実的な頻度で残るか決着させる」 | GO(Owner 2026-09-10 15:20)= Q-019 次サイクル OPEN / Q-021 a・b・c GO — NG-T3D3 正式登録・実行 / Edge–Frequency Frontier + Time-to-Evidence / 知人研究 Crosswalk / forward c…
 - 2026-09-10 | NG-T3D3 gap 条件付き市場ブレンド | **凍結判定 = ケース1 (3連複・2連単・2連複 = MARKET GATE CANDIDATE / 3連単 = REJECT / CORE なし)。実質 = ケース3 寄り** — λ は内点 (0.31〜0.59)。3連複・2連単・2連複はブレンドが AI・市場の両方より NLL 良化、3連単は市場と同等、単勝は AI 単独が最良。S5 hit-CR 0.…
 - 2026-09-10 | forward collector (close_window) | **launchd 登録・稼働開始 (15:45 JST・Owner 指令 §9 GO)** — robots.txt Disallow 空・時計差 9 s。ページ = oddstf + odds3t (全 checkpoint) + odds3f + odds2tf (D-…
 - 2026-09-10 | shadow 第 2 アーム (単勝) の EV 判定 | **方式 A (3連単含意単勝 0.75/p3t × AI ≥ 1.15) に差し替え (shadow only・本番購入ロジック不変)** — 旧判定 (乖離 ≥0.20) は列名を変えずに比較列として残す。新列 p3t/price_A/ev_A/fire_A/stake_A/payout_A/judge。8/31 dr…
 - 2026-09-10 | Historical Replay Engine | 設計のみ (実装なし・T3D3 の後に最小試作 8 h・Owner GO) — 5 入力の as-of 定義・model-as-of ladder・leakage checklist 21 項目 (旧 Engine で満たされる 6 / 不足 15)・pre…
 - 2026-09-10 | 知人研究 Crosswalk | 整理完了 (判定に不使用・independent reference) — 44 行照合: 一致 28 / 不一致 9 / 未検証 7。知人の生存候補 (2連複 edge002) は市場 vs 市場の歪みで AI ブレンドとは別物。gap ブレンドは知人…
+- 2026-09-10 | Owner 研究指令 (第 3 弾)「高配当側の過信を最後に検証し、その後の主戦線を決める」 | GO(Owner 2026-09-10 21:15)= Q-022 a/b/c GO / Cycle RES-2026-09-C OPEN — NG-T3D4 (rarity 条件付き shrinkage・最大 2 パラメータ・金額 primary) を市場較正レーンの最終ゲートとして起票・実行。FAIL なら T3D5…
+- 2026-09-10 | NG-T3D4 Payout-Tail Calibration / Odds-Conditioned Shrinkage | **機械判定 = 4 券種 FAIL → route B (PREDICTION EDGE ROUTE)。ケース3 確定・Market Gate 閉鎖・T3D5 以降のパラメータ追加禁止** — 凍結 (21:25・結果計算前) → test prod3 07-01〜08-31・T-1・τ1.15 top3。NLL 最適の追加項は全セル 0 か負 (β −0.34〜−0.…
+- 2026-09-10 | 「大きい AI–市場乖離ほど AI 誤差」仮説 (Owner 指令 §9) | **不支持・逆** — EV 選択後に生き残るのは乖離 large / extreme × 10〜50 倍 (2連単 / 2連複で money-CR 0.89〜1.07・実現 0.94〜1.10・CI …
+- 2026-09-10 | Historical Replay 最小試作 (8 h・設計済み) | 今サイクルでは着手しない (保存) — route B の次戦線 (Prediction Edge PoC) は as-of 特徴 × p120 dump × proper scoring で完結しオッズ時点整合は不要…
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -217,11 +216,14 @@
 
 # RESEARCH_STATUS — 研究状態の正本
 
-- 最新更新: **2026-09-10 16:10**(更新者: Claude / Owner 研究指令 第 2 弾「AI と市場の意見差を較正し、本当に買えるエッジが現実的な頻度で残るか決着させる」完走。NG-T3D3 = 凍結判定ケース1(3連複・2連単・2連複 MARKET GATE CANDIDATE・3連単 REJECT)/ 実質ケース3 寄り(hit 較正は回復・表示価格 EV は残る・確定配当ベースの実現値は全券種 <1)/ Edge–Frequency Frontier・Time-to-Evidence(頻度は制約でない)/ 知人 Crosswalk 44 行 / forward collector 登録・稼働 / shadow 方式 A 稼働 / Historical Replay 設計。人間向け 5 分表示 = research/OWNER_VIEW.md。次 = NG-T3D4(オッズ帯条件付き λ + 実現値 CI gate)の Owner GO)
-- 前回更新: 2026-09-10 11:50(Ticket-Space 完走・P0 復旧・T3D3 設計)
+- 最新更新: **2026-09-10 22:00**(更新者: Claude / Owner 研究指令 第 3 弾「高配当側の過信を最後に検証し、その後の主戦線を決める」完走。**NG-T3D4 = 4 券種 FAIL → route B (PREDICTION EDGE ROUTE)・ケース3 確定・Market Gate 閉鎖・T3D5 以降禁止**。高配当側は AI も市場も同じ形で過信(最希少十分位で予測の 1〜3 割)= 内分では直らない。生き残るのは乖離 large/extreme × 10〜50 倍(損益分岐点前後)。主戦線 = Prediction Edge Discovery(designs/prediction_information_gap_audit_20260910.md)。人間向け = research/OWNER_VIEW.md)
+- 前回更新: 2026-09-10 16:10(Owner 研究指令 第 2 弾「AI と市場の意見差を較正し、本当に買えるエッジが現実的な頻度で残るか決着させる」完走。NG-T3D3 = 凍結判定ケース1(3連複・2連単・2連複 MARKET GATE CANDIDATE・3連単 REJECT)/ 実質ケース3 寄り(hit 較正は回復・表示価格 EV は残る・確定配当ベースの実現値は全券種 <1)/ Edge–Frequency Frontier・Time-to-Evidence(頻度は制約でない)/ 知人 Crosswalk 44 行 / forward collector 登録・稼働 / shadow 方式 A 稼働 / Historical Replay 設計。人間向け 5 分表示 = research/OWNER_VIEW.md。次 = NG-T3D4(オッズ帯条件付き λ + 実現値 CI gate)の Owner GO)
+- 前々回更新: 2026-09-10 11:50(Ticket-Space 完走・P0 復旧・T3D3 設計)
 - 本ファイルは Canonical Research State の入口。機械可読版 = `research_state.json`。人間向け表示 = 研究コンソール(Artifact 494f0be1… — 本ファイル群から生成される view であり正本ではない)
 
 ## 現在の研究フェーズ
+
+**2026-09-10 22:00: 市場較正レーン閉鎖(NG-T3D1 → T3D2 → TS1 → T3D3 → T3D4 の 5 本で決着・ケース3)。主戦線 = Prediction Edge Discovery(市場と意見が違う条件で AI の方が実際に正しくなる情報を増やす・新アーキテクチャは作らない)。最初の一手 = Prediction Information Gap Audit(designs/prediction_information_gap_audit_20260910.md)の採点上位 1〜2 件の最小 PoC(Owner GO)。11/1 holdout 開封と forward collector の締切直前価格は別トラックで待つ。** 以下は W1/W2 時点の記録:
 
 **第1波(W1)の登録実験を全消化(2026-09-04)**。done 6本 = NG-E10(両ゲートPASS)+ **NG-I1 / NG-N1 / NG-E1 / NG-E5W / NG-E23(5本とも主ゲートFAIL・全て事前登録ルールの機械適用)**。残 = NG-E19SG(常時・締切前オッズ蓄積待ち)+ NG-E8SWAP(filed)。全実験で「事前登録→操作的定義の凍結→機械判定」を完走、判定ルールの事後変更ゼロ。**Owner 裁定受領 (2026-09-04): #6 GO → NG-N1C (Calibration-specific Gate) 事前登録済 / #7 GO → NG-E5NR (Nonlinear Environmental Regime) 事前登録済 / #8 DEFER (格 = 現象 SUPPORTED・入力側再学習は保留)**。W2 方針 = 後付け薄層の枯渇を受け「真の新情報 / regime / Calibration / Market / Current State 推定」へ重心移動 (最重要候補 = Motor Current State / Maintenance 系)。W2 Candidate Audit 完了 (2026-09-04・beforeinfo 356,476 ファイル実測)。**決定的発見: 部品交換データは 6.5 年間パーサ取り違えで実質未収集だった**。**W2 正式 GO (Owner 2026-09-05)**: 実行順確定 = 並行【①まくり筋較正最終検証 (NG-N1C) ②部品交換修理+前向き収集+層化バックフィル PoC】→ ③現在モーター状態 PoC → ④強風 regime ⑤調整能力。全バックフィルは未承認 (PoC 後に再判断)。並行で「展開圧力×対応力 (Generalized Pressure×Resistance)」の設計+データ監査。新研究思想 8 テーマ (シナリオ分散買い・known-but-underweighted 市場情報 等) を仮説として正式保存。
 
@@ -233,7 +235,7 @@
 
 ## 現在実行中の Experiment
 
-**なし(2026-09-10 16:10・NG-T3D3 完了・自走 = 部品バックフィル + forward collector 試験運用 + shadow 方式 A)**。以下は 2026-09-04 時点の記録: **なし — 第1波5本(NG-I1 / NG-N1 / NG-E1 / NG-E5W / NG-E23)は 2026-09-04 に並列レーンで実行し全て done_primary**。5本とも主ゲート(薄層ΔNLL≥0.003)FAIL。ただし収穫が3つ: ①**N1 はまくり筋の較正歪みを1パラメータ(λ=+0.228)でほぼ完全回収**(完全OOSで相対見落とし +26.3%→+2.7%・副作用ゼロ。閾値0.003が単一セル補正の理論上限より高く原理的に到達不能だった=Owner判断 #6)②E1 で「格は実在するが B2 は既に織り込み済み」が確定・グレード表(E19SG用)を副産物化 ③E5W で強風 7m/s+ の符号逆転(線形仮定の破綻)を発見。詳細 = `lane-reports/{i1_proxy,n1_reweight,e1_stage,e5w_wind,e23_utility}_20260904.md` + registry 各 done_primary 行。残り = registered 1本(NG-E19SG・常時)+ filed 1本(NG-E8SWAP)
+**なし(2026-09-10 22:00・NG-T3D4 完了 = route B・自走 = 部品バックフィル + forward collector 試験運用 + shadow 方式 A)**。以下は 2026-09-04 時点の記録: **なし — 第1波5本(NG-I1 / NG-N1 / NG-E1 / NG-E5W / NG-E23)は 2026-09-04 に並列レーンで実行し全て done_primary**。5本とも主ゲート(薄層ΔNLL≥0.003)FAIL。ただし収穫が3つ: ①**N1 はまくり筋の較正歪みを1パラメータ(λ=+0.228)でほぼ完全回収**(完全OOSで相対見落とし +26.3%→+2.7%・副作用ゼロ。閾値0.003が単一セル補正の理論上限より高く原理的に到達不能だった=Owner判断 #6)②E1 で「格は実在するが B2 は既に織り込み済み」が確定・グレード表(E19SG用)を副産物化 ③E5W で強風 7m/s+ の符号逆転(線形仮定の破綻)を発見。詳細 = `lane-reports/{i1_proxy,n1_reweight,e1_stage,e5w_wind,e23_utility}_20260904.md` + registry 各 done_primary 行。残り = registered 1本(NG-E19SG・常時)+ filed 1本(NG-E8SWAP)
 
 ## 主要な研究成果(直近)
 
@@ -253,7 +255,7 @@
 
 ## 次にやること
 
-`NEXT_ACTIONS.md` 参照。1行版(2026-09-10 16:10): **NG-T3D4(オッズ帯条件付き λ + 確定配当ベースの実現値 CI を gate に)の起票 = Owner GO → 1 を超えなければケース3 確定 = Market Gate を閉じて 11/1 holdout 開封と forward collector の締切直前価格を待つ**(常時: forward collector 試験 9/11〜9/24 メタデータ評価・部品バックフィル自走・NG-E19SG 蓄積・holdout 封印)。
+`NEXT_ACTIONS.md` 参照。1行版(2026-09-10 22:00): **市場較正は閉鎖(T3D4 FAIL)。次 = Prediction Information Gap Audit の上位 1〜2 件の最小 PoC を Owner GO で事前登録(proper scoring・as-of・市場ブレンド系は提案しない)。11/1 holdout 開封と forward collector の締切直前価格は別トラック**(常時: forward collector 試験 9/11〜9/24 メタデータ評価・部品バックフィル自走・NG-E19SG 蓄積・holdout 封印)。
 
 ## 更新ルール(2026-09-04 Owner 指示で制定)
 
@@ -265,17 +267,23 @@
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-10 16:10(**Owner 指令 第 2 弾「AI と市場の意見差を較正し、本当に買えるエッジが現実的な頻度で残るか決着させる」完走: NG-T3D3 = 凍結判定ケース1(3連複・2連単・2連複 = MARKET GATE CANDIDATE・3連単 = REJECT・CORE なし)/ 実質ケース3 寄り(hit 較正は回復・表示価格の EV は残る・確定配当ベースの実現値は全券種 <1)/ Frontier・Time-to-Evidence(頻度は制約でない)/ 知人 Crosswalk / forward collector 稼働 / shadow 方式 A 稼働 / Replay 設計**。Owner 表示 = research/OWNER_VIEW.md)。実行中の自走 = 部品バックフィル(PID 12667・ETA 9/16)+ forward collector 試験運用(NG-FC1・9/11〜9/24)+ shadow 方式 A(nightly 23:30)
-**production 変更ゼロ(b2f41 不変)。11/1 holdout ルール不変(forward collector の値も 11/1 まで見ない)。**
+最新更新: 2026-09-10 22:20(**Owner 指令 第 3 弾「高配当側の過信を最後に検証し、その後の主戦線を決める」完走: NG-T3D4 = 4 券種 FAIL → route B (PREDICTION EDGE ROUTE)・ケース3 確定・Market Gate 閉鎖・T3D5 以降のパラメータ追加禁止。高配当側は AI も市場も同じ形で過信(内分では直らない)。生き残るのは乖離 large/extreme × 10〜50 倍(損益分岐点前後)。Prediction Information Gap Audit 完了(採点 C 9 > A 8 > E 7 > B 6 = D 6)**。Owner 表示 = research/OWNER_VIEW.md)。実行中の自走 = 部品バックフィル(PID 12667・ETA 9/16)+ forward collector 試験運用(NG-FC1・9/11〜9/24)+ shadow 方式 A(nightly 23:30)
+**production 変更ゼロ(b2f41 不変)。11/1 holdout ルール不変(forward collector の値も 11/1 まで見ない)。市場較正の実験はこれ以上起票しない。**
 
-## 現在の優先順位(Owner 指令 第 2 弾 完走後)
+## 現在の優先順位(Owner 指令 第 3 弾 完走後・主戦線 = Prediction Edge Discovery)
 
-1. **NG-T3D4 起票(Owner GO 事項・次の 1 手)**: 残った過信は「オッズ帯」に偏在する(hit-CR ≈1 でも実現 ÷ 締切期待 = 0.5〜0.8・FINDINGS P9)。λ をオッズ帯(favorite-longshot 軸)条件付きにした最小モデル(パラメータ +1〜2・新 NN なし)を事前登録し、**判定を「確定配当ベースの実現値 CI 下端 > 1」(実際に受け取る額)に置く**。PASS した券種だけ Market Gate へ。全滅なら「現 AI では実価格で市場に勝てていない(ケース3)」を確定し、Market Gate を閉じて 11/1 開封と forward collector の締切直前価格を待つ。同時に知人地雷②「残る組数 = 剪定 artifact」の同数ランダム剪定比較を入れる
-2. **forward collector 試験(自律・メタデータのみ)**: 9/11〜9/24 の 14 日で D-0:30 / D-0:10 の存廃(lead_sec_recv の誤差 p95 ≤ 5 s・1 分刻み更新との関係)/ odds3f・odds2tf の parse 成功率 / 失敗処理の実地 / **応答 8〜10 秒/ページの原因(IPv6 フォールバック疑い = 仮説)** を確認 → checkpoint 確定は Owner。オッズ値は 11/1 まで見ない
-3. **自律(読み取り・設計のみ)**: 部品バックフィル完走(9/16 目安)後の Maintenance 最小イベントスタディ設計 / 11/1 holdout 開封手順の事前整理(凍結ルール一覧・開封 script の read-only 化・T3D3 λ の適用有無を開封前に固定)/ Historical Replay 最小試作(3連単 × T-1 × 2026-08・8 h)は T3D4 の後・Owner GO
-4. P3(設計済み・実行は Owner GO): SOB1 将来窓再現 / 小さい SC2(優先度低: 過信の原因ではない)。H-A〜H-D は BACKLOG ONLY
-5. 禁止維持: 大型 Scenario Generator / GAT / Race Simulator / 券種専用 NN・券種専用特徴・巨大 calibration network / 拡連複・複勝 / 展示入力側化の再提案 / 部品バックフィルの停止・再起動・35 万拡張 / holdout 9/1〜10/31 閲覧 / **test 窓を見てからの τ・候補・窓の変更(T3D3 は凍結どおり・addendum は別掲)**
-6. shin 手作業待ち: crontab 3 行(部品日次・風コレクタ)/ 2023-01〜04 再取得可否 / 公開履歴の先方実名(Q-007)
+1. **NG-SOB1F 起票(Owner GO・Q-024 a・次の 1 手)**: Gap Audit 採点 1 位 = C「展開の型(攻め手 × 受け手 × コース構造)」の gate 第 1 段。攻め手在席シフト 8 チャネル(核 = 4→1 の 1 号艇勝率低下)が未使用の 2026-07-01〜08-31 で同符号・同規模に再現するか。設計正本 `artifacts/research/nextgen/designs/design_sob1_future_20260909.md` をそのまま(学習なし・計算 <10 分・実装 0.5 日・オッズ不使用)。REPRODUCED → SC2(design_sc2_20260909)→ 両 PASS で H-A 本体(6×6 影響行列の 3 セル限定)。片方でも未達なら H-A は起票しない
+2. **NG-PDS1 起票(Owner GO・Q-024 b)**: Gap Audit 採点 2 位 = A「選手の動的状態」。as-of 動的状態 3 本(ST トレンド = 直近 − st_q10_prior / 直近残差 = AI の外し方の持続成分 / 攻め率変化 = 直近 − 長期)が次走の B2 残差を予測し、当日展示 z を統制しても消えないか(存在確認 = ADJ1 作法)→ 存在すれば exh120 併用 stacked の条件付き ΔNLL を segment 別(若手 / 直近残差の上下 5 分位 / コース帯 / Stage)で判定。増分上限診断を先に出し、上限 <0.003 なら再学習ゲートを起票せず記述で止める。新規・学習なし・実装 1 日。設計 = `designs/prediction_information_gap_audit_20260910.md` §5-2
+3. **停止(Owner 指令 §11)**: 市場 blend / calibration のパラメータ追加(T3D5, T3D6…)禁止。Market Gate 閉鎖。2連複 T-3(桐生・住之江)の NEEDS_MORE_DATA は 11/1 開封時の再判定リストのみ。Market Gate 再開時の selection rule(乖離の絶対量 / オッズ上限)は FINDINGS P10 に記録済み・今は実験しない
+4. **forward collector 試験(自律・メタデータのみ)**: 9/11〜9/24 の 14 日で D-0:30 / D-0:10 の存廃(lead_sec_recv の誤差 p95 ≤ 5 s)/ odds3f・odds2tf の parse 成功率 / 失敗処理の実地 / **応答 8〜10 秒/ページの原因(IPv6 フォールバック疑い = 仮説)** → checkpoint 確定は Owner。オッズ値は 11/1 まで見ない
+5. **自律(読み取り・設計のみ)**: 部品バックフィル完走(9/16 目安)後の Maintenance 最小イベントスタディ設計(Gap Audit D の唯一の as-of 可能な PoC)/ 11/1 holdout 開封手順の事前整理(T3D3/T3D4 の λ は開封判定に使わない・凍結ルール一覧・script の read-only 化)/ Historical Replay 最小試作は Market Gate 再開時まで保存
+6. BACKLOG(順位 E > B = D・実験はしない): E 場 × 難条件 × 習熟(U-2 → U-35 の 2×2 residual 表)/ B 調整能力 × 現在状態(ADJMS1 は部品完走後に起票可否)/ D 専門家の観察(選手コメント・ピット・回り足は取得実装なし・権利調査が先 = Owner GO)/ SC2(SOB1F の後)/ H-A 本体(SOB1F ∧ SC2)
+7. 禁止維持: 大型 Scenario Generator / GAT / Race Simulator / 券種専用 NN・券種専用特徴・巨大 calibration network / 拡連複・複勝 / 展示入力側化の再提案 / 部品バックフィルの停止・再起動・35 万拡張 / holdout 9/1〜10/31 閲覧 / test 窓を見てからの τ・候補・窓の変更 / **市場較正のパラメータ追加**
+8. shin 手作業待ち: crontab 3 行(部品日次・風コレクタ)/ 2023-01〜04 再取得可否 / 公開履歴の先方実名(Q-007)
+
+## 完了(2026-09-10 夜・Owner 指令 第 3 弾)
+
+NG-T3D4(凍結 21:25 → 実行 75 秒・B=2000。追加項は全セル 0 か負・tail money-CR 0.23〜0.43・実現値 3連複 0.58 / 2連単 0.69 / 2連複 0.69 / 3連単 0.35・全 48 セル <1 → 4 券種 FAIL・route B)/ tail 可視化(AI と市場が同じ形で高配当側を過信・2連複 36 倍〜 / 2連単 90 倍〜 / 3連複 35 倍〜 / 3連単 350 倍〜)/ 乖離 4 帯(生き残りは large/extreme × 10〜50 倍 = FINDINGS P10)/ attribution(A > B ≒ C)/ Prediction Information Gap Audit(5 分類・A〜E 採点・C・A の最小 PoC 設計)/ Historical Replay 再評価(今サイクル着手せず)。lane-reports/t3d4_payout_tail_20260910.md
 
 ## 完了(2026-09-10 午後・Owner 指令 第 2 弾)
 
@@ -302,7 +310,7 @@ NG-T3D2(A PASS 58% vs naive 32%)/ NG-EXIN1(FAIL_STACKED)/ P3 SC2・SOB1 設計 /
 - 部品バックフィル自走中(進捗= `cat ~/kyotei-ai/artifacts/research/nextgen/parts_bf/parts_bf_state.json`)。完了後に Maintenance 仮説→全量A案の再判断
 - forward collector 稼働中(健全性 = `tail data/odds_snapshots/close_window/<YYYYMMDD>/_health.jsonl`・停止 = `launchctl bootout gui/$(id -u)/com.kyotei-ai.collect-close-window`・一時停止 = `touch data/odds_snapshots/close_window/STOP`)
 - NG-E19SG 蓄積継続 / 市場アノマリー holdout 封印(閲覧 2026-11-01 以降)
-- 保存のみ: シナリオ Generator 大型 / GAT(2重の否定で棚上げ)/ Race Simulator / Portfolio Optimizer 本番化 / 穴シナリオ Gate 数値化
+- 保存のみ: シナリオ Generator 大型 / GAT(2重の否定で棚上げ)/ Race Simulator / Portfolio Optimizer 本番化 / 穴シナリオ Gate 数値化 / Historical Replay 最小試作(Market Gate 再開時)
 
 
 
@@ -390,6 +398,10 @@ NG-T3D2(A PASS 58% vs naive 32%)/ NG-EXIN1(FAIL_STACKED)/ P3 SC2・SOB1 設計 /
 | 2026-09-10 | shadow 第 2 アーム (単勝) の EV 判定 | **方式 A (3連単含意単勝 0.75/p3t × AI ≥ 1.15) に差し替え (shadow only・本番購入ロジック不変)** | 旧判定 (乖離 ≥0.20) は列名を変えずに比較列として残す。新列 p3t/price_A/ev_A/fire_A/stake_A/payout_A/judge。8/31 dry-run: 方式 A 99 本 vs 旧 10 本。今夜 23:30 nightly から稼働。daily_signal_notify.py は EV 判定を持たないため対象外 | scripts/shadow_report_national_tan.py |
 | 2026-09-10 | Historical Replay Engine | 設計のみ (実装なし・T3D3 の後に最小試作 8 h・Owner GO) | 5 入力の as-of 定義・model-as-of ladder・leakage checklist 21 項目 (旧 Engine で満たされる 6 / 不足 15)・predict.py agg=None の全期間 aggregates と _resolve_train_window の meta 欠落合格を実コードで指摘 | designs/design_historical_replay_20260910.md |
 | 2026-09-10 | 知人研究 Crosswalk | 整理完了 (判定に不使用・independent reference) | 44 行照合: 一致 28 / 不一致 9 / 未検証 7。知人の生存候補 (2連複 edge002) は市場 vs 市場の歪みで AI ブレンドとは別物。gap ブレンドは知人未踏。地雷 10 (多重評価・剪定 artifact・λ 退化 ほか) | artifacts/research/nextgen/t3d3/external_crosswalk_20260910.md |
+| 2026-09-10 | Owner 研究指令 (第 3 弾)「高配当側の過信を最後に検証し、その後の主戦線を決める」 | GO(Owner 2026-09-10 21:15)= Q-022 a/b/c GO / Cycle RES-2026-09-C OPEN | NG-T3D4 (rarity 条件付き shrinkage・最大 2 パラメータ・金額 primary) を市場較正レーンの最終ゲートとして起票・実行。FAIL なら T3D5 以降禁止・主戦線を Prediction Edge Discovery へ。PASS/FAIL 不問で Prediction Information Gap Audit。production 不変・holdout 封印・forward collector / shadow / バックフィル非接触 | research/OWNER_DIRECTIVE_20260910c.md / decisions/2026-09-10_kyotei_cycle_res_2026_09_c_opened.md |
+| 2026-09-10 | NG-T3D4 Payout-Tail Calibration / Odds-Conditioned Shrinkage | **機械判定 = 4 券種 FAIL → route B (PREDICTION EDGE ROUTE)。ケース3 確定・Market Gate 閉鎖・T3D5 以降のパラメータ追加禁止** | 凍結 (21:25・結果計算前) → test prod3 07-01〜08-31・T-1・τ1.15 top3。NLL 最適の追加項は全セル 0 か負 (β −0.34〜−0.39 / 2連単は追加なし) = 希少な組ほど AI を信じる方向で、tail の金額加重較正は 0.35〜0.73 → 0.23〜0.43 に悪化または不変。確定払戻ベース実現値 (diagnostic) は 3連複 0.58 / 2連単 0.69 / 2連複 0.69 / 3連単 0.35、全 48 セルで点推定 <1 (最大 2連複 top1 τ1.08 0.91)。原因 = 高配当側 (2連複 36 倍〜・2連単 90 倍〜・3連複 35 倍〜・3連単 350 倍〜) で AI も市場も同じ形で過信 (最希少十分位で予測の 1〜3 割)。AI と市場の内分では両方が高すぎる帯を下げられない。主因 = A (fundamental の条件付き精度不足・log −0.44〜−0.69) > B (価格・的中組の払戻は表示の 75%・log −0.26〜−0.29) ≒ C (EV≥τ が乖離小×高オッズの誤差を拾う)。2連複 T-3 (2 場) のみ NEEDS_MORE_DATA (1.03 [0.68,1.43]・same-model 0.99・walk-forward 0.82 = 再現せず) → 11/1 再判定リストのみ。凍結後の基準変更なし | 機械判定 (t3d4_frozen.json) / lane-reports/t3d4_payout_tail_20260910.md / registry 行 57 |
+| 2026-09-10 | 「大きい AI–市場乖離ほど AI 誤差」仮説 (Owner 指令 §9) | **不支持・逆** | EV 選択後に生き残るのは乖離 large / extreme × 10〜50 倍 (2連単 / 2連複で money-CR 0.89〜1.07・実現 0.94〜1.10・CI は 1 を跨ぐ)。負けているのは乖離 small / medium × 100 倍超 (実現 0.19〜0.5) = 僅かな p−q がオッズで増幅された誤差収穫。AI の本当の情報は乖離が大きい低〜中オッズ帯にある | tables/disagreement_segments.csv / FINDINGS P10 |
+| 2026-09-10 | Historical Replay 最小試作 (8 h・設計済み) | 今サイクルでは着手しない (保存) | route B の次戦線 (Prediction Edge PoC) は as-of 特徴 × p120 dump × proper scoring で完結しオッズ時点整合は不要。Market Gate 再開時に起票 | designs/design_historical_replay_20260910.md |
 
 
 
@@ -1281,6 +1293,8 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - **2026-09-10 15:40 登録 → 同日完了: NG-T3D3 = gap 条件付きブレンド**(凍結判定 = ケース1: 3連複・2連単・2連複 MARKET GATE CANDIDATE / 3連単 REJECT。実質 = ケース3 寄り: hit 較正は回復・表示価格 EV は残るが確定配当ベースの実現値は全券種 <1 = 高オッズ側の金額重み過信が残留。FINDINGS ①12・P9・lane-reports/t3d3_market_shrinkage_20260910.md)。次の TESTING 候補(未登録・Owner GO 待ち): **NG-T3D4 = オッズ帯条件付き λ + 実現値 CI gate**。以下は登録前の記述(歴史記録): 旧候補 **NG-T3D3 = gap 条件付きブレンド**(log p' = (1−λ)log p + λ log q・λ = λ0 + λ1·z_gap・券種 × lead 別)。仮説「乖離に応じて AI を市場側へ縮めれば EV 選択後の CR が 1 に戻り、かつ EV≥1.15 の組が残る券種がある」。全滅なら「食い違いは価格に織り込み済み」。designs/design_t3d3_20260910.md
 - 商品候補の仮説(検証前): 2連複 / 2連単は情報優位(直前板でも AI ≥ 市場)が締切まで残り価格が中程度に持つ → T3D3 PASS なら最初の Market Gate 候補。3連単に固執する根拠は無いが乗り換える証拠も無い
   - **2026-09-10 T3D3 後の判定**: 2連単は凍結 primary で唯一 PASS(hit-CR 0.905・survival 0.70)、2連複は top1 で CALIBRATED、桐生・住之江の 2連複 T-3 だけ実現 ≥1(n 小・NEEDS MORE DATA)。3連単は REJECT(1 分前で robust EV<1・8 分前の PASS は締切で消える)→ **3連単に固執する理由は消えた**。ただし「乗り換えれば勝てる」証拠もまだ無い(実現値は 4 券種とも <1)
+- **2026-09-10 21:25 登録 → 同日完了: NG-T3D4 = rarity 条件付き shrinkage(市場較正レーンの最終ゲート)**(判定 = 4 券種 FAIL → **route B PREDICTION EDGE ROUTE・ケース3 確定・Market Gate 閉鎖・T3D5 以降禁止**)。仮説「market-implied rarity に応じて shrinkage を変えれば selected subset の金額加重較正が改善し実現値 >1 が残る」は **REJECTED**(§5 へ)。理由 = 高配当側では AI も市場も同じ形で過信しており、内分では下げられない。副産物 = 生き残るのは乖離 large/extreme × 10〜50 倍(FINDINGS P10)。2連複 T-3(2 場)は NEEDS_MORE_DATA のまま 11/1 再判定リストへ。FINDINGS ①13・lane-reports/t3d4_payout_tail_20260910.md
+- **次の TESTING 候補(2026-09-10 夜・Prediction Edge Discovery)**: designs/prediction_information_gap_audit_20260910.md の採点上位 1〜2 件の最小 PoC(proper scoring・as-of・市場ブレンド系は提案しない)。登録は Owner GO
 
 ## 3. SUPPORTED(支持 — データが shin の感覚/定説を確認したもの)
 
@@ -1374,6 +1388,8 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 ## 5. REJECTED(否定 — 同一形での再提案禁止)
 
 - **「3連単の選択後の過信は着順順序付け(集合→順序 / 3 着条件付き)の問題」→ 否定(2026-09-10・NG-TS1)**: 3連複・2連複でも同じ過信(CR 0.73 / 0.76)、順序段は較正済み(0.85〜0.99)。順序較正層(SC2 型)で EV 選択後の過信を直す提案は同一形で再提案しない
+- **「配当の高さ(market-implied rarity)に応じて AI を市場側へ縮めれば、高配当側の過信が直り実払戻ベースで +EV が残る」→ 否定(2026-09-10・NG-T3D4)**: 高配当側(2連複 36 倍〜・2連単 90 倍〜・3連複 35 倍〜・3連単 350 倍〜)は AI も市場も同じ形で過信(最希少十分位で予測の 1〜3 割)。AI と市場の内分(λ∈[0,1])では両方が高すぎる帯を下げられず、proper scoring は β≤0 を選ぶ。実現値は 4 券種 × τ 6 × rule 2 の全セルで <1。**市場ブレンド / 較正のパラメータ追加(T3D5, T3D6…)は同一形で再提案しない**。「0 側への deflation(rarity 依存温度)」は別構造だが Owner 指令で起票せず記録のみ(lane-reports/t3d4_payout_tail_20260910.md §8)
+- **「AI と市場の乖離が大きいほど AI 誤差が支配する」→ 否定(2026-09-10・NG-T3D4)**: 逆に乖離 large/extreme × 10〜50 倍は金額加重で較正・実現 0.94〜1.10、乖離 small/medium × 100 倍超が実現 0.19〜0.5(FINDINGS P10)
 #### R-1. 階級(A1/B1)が予測に効く
 - 仮説文: 級別ラベルは選手実力の要約として予測に有効
 - 判定: **全棄却(2026-06 確定・class_code の再投入禁止)**。階級は実績判断に無関係 — 実績系特徴が全てを回収する(`research_state.json` rejected / dataset.py:16 で機械的除外)
@@ -1541,6 +1557,13 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - **含意**: 凍結ルールの機械判定はケース1(3 券種 MARKET GATE CANDIDATE・3連単 REJECT)だが、実質はケース3 寄り「乖離は主に AI 誤差で、買える歪みは未証明」。次の gate は「確定配当ベースの実現値 CI 下端 > 1」を含めるべき。唯一の例外候補 = 桐生・住之江 2連複 T-3(実現 1.07〜1.24・n 300〜600・CI は 1 を跨ぐ)。3連単を主商品にする理由は残っていない。
 - 出典: lane-reports/t3d3_market_shrinkage_20260910.md / artifacts/research/nextgen/t3d3/
 
+### 13. 高配当側の過信は AI と市場が同じ形で持っている — 「AI を市場に寄せる」補正では直らず、市場較正レーンは閉鎖(NG-T3D4・2026-09-10)
+
+- **事実**: 市場確率の十分位で見ると、AI・市場・ブレンドとも本命〜中位(2連複 ≤20 倍・2連単 ≤46 倍・3連複 ≤25 倍・3連単 ≤240 倍)は較正比 0.85〜1.2 で較正、**2連複 36 倍〜・2連単 90 倍〜・3連複 35 倍〜・3連単 350 倍〜から過信が始まり、最希少の 1 割では予測の 1〜3 割しか当たらない**(3〜10 倍の過信)。AI と市場の較正比はどの帯でも ±0.05 以内で一致(test = 本番モデル 2026-07〜08・T-1・全組)。
+- **補正の結果**: T3D3 の λ に市場の希少さ(−log q)条件付きの項(最大 2 パラメータ・proper scoring で推定)を加えても、選ばれた項は 0 か負(希少な組ほど AI を信じる)で、EV 選択後の希少上位 40% の金額加重較正は 0.35〜0.73 → 0.23〜0.43。確定払戻ベースの実現値は 4 券種 0.35〜0.69、全 48 セルで <1。**AI と市場の内分(λ∈[0,1])では、両方が高すぎる帯を下げられない**(直すなら 0 側への deflation という別構造 = 起票しない)。
+- **含意**: 「現在の fundamental AI と市場との差だけでは買えるエッジを証明できない」= ケース3 確定。route B: 市場ブレンド / 較正のパラメータ追加(T3D5 以降)は禁止、Market Gate 閉鎖、主戦線を Prediction Edge Discovery(市場と意見が違う条件で AI の方が正しくなる情報を増やす)へ。損失の分解は A 較正(log −0.44〜−0.69)> B 価格(的中組の払戻は表示の 75%・−0.26〜−0.29)≒ C 選択規則。NG-TS1 の「AI-only は較正」は予測確率ビンの ECE(絶対誤差)で見た結果で、比率で見た tail は本項のとおり(矛盾ではなく尺度の違い)。
+- 出典: lane-reports/t3d4_payout_tail_20260910.md / artifacts/research/nextgen/t3d4/(tables/tail_calibration・selected_tail・attribution)
+
 ## ② Unexpected Findings(意外な発見)
 
 | # | 発見 | 実測 | 出典 |
@@ -1685,6 +1708,13 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - 意味: 的中回数は当たりやすい組が、金額は高オッズの組が支配する。ブレンドは前者を直し後者を直し切れていない → 次の較正はオッズ帯条件付き(λ を favorite-longshot 軸で持つ)。
 - 出典: tables/addendum_close_ev.csv(凍結後・判定に不使用)
 
+### P10. EV 選択後に生き残るのは「AI と市場の乖離が大きい × 10〜50 倍」— 負けるのは「乖離が小さい × 100 倍超」【**確定(診断・CI は 1 を跨ぐ)**(2026-09-10・NG-T3D4)】
+
+- 条件: ブレンド後 EV≥1.15 top3(T-1・fit 窓で固定した z_gap 四分位)。2連単 large 帯(z≈1.4・47 倍・n 985・的中 39)money-CR 1.04・実現 1.10 [0.73,1.45] / extreme(19 倍・n 886・的中 71)0.89・0.94 [0.69,1.23]。2連複 large(23 倍・n 930・的中 73)0.94・0.95 [0.70,1.21] / extreme(13 倍・n 635・的中 85)1.07・1.03 [0.80,1.30]。対して small 帯(2連単 537 倍・2連複 188 倍)は実現 0.19 / 0.44、medium(130 / 61 倍)0.83 / 0.50。
+- 意味: 「大きい乖離ほど AI 誤差」(Owner §9 仮説)は逆。AI の本当の情報は乖離が大きい低〜中オッズ帯にあり、そこでは金額加重でも較正しているが実現値は損益分岐点前後(表示→確定で 25% の価格減)。誤差は「僅かな p−q がオッズで増幅されて EV≥τ を満たす」高オッズ帯にあり、EV'=p'×odds≥τ という選択規則はこれを区別できない。
+- 使い道: Prediction Edge Discovery の評価窓は「乖離 large / extreme × 10〜50 倍」の条件付き精度(proper scoring)に置く。Market Gate 再開時の selection rule は「乖離の絶対量」か「オッズ上限」を持つ必要がある(今は実験しない)。
+- 出典: tables/disagreement_segments.csv / figs/F_selected_tail_moneyCR.png
+
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
 
 前提の用語(1行ずつ):
@@ -1727,11 +1757,11 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 ```json
 {
  "updated_at": "2026-09-10",
- "updated_by": "claude/t3d3-session (Owner研究指令 2026-09-10 第 2 弾 完走 16:10)",
+ "updated_by": "claude/t3d4-session (Owner 研究指令 2026-09-10 第 3 弾 完走 22:00)",
  "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
  "architecture_version": "v2.1",
  "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
- "current_phase": "2026-09-10 16:10: Owner 指令 第 2 弾「AI と市場の意見差を較正し、本当に買えるエッジが現実的な頻度で残るか決着させる」完走 — NG-T3D3 (gap 条件付き市場ブレンド): λ 内点 0.31〜0.59・3連複/2連単/2連複はブレンドが AI・市場の両方より NLL 良化・S5 hit-CR 0.52〜0.73 → 0.62〜0.905 (2連単 CALIBRATED = PASS)・表示価格 EV≥1.15 は 0.6〜1.5 組/R 残り年 2〜8 万 BET (頻度は制約でない・検出 0.2〜0.6 年)・**凍結判定 = ケース1 (3連複・2連単・2連複 MARKET_GATE_CANDIDATE / 3連単 REJECT / CORE なし)・実質 = ケース3 寄り (確定配当ベースの実現値は全券種 0.64〜0.85 = 締切価格 8〜15% 減 + 高オッズ側の金額重み過信 0.5〜0.8)**。2連複 T-3 (桐生/住之江) のみ実現 ≥1 = NEEDS_MORE_DATA。forward collector 5 券種 稼働 (NG-FC1・15:45〜)・shadow 第 2 アーム 方式 A・Historical Replay 設計 (leakage 21)・知人 Crosswalk 44 行。次 = NG-T3D4 (オッズ帯条件付き λ + 実現値 CI gate) の Owner GO。 | 前段: 2026-09-10: Owner 指令「予測できる→実際に買える」完走 — NG-T3D2 (Executable EV): 方式 A 3連単含意単勝 PASS・優位 (T-3 判定 EV≥1.15 の締切 survival 58% [52,66] vs naive 32% [29,36])・B drift 補正 FAIL・C 締切 2 秒前 44%・selection-induced drift ρ −0.69・3連単は価格が持つ (96%) が realized 0.51 = 選択後較正が次課題 / NG-EXIN1 (展示入力側化): FAIL_STACKED (B−A +0.0071 [+0.0015,+0.0129]・C−B ZERO・clean 窓差なし・NOT_ABSORBED) = 当日展示は exh120 で取り切っている・本番 b2f41 不変 / 副産物: features_v2 as-of 17 列 2026-07-22 以降欠損 (研究基盤 P0)。 | 前段: 2026-09-09: 知り合いバンドル調査 完走 — NG-GIFTG 突合 5/5 PASS (先方構造化データはうちと同値・G3 は先方 7/23-24 の 3連単回転バグ補正が条件) / NG-T3D1 T-3 ドリフト追試 H1 PASS (fire 単勝 drift 0.47〜0.67・先方 0.446 は CI 内)・H3 PASS (見かけ EV 2.83 vs 実現 0.82)・H2 INCONCLUSIVE・H4 不支持。次 = Owner 裁定 (NG-T3D2 EV 判定の実効化 / NG-EXIN1)。 | 前段: W3 (Owner研究指令 2026-09-06) 完走。9件の判定: NG-MS3 MS_NET_ZERO (当日展示z単独−0.0209がMS6−0.0160より強く、当日展示併用下でMS6純増分は+0.0023=無し。MS2 PASSの実体=当日展示の冗長エンコード) / NG-G3 FAIL_STACKED (本番相当窓で生−0.0146だがexh120併用スタック+0.0058 CI[+0.0002,+0.0112]=MS6本番昇格なし・b2f41不変) / NG-SOB1 PASS (2着スケール反転=まくりは1着を奪うが2着は残す・in-sample caveat付き・4→1攻め時勝率低下はB2でも残存=織り込み不足候補) / NG-SC1 done_exploratory (scenario 10クラス分解成立・Meaningful Tail不在=集中はbodyに住む・S実現条件付きでB2に系統較正ズレ→SC2起票候補) / NG-RC2 done_primary (RC Score v1=top6_mass・OOS上位10%でhit6 62.4%=+21.8pp・24/24場・utility相関ゼロ=読める≠儲かる) / NG-WPOC1 不支持 (副産物=風変化でST+3.7ms遅延+SD増・半期完全再現) / W-2 R1気象汚染確定 (6.5年×24場・恒久規律=beforeinfo気象解析はR1除外・E5NR主検定とB2本番特徴は無傷) / W-1 風コレクタ2本実装検証済 (crontab 2行=shin設置待ち) / docs §16 mirror再構成済 (DECISION_LOG/DATA_STATUS/designs新設)。次の主戦線 = NG-EXIN1 (当日展示の入力側特徴化 vs exh120後段のstacked直接対決・MS3でex raw−0.0209実測) + SC2 (S条件付き較正ゲート) + SOB1将来窓再確認。production変更ゼロ (b2f41_prod2026_prod3不変)",
+ "current_phase": "2026-09-10 22:00: Owner 指令 第 3 弾「高配当側の過信を最後に検証し、その後の主戦線を決める」完走 — NG-T3D4 (rarity 条件付き shrinkage・市場較正レーンの最終ゲート) = 4 券種 FAIL → route B (PREDICTION EDGE ROUTE)・ケース3 確定・Market Gate 閉鎖・T3D5 以降のパラメータ追加禁止。高配当側 (2連複 36 倍〜 / 2連単 90 倍〜 / 3連複 35 倍〜 / 3連単 350 倍〜) は AI も市場も同じ形で過信 (最希少十分位で予測の 1〜3 割) = AI と市場の内分では直らない。EV 選択後に生き残るのは乖離 large/extreme × 10〜50 倍 (実現 0.94〜1.10・CI は 1 を跨ぐ)。主戦線 = Prediction Edge Discovery (designs/prediction_information_gap_audit_20260910.md の上位 1〜2 件の最小 PoC・Owner GO)。production 不変・holdout 封印・forward collector / shadow / バックフィル自走",
  "baseline_model": {
   "id": "b2f41_prod2026_prod3",
   "description": "B2構造化着順NN (41特徴・6艇self-attention・120通り直接softmax・3seed平均) + exh120展示補正層(θ9) + 市場ブレンド(w=0.85・推論後段)",
@@ -1743,7 +1773,7 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
   "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
  },
  "current_experiment": null,
- "current_experiment_note": "Owner 指令 第 2 弾 完走 (2026-09-10 16:10)。実行中の実験なし。自走 = 部品バックフィル PID 12667 + forward collector 試験 (NG-FC1・9/11〜9/24 メタデータ評価) + shadow 方式 A (nightly)。次 = NG-T3D4 起票 (Owner GO)",
+ "current_experiment_note": "Owner 指令 第 3 弾 完走 (2026-09-10 22:00)。実行中の実験なし。自走 = 部品バックフィル PID 12667 + forward collector 試験 (NG-FC1・9/11〜9/24 メタデータ) + shadow 方式 A (nightly 23:30)",
  "experiments": {
   "registry_path": "artifacts/research/experiment_registry.jsonl",
   "adopted": [
@@ -1907,14 +1937,27 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
     "verdict": "凍結 = case1_market_gate (3連複・2連単・2連複 MGC / 3連単 REJECT / CORE なし)。実質 = ケース3 寄り (実現値 全券種 <1・高オッズ側の金額重み過信残留)",
     "report": "lane-reports/t3d3_market_shrinkage_20260910.md",
     "artifacts": "artifacts/research/nextgen/t3d3/"
+   },
+   {
+    "id": "NG-T3D4",
+    "theme": "Payout-Tail Calibration / Odds-Conditioned Shrinkage (T3D3 baseline + rarity 条件付き λ・最大 2 パラメータ・金額 primary・市場較正レーンの最終ゲート)",
+    "verdict": "4 券種 FAIL → route B PREDICTION_EDGE_ROUTE (ケース3 確定・Market Gate 閉鎖・T3D5 以降禁止)。追加項は全セル 0 か負・tail money-CR 0.23〜0.43・実現値 0.35〜0.69 (全 48 セル <1)。AI と市場が同じ形で高配当側を過信 = 内分では直らない。生き残りは乖離 large/extreme × 10〜50 倍 (FINDINGS P10)。2連複 T-3 (2 場) NEEDS_MORE_DATA (再現せず)",
+    "report": "lane-reports/t3d4_payout_tail_20260910.md",
+    "artifacts": "artifacts/research/nextgen/t3d4/"
    }
   ],
   "designed_not_registered": [
    {
-    "id": "NG-T3D4",
-    "theme": "オッズ帯 (favorite-longshot) 条件付き λ + 判定 = 確定配当ベースの実現値 CI 下端 > 1 + 同数ランダム剪定比較",
-    "design": "未作成 (lane-reports/t3d3_market_shrinkage_20260910.md §6・§10-10 が根拠)",
-    "gate": "Owner GO 後に設計 → 事前登録"
+    "id": "NG-SOB1F",
+    "theme": "Gap Audit 採点 1 位 C = 攻め手在席シフト 8 チャネル (核 4→1) の将来窓 (2026-07-01〜08-31) 再現 = H-A gate 第 1 段",
+    "design": "artifacts/research/nextgen/designs/design_sob1_future_20260909.md (そのまま起票)",
+    "gate": "Owner GO (Q-024 a)。学習なし・<10 分・実装 0.5 日・オッズ不使用。REPRODUCED → SC2 → 両 PASS で H-A 本体"
+   },
+   {
+    "id": "NG-PDS1",
+    "theme": "Gap Audit 採点 2 位 A = 選手の as-of 動的状態 3 本 (ST トレンド / 直近残差 / 攻め率変化) が次走の B2 残差を予測し展示 z 統制でも消えないか → exh120 併用 stacked の条件付き ΔNLL (segment 別)",
+    "design": "artifacts/research/nextgen/designs/prediction_information_gap_audit_20260910.md §5-2",
+    "gate": "Owner GO (Q-024 b)。新規・学習なし・実装 1 日。増分上限診断を先に (上限 <0.003 なら再学習ゲートを起票しない)"
    }
   ]
  },
@@ -1932,7 +1975,7 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
   ],
   "testing": [
    "SG/G1は観光マネーで市場が甘くなる (SG当日 AI NLL 0.818 vs 0.981・n=12) → NG-E19SG",
-   "残った過信はオッズ帯に偏在する (hit-CR ≈1 でも実現 ÷ 締切期待 = 0.5〜0.8・FINDINGS P9) → オッズ帯条件付き λ で実現値が 1 を超えるか = NG-T3D4 (未登録)"
+   "Prediction Edge Discovery 第 1 弾: 攻め手在席シフトが将来窓で再現する (NG-SOB1F・C) / 選手の動的状態が次走の B2 残差を予測し展示統制でも消えない (NG-PDS1・A) → Owner GO Q-024"
   ],
   "partially_supported": [
    "4カド攻撃型は展開を作る (NG-E10: 攻撃スタイル型signature 6/9再現。NG-I1 (2026-09-04): proxy 2特徴は7件全員を分布の端で正しく捕捉=設計妥当、ただし薄層ゲートはFAIL=全選手一律の薄い補正では特異選手集中効果が平均化される)"
@@ -1943,7 +1986,9 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
    "満潮=まくり有利 (実測は逆方向)",
    "汎用の攻撃タグ/番組格差/1-4-5筋にエッジ (実在するが市場織り込み済み)",
    "節の立ち位置 (勝負駆け) が予測に効く (バイナリ圏内/圏外=統制後消滅 → 連続utility=NG-E23で両fold負。2形式null・同路線の再々提案は非推奨 2026-09-04)",
-   "風のコース成分が線形に効く (NG-E5W: 信号実在だが閾値の1/15・強風7m/s+で符号逆転=線形仮定が破綻。非線形/安定板交互作用方向のみ残す 2026-09-04)"
+   "風のコース成分が線形に効く (NG-E5W: 信号実在だが閾値の1/15・強風7m/s+で符号逆転=線形仮定が破綻。非線形/安定板交互作用方向のみ残す 2026-09-04)",
+   "配当の高さ (rarity) に応じて AI を市場側へ縮めれば実払戻ベースで +EV が残る → 否定 (NG-T3D4・2026-09-10)。AI と市場が同じ形で高配当側を過信しており内分では下げられない。市場ブレンド / 較正のパラメータ追加は同一形で再提案しない",
+   "AI と市場の乖離が大きいほど AI 誤差が支配する → 否定 (NG-T3D4)。逆に乖離 large/extreme × 10〜50 倍が生き残り、乖離 small × 100 倍超が負ける (FINDINGS P10)"
   ],
   "untested": [
    "安定板+強風=イン受難 (尼崎3R連続一貫・n=3逸話。E5W強風符号逆転が傍証を追加)",
@@ -1979,12 +2024,14 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
   "実験史: モデル改造12連敗・情報追加と推論工夫のみ有効 — W1第1波5連FAILで「B2出力への後付け薄層」の限界も確定 (取れる残差が既にほぼ無い)",
   "まくり筋の較正歪みは1パラメータ後段補正で回収可能 (NG-N1: gap z=10.2→1.3・副作用ゼロ・完全OOS)",
   "風向アイコン=コース図基準の発見 → 24場コース方位テーブル half-auto 完成 (high19/mid5)",
-  "モーター交換月は年次で移動する (K 2連率リセット検出で全24場確定)"
+  "モーター交換月は年次で移動する (K 2連率リセット検出で全24場確定)",
+  "EV 選択後に生き残るのは乖離 large/extreme × 10〜50 倍 (2連単 / 2連複で money-CR 0.89〜1.07・実現 0.94〜1.10・CI は 1 を跨ぐ)。乖離 small × 100 倍超は誤差収穫 (NG-T3D4・FINDINGS P10)"
  ],
  "rejected_findings": [
   "気温・水温の素値は予測に効く (実体の8-9割が季節の焼き直し)",
   "『A1は人気しすぎ』(市場は階級を正確に織り込む)",
-  "純粋externality (自艇は無傷で隣だけ動く型) は信号ゼロ (NG-E10 自艇残差≈0層: p=0.894)"
+  "純粋externality (自艇は無傷で隣だけ動く型) は信号ゼロ (NG-E10 自艇残差≈0層: p=0.894)",
+  "rarity 条件付き市場 shrinkage (NG-T3D4): 追加項は全セル 0 か負・実現値 全 48 セル <1。高配当側の過信は AI と市場が共有 (favorite-longshot 型)"
  ],
  "metrics": {
   "national_fold2_3seed": {
@@ -2107,6 +2154,120 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
    },
    "case_frozen": "case1_market_gate",
    "case_substantive": "case3-leaning"
+  },
+  "t3d4_20260910": {
+   "test": "prod3 2026-07-01〜08-31・T-1・τ1.15 top3",
+   "t4_candidate_beta": {
+    "sanrenpuku": "C2_pos −0.336",
+    "nirentan": "C0 (追加なし)",
+    "nirenpuku": "C1 +0.024",
+    "sanrentan": "C2_pos −0.387"
+   },
+   "tail_moneyCR_t3d3_to_t4": {
+    "sanrenpuku": [
+     0.73,
+     0.43
+    ],
+    "nirentan": [
+     0.35,
+     0.35
+    ],
+    "nirenpuku": [
+     0.4,
+     0.43
+    ],
+    "sanrentan": [
+     0.38,
+     0.23
+    ]
+   },
+   "moneyCR_anchor_t4": {
+    "sanrenpuku": 0.5,
+    "nirentan": 0.64,
+    "nirenpuku": 0.64,
+    "sanrentan": 0.22
+   },
+   "realized_diag_t4_tau115_top3": {
+    "sanrenpuku": [
+     0.58,
+     0.36,
+     0.83
+    ],
+    "nirentan": [
+     0.69,
+     0.52,
+     0.88
+    ],
+    "nirenpuku": [
+     0.69,
+     0.52,
+     0.91
+    ],
+    "sanrentan": [
+     0.35,
+     0.02,
+     0.9
+    ]
+   },
+   "price_ratio_on_hits": {
+    "sanrenpuku": 0.75,
+    "nirentan": 0.77,
+    "nirenpuku": 0.75,
+    "sanrentan": 0.95
+   },
+   "tail_overconfidence_starts_at_odds": {
+    "nirenpuku": 36,
+    "nirentan": 90,
+    "sanrenpuku": 35,
+    "sanrentan": 350
+   },
+   "rarest_decile_CR_ai_vs_market": {
+    "nirenpuku": [
+     0.21,
+     0.27
+    ],
+    "nirentan": [
+     0.09,
+     0.12
+    ],
+    "sanrenpuku": [
+     0.34,
+     0.33
+    ],
+    "sanrentan": [
+     0.07,
+     0.08
+    ]
+   },
+   "gap_segment_survivors": {
+    "nirentan_large_47x": [
+     1.1,
+     0.73,
+     1.45
+    ],
+    "nirentan_extreme_19x": [
+     0.94,
+     0.69,
+     1.23
+    ],
+    "nirenpuku_large_23x": [
+     0.95,
+     0.7,
+     1.21
+    ],
+    "nirenpuku_extreme_13x": [
+     1.03,
+     0.8,
+     1.3
+    ]
+   },
+   "nirenpuku_T3_2venues": [
+    1.03,
+    0.68,
+    1.43
+   ],
+   "route": "B_PREDICTION_EDGE_ROUTE",
+   "attribution_dominant": "A_fundamental (log −0.44〜−0.69) > B_price (−0.26〜−0.29) ≒ C_selection"
   }
  },
  "data_status": {
@@ -2285,12 +2446,18 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
   {
    "n": 22,
    "item": "NG-T3D4 起票 = オッズ帯条件付き λ + 判定を『確定配当ベースの実現値 CI 下端 > 1』に置く (実現値が 1 を超えなければケース3 確定・Market Gate 閉鎖)",
-   "recommend": "GO (Q-022)"
+   "recommend": "GO (Q-022)",
+   "status": "裁定済 GO (Owner 研究指令 2026-09-10 第 3 弾) → 実施済: 4 券種 FAIL・route B・Market Gate 閉鎖"
   },
   {
    "n": 23,
    "item": "forward collector 試験後 (9/24) の checkpoint 確定 (D-0:30/D-0:10 存廃・3f/2tf 継続) と raw HTML gz の削除",
    "recommend": "試験結果を見て裁定 (メタデータのみ)"
+  },
+  {
+   "n": 24,
+   "item": "Prediction Edge Discovery 第 1 弾の事前登録 GO: a NG-SOB1F (C・設計済み) / b NG-PDS1 (A・新規)",
+   "recommend": "a GO / b GO (順序 a → b・Q-024)"
   }
  ],
  "w2_directives_owner_20260904": {
@@ -2436,13 +2603,14 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
   "human_facing": "日本語名称を主表示 (現在モーター状態/選手の調整能力/直前風変化/展開圧力×対応力/穴シナリオ/読めるレース/シナリオ分散買い)。内部IDは括弧の補助"
  },
  "next_actions": [
-  "Owner GO 事項 (次の 1 手): NG-T3D4 起票 = オッズ帯条件付き λ (+1〜2 パラメータ・新 NN なし) を事前登録し、判定を『確定配当ベースの実現値 CI 下端 > 1』に置く。全滅ならケース3 確定 = Market Gate を閉じて 11/1 開封と forward collector の締切直前価格を待つ",
+  "Owner GO 事項 (次の 1 手・Q-024): a NG-SOB1F = 攻め手在席シフトの将来窓再現 (design_sob1_future_20260909 をそのまま・学習なし・<10 分・実装 0.5 日) / b NG-PDS1 = 選手の動的状態 3 本の存在確認 → exh120 併用 stacked の条件付き ΔNLL (新規・実装 1 日)。proper scoring・as-of・オッズ不使用。市場ブレンド系は提案しない (designs/prediction_information_gap_audit_20260910.md)",
+  "停止 (Owner 指令 §11): 市場 blend / calibration のパラメータ追加 (T3D5, T3D6…) 禁止。Market Gate 閉鎖。2連複 T-3 (2 場) は 11/1 開封時の再判定リストのみ",
   "自律 (メタデータのみ): forward collector 試験 9/11〜9/24 — D-0:30/D-0:10 存廃・odds3f/odds2tf parse 成功率・失敗処理実地・応答 8〜10 秒/ページの原因 (IPv6 フォールバック疑い = 仮説)。checkpoint 確定は Owner",
-  "自律 (読み取り・設計のみ): 部品バックフィル完走 (9/16 目安) 後の Maintenance 最小イベントスタディ設計 / 11/1 holdout 開封手順の事前整理 / Historical Replay 最小試作 (8 h) は T3D4 の後・Owner GO",
-  "P3 (Owner GO): SOB1 将来窓再現 / 小さい SC2 (優先度低)。BACKLOG ONLY: H-A〜H-D",
-  "禁止維持: 大型 Scenario Generator / GAT / Race Simulator / 券種専用 NN・券種専用特徴・巨大 calibration network / 拡連複・複勝 / 展示入力側化 / バックフィル停止・再起動・35 万拡張 / holdout 9/1〜10/31 閲覧 (forward collector の値も) / test 窓を見てからの τ・候補・窓の変更"
+  "自律 (読み取り・設計のみ): 部品バックフィル完走 (9/16 目安) 後の Maintenance 最小イベントスタディ設計 / 11/1 holdout 開封手順の事前整理 (T3D3/T3D4 の λ は開封判定に使わない)。Historical Replay 最小試作は Market Gate 再開時まで保存",
+  "禁止維持: 大型 Scenario Generator / GAT / Race Simulator / 券種専用 NN・券種専用特徴・巨大 calibration network / 拡連複・複勝 / 展示入力側化 / バックフィル停止・再起動・35 万拡張 / holdout 9/1〜10/31 閲覧 (forward collector の値も) / test 窓を見てからの τ・候補・窓の変更 / 市場較正のパラメータ追加"
  ]
 }
+
 ```
 
 
