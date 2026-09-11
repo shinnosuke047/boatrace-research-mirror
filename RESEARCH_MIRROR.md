@@ -4,9 +4,60 @@
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
 
-- 更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
+- 更新: **2026-09-12 04:30**(Owner 指令「Q-030 = COMMIT + PUSH GO」「Q-034 = GO」「SYSTEM INTEGRITY AUDIT = GO」の実行後)
+- 前回更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
 - 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/va1_venue_attack_residual_20260912.md` と `lane-reports/q029_weather_provenance_audit_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
 - 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
+
+## 0. 今回(2026-09-12 早朝)— 「研究のAI」「学習したAI」「本番のAI」が同じかを全部調べた
+
+用語: **train/serve skew** = 「学習したときの形」と「予測するときの形」がズレている状態。
+
+### 結論から: **`INTEGRITY_YELLOW`**(黄色信号)
+
+- **本番は安全**。今回の監査で本番のコードは 1 行も変えていない
+- **情報漏れ(未来の情報を使ってしまう事故)は 0 件**。封印中の 9〜10 月データにも触れていない
+- **ただし、直したばかりの事故と同じ種類の問題がもう 1 つ見つかった。これは未修理**
+- → **新しい予想ロジックの研究は、この 1 件の判断が済むまで止める**のが筋
+
+### ① 先週の事故の修理を、正式に git へ確定した(Q-030)
+
+commit `9e39b83`。**本番の動きは 9/12 01:16 の時点ですでに直っていて**、今回は「記録に残す」作業。
+直ったことを**371 レースの固定テストで機械確認**した: 学習と本番のズレ **0.000%**(修理を外すと 9.21% に戻る)。
+
+### ② 研究用の「ものさし」を作り直した(Q-034)
+
+研究で使う参照モデルは**レース後にしか分からない天気で学習されていた**。これを正しい天気で学習し直した。
+
+- **本番モデルには一切触っていない**(読むだけ。チェックサム一致)
+- 学習を始める**前**に「このモデルは何者か」の証明書を凍結した(入力ファイルの指紋・行数・期間・列の順番まで)
+- **大事な数字**: 天気の不正な情報を外しても、**全体の精度はほとんど落ちない**(採用ラインの 1/4)。
+  **でも 1 着予想は 9.17% が入れ替わる**。→ 「平均は同じでも、個々の結論は動きうる」ので再確認が必要だった
+- **再確認の結果 = 主要な結論は 1 件も変わらなかった**(U2 も PDS1 も判定・ゲート合否が完全一致)
+
+### ③ 全体監査で、**新しい問題を 1 つ見つけた**(これが今回いちばん大事)
+
+**本番が使っている「選手の最近の成績」などの数字 24 項目が、学習時と食い違っている。**
+
+- **大きさ**: 1 着予想の **10.30%** が入れ替わるレベル。先週直した事故(14.84%)の **4 割強**
+- **原因は 2 つ**: (A) 選手の直近成績が**常に 1 レース分古い** (B) 「今節の何日目か」が**3 日で打ち切られている**
+- **言い訳できるか調べた → できない**。「締切前には分からないから仕方ない」分は **0.00%** で、
+  **全部、前日までに分かっているのに拾えていない分**だった
+- **どこから直すのが得か**も測った: **(B) の節の打ち切りだけ直せば、ズレの約半分が消える**
+- **情報漏れではない**(本番のほうが情報が「少ない」方向のズレ)。だから危険度は S3(予測の質)で S4(漏洩)ではない
+- **勝手に直していない**。指示どおり報告だけして止めてある → **Q-035 で判断をお願いします**
+
+> **正直に言うこと**: これを直せば**当たるようになる、とは言えません**。
+> 今回分かったのは「学習と本番が違う」ことだけで、**回収率が上がるかは測っていません**。
+
+### ④ 同じ事故が二度と起きないように、装置を作った
+
+- **41 項目すべての身元台帳**(どこから来た数字か・いつ分かるか・欠けたらどうするか)
+- **371 レースの固定テスト**(24 会場・四季・強風・欠損などを網羅)。本番を触ったら必ず走らせる
+- そのテストは **10/10 合格**。しかも**わざと壊した 6 パターンを全部検出**できることも確認した
+  (いつも合格するだけのテストは、何も守っていないのと同じなので)
+
+---
 
 ## 0. 今回(2026-09-12 深夜)— 本番の事故を直し、研究の土台を作り直した
 
@@ -134,21 +185,21 @@
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: なし (NG-REF1 done_primary。次は Q-034 の裁定待ち)(RES-2026-09-G 完走 (DoD 14/14)。本番の train/serve skew を是正 (runtime revision r3) し、研究 Raw-B2 参照を production 整合の clean refere…)
-- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・19323/49968 ページ・残り目安 4.17 日)
+- 実行中の実験: SIA-V1 (Prediction System Integrity Audit v1) — done_primary(41 列 lineage 全数解決 / train-serve parity = EXACT 17・UNEXPECTED_DIFFERENCE 24 (全部 prior 集計) / GOLDEN_RACE_SET 371R・24 会場 /…)
+- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・20173/49968 ページ・残り目安 4.05 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-PDS1**(2026-09-11・done_primary・—): 機械判定 (凍結 pds1_frozen.json 01:55・目的変数との関係を 1 つも計算する前 → 実行 312 秒・fit 50,926R / future 8,997R・B=2000 seed42・置換 500 seed777): **PDS_NULL**。G1 存在確認は 6 本すべて不合格 (CI がすべて 0 跨ぎ・BH 通過ゼロ・置換 p 最良 f_perf 0.054 / f_st 0.068)。β は f_st +0.00130 …
-- **NG-U2**(2026-09-11・done_primary・—): 機械判定 (凍結 u2_frozen.json 21:46:25・目的変数との関係を計算する前 → 実行 230 秒・fit 46,648R / future 8,236R・R1 除外後・B=2000 seed42・置換 500 seed777): **U2_NULL**。G1 存在 ❌ (DiD +0.0855pp CI[−0.7199,+0.8532]・効果 floor 0.2pp 未達ではないが CI が 0 跨ぎ) / G2 方向安定 ❌ (前後…
 - **VENUE-V0**(2026-09-11・done_primary・—): 機械判定 (凍結 venue_v0_frozen.json 21:53:27・結果統計を計算する前 → 監査 31 秒 + 補助 4 秒・261,194R / 2021-01-01〜2026-06-30・R1 除外・最小会場 9,891R): **VENUE_PARTIAL**。16 チャネル中 **1 本**が事前登録 6 条件をすべて通過 = 旗艦 T1 4→1 (全国 −1.153pp/SD・τ 0.554・I² 0.605・Q p=7.0e-05…
 - **NG-VA1**(2026-09-12・done_primary・—): 機械判定 (凍結 va1_frozen.json 2026-09-11T23:56:09・sha256 2fb01f38…6ace23・結果 y に依存する統計を 1 つも計算する前 → 実行 207.6 秒・fit 46,648R / ref 8,236R・R1 除外・beforeinfo 条件・Raw B2 = p2 replica 2025-07〜2026-06): **VA1_PARTIAL / PARTIAL_UNDERPOWERED**。G1…
 - **NG-REF1**(2026-09-12・done_primary・—): Owner 指令 2026-09-12「Q-031 = GO」。研究用 Raw-B2 参照を production-training-consistent / as-of-safe に再構築した (再学習ゼロ・production バンドル読み取りのみ・sha256 5f7bc1f2f7a8bc0a… 実行前後一致)。**欠陥は 2 種類あることが判明**: D1 = clean 学習の prod3 に K 気象を食わせていた (入力差し替えで直る) /…
+- **NG-Q034**(2026-09-12・done_primary・—): 学習の 1 step 前に REPLICA_IDENTITY_MANIFEST.json を凍結 (sha256 6e5b4377…) → Q034_CLEAN_REPLICA を再学習 (bundle sha256 7c7e4551…・features_v2 beforeinfo + extra3_ext・wind_dir_code=-1・fold2・seed 42/43/44・b2・30epoch)。dump 59,923 レース (2025-07-…
+- **SIA-V1**(2026-09-12・done_primary・—): ①production training の正規化統計 41/41 列が beforeinfo 入力だけから相対 1e-6 以内で再現 (学習窓 2,017,260 行) = Q-029 WEATHER_SAFE の独立再現 ②41 列の lineage を全数解決 (UNKNOWN は B ファイル公表時刻 1 点のみ) ③train/serve parity = EXACT 17 / UNEXPECTED_DIFFERENCE 24 (差は全部 pr…
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-12 01:45(**Owner 指令 2026-09-12「Q-030 = GO / 最優先」「Q-031 = GO」完走 = RES-2026-09-G**) - **Q-030 完了 = 本番の train/serve skew を是正した**。live 実走で実値混入を確定(`南南東`→12・正規化後 **13.0**・供給元は openapi 補完)→ 推論側を学習時定数 −1 へ固定(**runtime revision r3**・再学習なし・重み不変・可逆)。8,997R で **6 指標すべて改善** (NLL 3.78427→**3.74452** / Brier120 −0.00224 / Hit@1 +0.27pp / prediction change rate **14.84%** / p120 TVD 平均 **0.0912** / pipeline integrity 全 PASS)。 **INC-2026-0905-WINDDIR** を起票(9/5 04…
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-12 04:30(**Owner 指令 2026-09-12「Q-030 = COMMIT + PUSH GO」「Q-034 = GO」「SYSTEM INTEGRITY AUDIT = GO」完走 = RES-2026-09-H**) ## 最優先 — Owner 裁定待ち 2 件(これが決まるまで新しい Prediction Edge 仮説を起票しない) - **Q-035 = INC-2026-0912-PRIORSTALE(S3・未修復)をどう扱うか**。prior 集計 **24 列**が本番推論と学習で食い違う (p120 TVD **0.0388** / 3連単 argmax 入替 **10.30%** = Q-030 の **4 割強**)。 原因 2 つ = (A) `build_context` の snapshot が **1 レース古い** (B) 節 4 列が **3 日窓で打ち切られる近似**。 **避けられない差は 0.00%**(同日出走なし 1,409 …
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -221,19 +272,21 @@
 - #26 wind_dir_code の train/serve skew 是正 (本番推論を -1 固定へ戻す・再学習なし)(推奨: GO (推論側 1 行。実測 ΔNLL +0.04447 = 採用線の約 15 倍の劣化・1 着予測の入替 14.84%・可逆・情報損失ほぼ皆無))
 - #27 研究 p120 dump の K 気象 provenance 是正と Raw-B2 参照の再構築 (NG-REF1・production 不変)(推奨: GO (次の主研究 1 本。SOB1F / PDS1 / U2 / VENUE-V0 L3 / VA1 の土台))
 - #28 研究用 p2 replica バンドルを beforeinfo 構成で再学習してよいか (研究 artifact のみ・production 不変)(推奨: GO。D2 は入力差し替えでは直らず再学習が唯一の解消手段。未裁定の間、E10 系 (P1 / P5)・SOB1F の乖離帯境界・U2 / PDS1 の存在ア…)
+- #29 Q-035: INC-2026-0912-PRIORSTALE (prior 集計 24 列の train/serve 不一致・S3) をどう扱うか(推奨: 段階 GO (まず節 4 列の 3 日打ち切りだけ直す。単独で差の約半分が消える))
+- #30 Q-036: System Integrity Audit v1 の S1/S2 整備 4 件 (silent fallback のログ化 / odds_pre の契約 / exh120 劣化経路の golden / manifest 無し artifact)(推奨: GO (①silent fallback のログ化 と ②odds_pre の契約 を先に))
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-12 | 研究 p120 dump の気象 provenance(新規発見) | **起票 = Q-031(未裁定・NG-REF1)** — dump 2 本が K 気象を読み、p2 replica は K 気象で学習されていた。SOB1F / PDS1 / U2 / VENUE-V0 L3 / VA1 が同じ参照に乗…
-- 2026-09-12 | HYPOTHESES の U-36 ID 衝突 | 是正 — 2026-09-11 に U-36 を 2 つの別仮説へ重複採番していた → **U-36a**(会場 × 4 攻め)/ **U-36b**(レース形成の感度マップ)に分離。判定…
-- 2026-09-12 | Q-030(`wind_dir_code` train/serve skew) | **GO → 実装・検証完了(ADOPT)** — Owner「Q-030 = GO / 最優先」。live 実走で実値混入を確定(`南南東`→12・正規化後 13.0・供給元は openapi 補完)→ 推論側を学習時定数へ固定…
-- 2026-09-12 | runtime / preprocessing revision の導入 | 制定 — weights が同じでも前処理が変われば出力は変わる。bundle とは独立に `RUNTIME_REVISION` を持ち、出力 JSON に必ず残す。固定は**列名ではなく…
-- 2026-09-12 | INC-2026-0905-WINDDIR | incident 記録 — 2026-09-05 04:43:31 〜 2026-09-12 01:16:02(約 6 日 20 時間)を production incident window として起票。…
-- 2026-09-12 | Q-031(NG-REF1) | **GO → 前半完了** — 欠陥が 2 種類(D1 = prod3 dump に K 気象 / D2 = replica の重みが K 気象で学習)と判明。Owner 必須条件「model weights …
-- 2026-09-12 | 汚染の広がり | 確定 — prod3 の 41 特徴を K と beforeinfo で全件突合 → **違うのは気象 4 列のみ**(wind_dir_code 7.87% / wind_speed 4…
-- 2026-09-12 | REF1 最小再計算(5 問) | **全問「結論は維持」** — ①SOB1F Race Formation = PARTIAL 不変 ②market disagreement = 維持だが **AI と市場の差が約 41% 縮む**(log …
-- 2026-09-12 | 旧 reference 由来 finding の扱い | PROVISIONAL 化 — Owner 指示どおり**削除せず** `PROVISIONAL_PENDING_REF1` として扱う。FINDINGS に 17 件のマーカーを付与(再検証済は数値の下方修正…
-- 2026-09-12 | replica の再学習 | **起票 = Q-034(未裁定)** — D2 は入力差し替えでは直らない。E10 系(P1 / P5)・SOB1F の乖離帯境界・U2 / PDS1 の存在アーム・VA1 の fit 窓・VENUE-V0 L3・ts1…
+- 2026-09-12 | Q-030(hotfix の commit + push) | **GO → CLOSE** — Owner「Q-030 = COMMIT + PUSH GO」。commit `9e39b83`(`scripts/predict_b2_live.py` のみ +53 行)→ …
+- 2026-09-12 | Q-034(研究 replica の再学習) | **GO → 完了(ADOPT)** — `Q034_CLEAN_REPLICA`(bundle sha256 `7c7e4551…` / dump 59,923R)。**学習の 1 step 前に REPLICA_ID…
+- 2026-09-12 | clean replica と legacy の差の切り分け | 確定 — fold2 test ΔNLL **+0.000793**(採用線 0.003 の約 1/4)/ dump 窓 ΔNLL +0.000321 / **3連単 argmax 入替 …
+- 2026-09-12 | Dependency Audit の再計算(replica アーム) | **FLIPPED 0 件** — 両アームを clean 化して frozen gate をそのまま再適用 → **NG-U2 SAME**(7 ゲート合否完全一致)/ **NG-PDS1 SAME**(6 特徴…
+- 2026-09-12 | production training の beforeinfo-safe 性 | **独立に再現** — 学習窓 **2,017,260 行**で **41/41 列の mu/sd が features_v2(beforeinfo)から相対 1e-6 以内で一致**。K result…
+- 2026-09-12 | INC-2026-0912-PRIORSTALE(新規発見・S3) | **起票 = Q-035(未裁定・未修復)** — prior 集計 **24 列**が本番推論と学習で食い違う(p120 TVD **0.0388** / 3連単 argmax 入替 **10.30%** = Q-030 の 4…
+- 2026-09-12 | System Integrity Audit v1 | **INTEGRITY_YELLOW** — Completion Gate **7/8**(未達 = unresolved S3 = 0 のみ)。**S4 = 0 件**・S3 = 1 件(未修復)・S2 = 4 件・S1…
+- 2026-09-12 | モデル同一性の定義 | **制定** — 『同じモデル』と呼ぶには `Model Weights + Feature Contract + Source Contract + Preprocessing Revision…
+- 2026-09-12 | 監査ゲートの設計規律 | **制定** — **いつも PASS するだけのゲートは、何も守っていないゲートと区別できない。** preflight には必ず負のコントロール(故障を注入して検出されることの確認)を併設する…
+- 2026-09-12 | `_fetched_at` の解釈 | **確定(方法論)** — beforeinfo アーカイブの `_fetched_at` は**ダウンロード時刻であって情報時点ではない**。バックフィルのため比較可能 37,526 件すべてが「締切後取…
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -271,6 +324,71 @@
 
 **勝ち筋は「賢いモデル」ではなく「モデルがまだ知らない情報」**。12連敗の実験史がそれを証明しており、v2.1 のロードマップ(情報→構造の順)はこの法則の上に立っている。
 
+### P22. 本番推論の prior 集計は「1 レースぶん古い」— 41 列中 24 列で train/serve が一致しない【**確定(運用事故)**(2026-09-12・System Integrity Audit v1)】
+
+Q-030 を直した直後に、**同じ種類の・より広い train/serve 不一致がもう 1 つ見つかった**。
+
+GOLDEN_RACE_SET 369 レース・2,214 艇行で、本番関数をそのまま import して 41 特徴を再構成し、
+学習が見た値と突き合わせた結果:
+
+- **EXACT 17 列**(出走表 9 + 気象 4 + カレンダー 3 + `has_local`)
+- **UNEXPECTED_DIFFERENCE 24 列** — **prior 集計が 1 つの例外もなく全部ずれる**
+
+到達影響は p120 TVD 平均 **0.0388** / 3連単 argmax 入替 **10.30%**
+(参考: Q-030 は TVD 0.0912 / 入替 14.84%。**今回は事故の 4 割強の大きさ**)。
+
+**原因は 2 つ。**
+
+1. `build_context` の `groupby("racer_id").last()` が、選手の直近行に**保存済み**の値を取る。
+   その値は学習側が `shift(1)` で作ったものなので、**その直近レース自身の結果が入っていない**
+   → 本番の prior 集計は常に 1 レース古い。差の中央値が窓幅の逆数ちょうど(20 走窓 0.05 / 5 走窓 0.20)に乗る。
+2. 節 4 列(`setsu_day` / `setsu_prior_n` / `setsu_prior_win` / `setsu_prior_top2`)が
+   `race_date - 3日` のプレフィルタで**長い節を打ち切る近似**になっている(`predict_b2_live.py:335`)。
+   学習側は全履歴を day-gap 連鎖でたどる。ablation では**この節の打ち切りが単独で最大の寄与**
+   (直すだけで TVD 0.0388→0.0203 / 入替 10.30%→5.69%)。
+
+**重要なのは「避けられる差か」を分けたこと。**
+同日に他の出走が無い艇 1,409 行(63%)に絞ると、
+**TRAIN vs IDEAL(締切時点で計算可能な上限)の差分率は 0.00%** で、
+TRAIN vs SERVE は 24〜46%。→ **出ている差は as-of の制約ではなく、実装の off-by-one。**
+
+**leakage ではない**(SERVE は TRAIN より情報が少ない方向にずれている)。S3 であって S4 ではない。
+**「直せば当たるようになる」とも言えない** — 学習時と同じ鮮度を与えることが的中・回収率を上げるかは別途の前向き検証が要る。
+
+→ `research/INCIDENTS.md` INC-2026-0912-PRIORSTALE。**未是正**(Owner 指令「S3 は勝手に修復しない」)。
+
+### P23. 列名検査では 3 種類の事故がどれも捕まらない — 契約と golden が最小の再発防止装置【**方法論**(2026-09-12・System Integrity Audit v1)】
+
+この 2 サイクルで出た 3 つの事故は、どれも `assert_no_leakage`(列名しか見ない)を素通りした。
+
+| 事故 | 何が違ったか | 列名検査で捕まるか |
+|---|---|---|
+| P20 `wind_dir_code` | 学習時は定数、推論時は実値 | **捕まらない**(列名は同じ) |
+| P21 研究 Raw-B2 | 同名 `wind_speed` の供給元が K(post-race) | **捕まらない**(列名は同じ) |
+| P22 prior 集計 | 同名だが**定義と鮮度**が違う | **捕まらない**(列名は同じ) |
+
+→ 列名の次に検査すべきは **①学習時の分散(定数か)②供給元 ③分布 ④定義の再現性** の 4 つ。
+本サイクルで用意した装置:
+
+- `FEATURE_CONTRACT.json`(41 列の source / as-of / dtype / domain / 欠損方針 / 分布 / `train_constant`)
+- `GOLDEN_RACE_SET.parquet`(371 レース・24 会場・raw 41 / z 41 / seed 別 p120 / exh120 適用結果を凍結)
+- `sia1_preflight.py`(10 検査。**p120 は max Δ 0.000e+00 で再現**)
+- `sia1_preflight_negative_control.py`(**故障を注入して 6 種すべて検出されることを確認** = ゲートが空振りしていない証明)
+
+**いつも PASS するだけのゲートは、何も守っていないゲートと区別できない。負のコントロールを必ず併設する。**
+
+### P24. アーカイブの `_fetched_at` は「情報時点」ではない — fetch 時刻で as-of 監査をすると偽陽性 100%【**方法論**(2026-09-12・System Integrity Audit v1)】
+
+`data/beforeinfo/` 357,808 ファイルの `_fetched_at` と `_openapi.closed_at` を突き合わせたところ、
+**比較可能な 37,526 件すべてが「締切より後に取得」**になった(2026-01 で中央値 締切の 189 日後)。
+
+これは as-of 違反ではなく、**アーカイブが後日バックフィルされたため**。
+中身は beforeinfo ページ = 締切前に公表される情報である。
+
+→ **ダウンロード時刻と情報時点は別物**。as-of の担保は
+①ページの種類(beforeinfo か K か)②コード側の情報時点宣言(`leakguard_env.py` の T0/T1/T2)
+③学習統計が beforeinfo から再現できるか、で行う。**fetch 時刻は使えない。**
+
 ---
 
 
@@ -278,7 +396,8 @@
 
 # RESEARCH_STATUS — 研究状態の正本
 
-- 最新更新: **2026-09-12 01:45**(更新者: Claude / Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」完走 = **RES-2026-09-G / DoD 14-14**。**① 本番の train/serve skew を是正**: prod3 は `wind_dir_code` を全行 −1 の定数として学習しているのに、commit `c260f3c`(2026-09-05)以降**推論側だけ実値 1〜16** が入っていた。live 実走で混入を確定(`南南東`→12・正規化後 **13.0**・供給元は boatrace.jp ではなく **openapi 補完**)→ 推論側を学習時定数へ固定(**runtime revision r3**・再学習なし・重み不変・可逆)。8,997R で **6 指標すべて改善**(3連単 NLL **3.78427→3.74452** = ΔNLL −0.03975 = 採用線の約 13 倍 / Brier120 −0.00224 / Hit@1 +0.27pp / 1着 Hit@1 +0.19pp / **prediction change rate 14.84%** / p120 TVD 平均 **0.0912**)・pipeline integrity 全 PASS。**INC-2026-0905-WINDDIR** を起票(9/5 04:43:31〜9/12 01:16:02)。**窓内に本番予測成果物の書き出し 0 件・bet_log 系 4 本 md5 不変 = 実弾への波及なし**。**② NG-REF1 で研究の土台を作り直した**: 欠陥は **2 種類**(D1 = clean 学習の prod3 に K 気象 → 入力差し替えで直る / D2 = **replica の重みそのものが K 気象で学習** → 再学習が要る)。Owner 必須条件「model weights は変更しない」を字義どおり守り **D1 を完全解消・D2 は据え置き → Q-034 起票**。canonical reference = `ref1_p120_prod3_clean.parquet`(8,997R)・**p120 生成前に manifest を凍結**。**汚染の広がりは気象 4 列のみ**と実測(残り 37 列は K と 100.0000% 一致)。最小再計算(既存 gate を import・式は無改変)で **Owner の 5 問すべて「結論は維持」**(SOB1F Race Formation = PARTIAL 不変 / market disagreement 維持 / PDS_NULL 維持 / **U2_NULL は 7 ゲートの合否が完全同一** / VA1 ref アーム維持)。ただし **AI と市場の距離が約 41% 縮む**新事実(勝者上 log 比 −0.02592→**−0.01524**・CI は依然 0 非跨ぎ。P11 極端帯 CR_ai 0.575→**0.668**)。FINDINGS に **PROVISIONAL_PENDING_REF1 / REF1 再検証済 を 17 件付与**(本文削除ゼロ)。人間向け = research/OWNER_VIEW.md)
+- 最新更新: **2026-09-12 04:30**(更新者: Claude / Owner 指令 2026-09-12「**Q-030 = COMMIT + PUSH GO**」「**Q-034 = GO**」「**SYSTEM INTEGRITY AUDIT = GO**」完走 = **RES-2026-09-H / DoD 13-14**。**① Q-030 を git に確定**: commit `9e39b83`(`scripts/predict_b2_live.py` のみ +53 行)→ push。commit 後の再確認 全 PASS(bundle sha256 不変 / runtime revision **r3** / expected `wind_dir_code` = −1 / **golden 369R の train-serve 差分率 0.000%** / p120 **max Δ 0.000e+00**)。**② Q-034 = clean replica 完成**: `Q034_CLEAN_REPLICA`(bundle sha256 `7c7e4551…`・dump **59,923R**)。**学習の 1 step 前に REPLICA_IDENTITY_MANIFEST を凍結**。production は読み取りのみ・不変。holdout 未使用(max 2026-08-31)。旧 replica との差 = ΔNLL **+0.000793**(採用線の約 1/4)だが **3連単 argmax 9.17% 入替** → **dataset difference** と切り分け。Dependency Audit 再計算 = **NG-U2 SAME**(7 ゲート合否完全一致)/ **NG-PDS1 SAME**(6 特徴 × 4 ゲート完全一致)= **FLIPPED 0 件**。**③ System Integrity Audit v1 で新しい S3 を発見**: **INC-2026-0912-PRIORSTALE** = prior 集計 **24 列**の train/serve 不一致(p120 TVD **0.0388** / 3連単 argmax 入替 **10.30%** = Q-030 の 4 割強)。原因 = `build_context` snapshot の **1 レース遅れ** + 節 4 列の **3 日打ち切り**。同日出走なし 1,409 艇行で **TRAIN vs IDEAL = 0.00%** → **as-of の制約ではなく実装の off-by-one**。ablation で節 4+2 列が単独最大(TVD 0.0388→**0.0203** / 入替 10.30%→**5.69%**)。**leakage ではない(S3 であって S4)**。Owner 指令 §22 に従い**未修復** → **Q-035** 起票。**④ 再発防止の装置**: `FEATURE_LINEAGE_AUDIT.md`(41/41 解決)/ `FEATURE_CONTRACT.json`(rev `fc-v1-2026-09-12`)/ `GOLDEN_RACE_SET`(**371R・24 会場・四季**)/ preflight ゲート **10/10 PASS** / **負のコントロール 6/6 DETECTED**。**as-of 違反 0 件**(beforeinfo 357,808 file 全走査)。ただし **`_fetched_at` は取得時刻であって情報時点ではない**と判明(P24)。**S4 = 0 件**。**最終判定 = `INTEGRITY_YELLOW`**(Completion Gate 7/8・未達は unresolved S3 = 0 のみ)。人間向け = research/OWNER_VIEW.md)
+- 前回更新: **2026-09-12 01:45**(更新者: Claude / Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」完走 = **RES-2026-09-G / DoD 14-14**。**① 本番の train/serve skew を是正**: prod3 は `wind_dir_code` を全行 −1 の定数として学習しているのに、commit `c260f3c`(2026-09-05)以降**推論側だけ実値 1〜16** が入っていた。live 実走で混入を確定(`南南東`→12・正規化後 **13.0**・供給元は boatrace.jp ではなく **openapi 補完**)→ 推論側を学習時定数へ固定(**runtime revision r3**・再学習なし・重み不変・可逆)。8,997R で **6 指標すべて改善**(3連単 NLL **3.78427→3.74452** = ΔNLL −0.03975 = 採用線の約 13 倍 / Brier120 −0.00224 / Hit@1 +0.27pp / 1着 Hit@1 +0.19pp / **prediction change rate 14.84%** / p120 TVD 平均 **0.0912**)・pipeline integrity 全 PASS。**INC-2026-0905-WINDDIR** を起票(9/5 04:43:31〜9/12 01:16:02)。**窓内に本番予測成果物の書き出し 0 件・bet_log 系 4 本 md5 不変 = 実弾への波及なし**。**② NG-REF1 で研究の土台を作り直した**: 欠陥は **2 種類**(D1 = clean 学習の prod3 に K 気象 → 入力差し替えで直る / D2 = **replica の重みそのものが K 気象で学習** → 再学習が要る)。Owner 必須条件「model weights は変更しない」を字義どおり守り **D1 を完全解消・D2 は据え置き → Q-034 起票**。canonical reference = `ref1_p120_prod3_clean.parquet`(8,997R)・**p120 生成前に manifest を凍結**。**汚染の広がりは気象 4 列のみ**と実測(残り 37 列は K と 100.0000% 一致)。最小再計算(既存 gate を import・式は無改変)で **Owner の 5 問すべて「結論は維持」**(SOB1F Race Formation = PARTIAL 不変 / market disagreement 維持 / PDS_NULL 維持 / **U2_NULL は 7 ゲートの合否が完全同一** / VA1 ref アーム維持)。ただし **AI と市場の距離が約 41% 縮む**新事実(勝者上 log 比 −0.02592→**−0.01524**・CI は依然 0 非跨ぎ。P11 極端帯 CR_ai 0.575→**0.668**)。FINDINGS に **PROVISIONAL_PENDING_REF1 / REF1 再検証済 を 17 件付与**(本文削除ゼロ)。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-12 00:15**(更新者: Claude / Owner 研究指令 2026-09-11 **第 3 弾**「Q-028 = GO / Q-029 = AUDIT ONLY GO」完走。**NG-VA1 = VA1_PARTIAL / PARTIAL_UNDERPOWERED**(機械)= **実質 Case A 寄り + 統合価値なし → 指令 §24 の分岐 C**。会場差は B2 win 残差で **τ が厳密に 0 へ縮約**(Q p=0.744・I²=0.000・生の会場 SD 0.898 < ノイズ 1.004・frozen 順位との ρ=−0.143)。判定を支える well-powered な 2 本 = **oracle 上限の venue 増分 0.000225〜0.000861(cross-fit 0.000144)= 採用線の 1/13〜1/21** と **結果非依存の model-side λ=1.072±0.270 = B2 の予測が会場差をほぼ丸ごと再現済み**。→ **U-36a を R-17 で否定・§14 の Venue PoC は起票しない・Venue Logic は説明層として保持し Prediction Edge から降格**。国全体の攻撃→イン被害は残差に生きている(−0.934±0.204・**exh120 後も −0.904 でほぼ不変 = 展示層は吸収しない**)が national 単独の oracle 上限も 0.000381 = 採用線の 1/8。**Q-029 = WEATHER_SAFE → CLOSE**(本番バンドルの mu/sd 指紋が beforeinfo と 8 桁一致・K と不一致。独立 5 線で確認)。監査中に別件 2 件を検出 = **Q-030 `wind_dir_code` の train/serve skew(実測 ΔNLL +0.04447 = 採用線の約 15 倍の劣化・1 着予測の入替 14.84%・2026-09-05 以降)**/ **Q-031 研究 p120 dump が K 気象を読んでいた(NG-REF1)**。FINDINGS P17 を訂正。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-11 22:05**(更新者: Claude / Owner 研究指令 2026-09-11 **第 2 弾**「Q-025 = GO + Venue Logic Research v0」完走。**NG-U2 = U2_NULL**(難条件 × 当地習熟の 2×2 DiD +0.086pp CI[−0.72,+0.85]・季節クリマトロジー置換 p=0.850・oracle 薄層 ΔNLL 上限 0.000165 = 採用線の 1/18 → U-2 を R-14 で否定・U-35 は閉鎖 = **当地経験は静的にも条件付きにも閉じた**)/ **VENUE-V0 = VENUE_PARTIAL**(16 チャネル中 1 本のみ異質 = 旗艦 `4 攻め → 1 号艇被害`。全国 −1.153pp/SD・桐生 −2.47 〜 芦屋 −0.43・I²=0.60・置換 p=0.005・前後期 rank ρ=+0.75)。**構造的な発見 = 崩れ方には会場差があるが拾われ方には無い(FINDINGS P14)/ scale reversal は会場でなく攻め手のコースが決める(P15)/ 難条件はどのスケールでも信号なし(P16)**。着手前に **K ファイル由来気象の as-of 不適合を検出して回避**(P17・本番学習側は Q-029)。会場 meta-regression の「天候が 92% 説明」は**プラセボで取り下げ**(P18)。次 = NG-VA1「会場 × 4 コース攻撃」1 本(Owner GO = Q-028)。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-11 02:10**(更新者: Claude / Owner 研究指令「Prediction Edge Discovery 第 1 弾(NG-SOB1F → NG-PDS1)」完走。**NG-SOB1F = PARTIAL**(攻め手在席シフトは将来窓 2026-07〜08 で符号 4/4・Stouffer z=4.82・旗艦 CI 非跨ぎ・placebo 0.002 で再現、規模整合のみ不成立 → H-A / SC2 のゲートは閉じたまま)/ **NG-PDS1 = PDS_NULL**(選手の動的状態 6 本すべて B2 残差を説明せず・well-powered null・増分上限 0.00013 = 採用線の 1/23 → 「選手個人の情報」路線は静的・動的の両方で閉鎖)。**主戦線への答え = 素の単勝確率では「AI と市場が食い違う帯 = AI が外している帯」(FINDINGS P11: AI>市場 極端帯で CR 0.575 / 市場 1.049)**。攻め手シフトは「市場が攻め手を高く買う」帯に集中(P12)= AI に足りないが市場は持っている情報。状態系の共通罠 4 例目(P13)。次 = NG-U2「場 × 難条件 × 習熟」1 本(Owner GO = Q-025)。人間向け = research/OWNER_VIEW.md)
@@ -348,7 +467,39 @@
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-12 01:45(**Owner 指令 2026-09-12「Q-030 = GO / 最優先」「Q-031 = GO」完走 = RES-2026-09-G**)
+最新更新: 2026-09-12 04:30(**Owner 指令 2026-09-12「Q-030 = COMMIT + PUSH GO」「Q-034 = GO」「SYSTEM INTEGRITY AUDIT = GO」完走 = RES-2026-09-H**)
+
+## 最優先 — Owner 裁定待ち 2 件(これが決まるまで新しい Prediction Edge 仮説を起票しない)
+
+- **Q-035 = INC-2026-0912-PRIORSTALE(S3・未修復)をどう扱うか**。prior 集計 **24 列**が本番推論と学習で食い違う
+  (p120 TVD **0.0388** / 3連単 argmax 入替 **10.30%** = Q-030 の **4 割強**)。
+  原因 2 つ = (A) `build_context` の snapshot が **1 レース古い** (B) 節 4 列が **3 日窓で打ち切られる近似**。
+  **避けられない差は 0.00%**(同日出走なし 1,409 艇行)= 実装の off-by-one。
+  ablation: **節 4+2 列を直すだけで TVD 0.0388→0.0203・入替 10.30%→5.69%**(単独最大の寄与)。
+  **推奨 = 段階 GO(節 4 列のみ先行)。但し「直せば当たるようになる」とは言えない**(train/serve が違うことだけが実証済み)
+- **Q-036 = 監査で出た S1/S2 の整備 4 件**(silent fallback のログ化 / `odds_pre` の契約 / exh120 劣化経路の golden / manifest 無し artifact)
+
+## 今サイクルで確定したこと(RES-2026-09-H)
+
+- **Q-030 = CLOSE**(commit `9e39b83` / push 済)。**golden 369R の train-serve 差分率 0.000%** で是正を機械確認
+- **Q-034 = 完了**。`Q034_CLEAN_REPLICA` が新しい canonical Raw-B2。
+  旧は **`LEGACY_REPLICA_K_WEATHER`** として保持(削除も上書きもしていない)
+- **Dependency Audit = FLIPPED 0 件**。NG-U2 SAME / NG-PDS1 SAME。
+  **残差研究の土台は両アームとも production-training-consistent になった**
+- **production training が beforeinfo-safe を独立再現**(学習窓 2,017,260 行で 41/41 列の mu/sd が相対 1e-6 以内で一致)
+- **S4 = 0 件**(leakage / holdout 汚染なし)。`features_v2` は 2026-08-31 で止まり構造的に封印
+- **最終判定 = `INTEGRITY_YELLOW`**。`INTEGRITY_GREEN` には unresolved S3 = 0 が要る
+
+## 【重要】「同じモデル」の定義が変わった
+
+**weights が同じだけでは同じモデルと扱わない。** 次の 5 点が一致して初めて同一とみなす:
+`Model Weights + Feature Contract + Source Contract + Preprocessing Revision + Runtime Revision`。
+**「Raw B2」という呼称だけでモデルを参照することを禁ずる。**
+
+---
+
+(以下は前サイクル RES-2026-09-G の記録)
+
 
 - **Q-030 完了 = 本番の train/serve skew を是正した**。live 実走で実値混入を確定(`南南東`→12・正規化後 **13.0**・供給元は openapi 補完)→
   推論側を学習時定数 −1 へ固定(**runtime revision r3**・再学習なし・重み不変・可逆)。8,997R で **6 指標すべて改善**
@@ -522,6 +673,16 @@ NG-T3D4(4 券種 FAIL → route B・Market Gate 閉鎖)/ tail 可視化 / 乖離
 | 2026-09-12 | REF1 最小再計算(5 問) | **全問「結論は維持」** | ①SOB1F Race Formation = PARTIAL 不変 ②market disagreement = 維持だが **AI と市場の差が約 41% 縮む**(log 比 −0.0259→−0.0152)③PDS_NULL 維持 ④U2_NULL 維持(**7 ゲートの合否が完全同一**)⑤VA1 ref アーム維持。動いたのは AI と市場の距離のみで、方向は AI に有利な訂正 | research/REF1_DEPENDENCY_AUDIT.md §4-§5 |
 | 2026-09-12 | 旧 reference 由来 finding の扱い | PROVISIONAL 化 | Owner 指示どおり**削除せず** `PROVISIONAL_PENDING_REF1` として扱う。FINDINGS に 17 件のマーカーを付与(再検証済は数値の下方修正込みで併記)。**本文の削除はゼロ** | research/FINDINGS.md |
 | 2026-09-12 | replica の再学習 | **起票 = Q-034(未裁定)** | D2 は入力差し替えでは直らない。E10 系(P1 / P5)・SOB1F の乖離帯境界・U2 / PDS1 の存在アーム・VA1 の fit 窓・VENUE-V0 L3・ts1 / t3d3 / t3d4 の replica アームが PROVISIONAL のまま残る。研究バンドルのみ再学習してよいかを諮る | DECISION_QUEUE Q-034 / REF1_DEPENDENCY_AUDIT §6 |
+| 2026-09-12 | Q-030(hotfix の commit + push) | **GO → CLOSE** | Owner「Q-030 = COMMIT + PUSH GO」。commit `9e39b83`(`scripts/predict_b2_live.py` のみ +53 行)→ push。path 指定 add で他レーン所有物(dashboard html)とバックフィル書き込み中ファイルを巻き込んでいない。commit 後の再確認 5 点すべて PASS(bundle sha256 不変 / runtime revision r3 / expected wind_dir_code = −1 / **golden 369R の train-serve 差分率 0.000%** / p120 **max Δ 0.000e+00**)。rollback = `git revert 9e39b83` | lane-reports/sia_v1_20260912.md |
+| 2026-09-12 | Q-034(研究 replica の再学習) | **GO → 完了(ADOPT)** | `Q034_CLEAN_REPLICA`(bundle sha256 `7c7e4551…` / dump 59,923R)。**学習の 1 step 前に REPLICA_IDENTITY_MANIFEST を凍結**。production は読み取りのみ・sha256 不変・再学習なし。holdout 未使用(max 2026-08-31・assert)。旧は **LEGACY_REPLICA_K_WEATHER** として保持(削除も上書きもなし) | artifacts/research/nextgen/q034/REPLICA_IDENTITY_MANIFEST.json |
+| 2026-09-12 | clean replica と legacy の差の切り分け | 確定 | fold2 test ΔNLL **+0.000793**(採用線 0.003 の約 1/4)/ dump 窓 ΔNLL +0.000321 / **3連単 argmax 入替 9.17%**。seed・architecture・fold・epochs・列順すべて同一で seed 内分散 std 0.00016 → **training randomness でも implementation difference でもなく dataset difference**(post-race 気象を落とした分)。「集計精度はほぼ同じでも個々の結論は動きうる」= 再計算が要った理由 | artifacts/research/nextgen/q034/q034_validation.json |
+| 2026-09-12 | Dependency Audit の再計算(replica アーム) | **FLIPPED 0 件** | 両アームを clean 化して frozen gate をそのまま再適用 → **NG-U2 SAME**(7 ゲート合否完全一致)/ **NG-PDS1 SAME**(6 特徴 × 4 ゲート完全一致)。副次的に PDS1 `f_st` の G1 で CI が 0 を跨がなくなった(β +0.0012982→+0.0015965・p 0.0521→0.0170)が、G1 は前後半符号一致と置換検定も要求するため**合否は false のまま**。**残差研究の土台は両アームとも production-training-consistent になった** | research/REF1_DEPENDENCY_AUDIT.md §7 |
+| 2026-09-12 | production training の beforeinfo-safe 性 | **独立に再現** | 学習窓 **2,017,260 行**で **41/41 列の mu/sd が features_v2(beforeinfo)から相対 1e-6 以内で一致**。K result page では一致しない。Q-029 `WEATHER_SAFE` を本監査でも別経路で確認 | research/SYSTEM_INTEGRITY_AUDIT_V1.md §2 |
+| 2026-09-12 | INC-2026-0912-PRIORSTALE(新規発見・S3) | **起票 = Q-035(未裁定・未修復)** | prior 集計 **24 列**が本番推論と学習で食い違う(p120 TVD **0.0388** / 3連単 argmax 入替 **10.30%** = Q-030 の 4 割強)。原因 = `build_context` snapshot の **1 レース遅れ** + 節 4 列の **3 日打ち切り**。同日出走なし 1,409 艇行で **TRAIN vs IDEAL = 0.00%** → **as-of の制約ではなく実装の off-by-one**。ablation で節 4+2 列が単独最大(TVD 0.0388→0.0203 / 入替 10.30%→5.69%)。**leakage ではない(S3 であって S4)**。Owner 指令 §22 に従い**修復していない** | research/INCIDENTS.md / FINDINGS P22 |
+| 2026-09-12 | System Integrity Audit v1 | **INTEGRITY_YELLOW** | Completion Gate **7/8**(未達 = unresolved S3 = 0 のみ)。**S4 = 0 件**・S3 = 1 件(未修復)・S2 = 4 件・S1 = 4 件。41/41 lineage 解決 / parity EXACT 17・UNEXPECTED 24 / GOLDEN_RACE_SET 371R・24 会場 / FEATURE_CONTRACT + preflight **10/10 PASS** / **負のコントロール 6/6 DETECTED** / as-of 違反 0 件。**新研究は Q-035 の裁定まで保留** | research/SYSTEM_INTEGRITY_AUDIT_V1.md |
+| 2026-09-12 | モデル同一性の定義 | **制定** | 『同じモデル』と呼ぶには `Model Weights + Feature Contract + Source Contract + Preprocessing Revision + Runtime Revision` の **5 点が一致**すること。**weights が同じだけでは同じモデルと扱わない。『Raw B2』という呼称だけでモデルを参照することを禁ずる** | research/SYSTEM_INTEGRITY_AUDIT_V1.md §14 |
+| 2026-09-12 | 監査ゲートの設計規律 | **制定** | **いつも PASS するだけのゲートは、何も守っていないゲートと区別できない。** preflight には必ず負のコントロール(故障を注入して検出されることの確認)を併設する。今回は 6 種すべて DETECTED | scripts/research/nextgen/sia1_preflight_negative_control.py / FINDINGS P23 |
+| 2026-09-12 | `_fetched_at` の解釈 | **確定(方法論)** | beforeinfo アーカイブの `_fetched_at` は**ダウンロード時刻であって情報時点ではない**。バックフィルのため比較可能 37,526 件すべてが「締切後取得」に見える。**fetch 時刻で as-of 監査をすると偽陽性 100%** | FINDINGS P24 / artifacts/research/nextgen/sia1/asof_source_audit.json |
 
 
 
@@ -2033,1093 +2194,1181 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 
 **勝ち筋は「賢いモデル」ではなく「モデルがまだ知らない情報」**。12連敗の実験史がそれを証明しており、v2.1 のロードマップ(情報→構造の順)はこの法則の上に立っている。
 
+### P22. 本番推論の prior 集計は「1 レースぶん古い」— 41 列中 24 列で train/serve が一致しない【**確定(運用事故)**(2026-09-12・System Integrity Audit v1)】
+
+Q-030 を直した直後に、**同じ種類の・より広い train/serve 不一致がもう 1 つ見つかった**。
+
+GOLDEN_RACE_SET 369 レース・2,214 艇行で、本番関数をそのまま import して 41 特徴を再構成し、
+学習が見た値と突き合わせた結果:
+
+- **EXACT 17 列**(出走表 9 + 気象 4 + カレンダー 3 + `has_local`)
+- **UNEXPECTED_DIFFERENCE 24 列** — **prior 集計が 1 つの例外もなく全部ずれる**
+
+到達影響は p120 TVD 平均 **0.0388** / 3連単 argmax 入替 **10.30%**
+(参考: Q-030 は TVD 0.0912 / 入替 14.84%。**今回は事故の 4 割強の大きさ**)。
+
+**原因は 2 つ。**
+
+1. `build_context` の `groupby("racer_id").last()` が、選手の直近行に**保存済み**の値を取る。
+   その値は学習側が `shift(1)` で作ったものなので、**その直近レース自身の結果が入っていない**
+   → 本番の prior 集計は常に 1 レース古い。差の中央値が窓幅の逆数ちょうど(20 走窓 0.05 / 5 走窓 0.20)に乗る。
+2. 節 4 列(`setsu_day` / `setsu_prior_n` / `setsu_prior_win` / `setsu_prior_top2`)が
+   `race_date - 3日` のプレフィルタで**長い節を打ち切る近似**になっている(`predict_b2_live.py:335`)。
+   学習側は全履歴を day-gap 連鎖でたどる。ablation では**この節の打ち切りが単独で最大の寄与**
+   (直すだけで TVD 0.0388→0.0203 / 入替 10.30%→5.69%)。
+
+**重要なのは「避けられる差か」を分けたこと。**
+同日に他の出走が無い艇 1,409 行(63%)に絞ると、
+**TRAIN vs IDEAL(締切時点で計算可能な上限)の差分率は 0.00%** で、
+TRAIN vs SERVE は 24〜46%。→ **出ている差は as-of の制約ではなく、実装の off-by-one。**
+
+**leakage ではない**(SERVE は TRAIN より情報が少ない方向にずれている)。S3 であって S4 ではない。
+**「直せば当たるようになる」とも言えない** — 学習時と同じ鮮度を与えることが的中・回収率を上げるかは別途の前向き検証が要る。
+
+→ `research/INCIDENTS.md` INC-2026-0912-PRIORSTALE。**未是正**(Owner 指令「S3 は勝手に修復しない」)。
+
+### P23. 列名検査では 3 種類の事故がどれも捕まらない — 契約と golden が最小の再発防止装置【**方法論**(2026-09-12・System Integrity Audit v1)】
+
+この 2 サイクルで出た 3 つの事故は、どれも `assert_no_leakage`(列名しか見ない)を素通りした。
+
+| 事故 | 何が違ったか | 列名検査で捕まるか |
+|---|---|---|
+| P20 `wind_dir_code` | 学習時は定数、推論時は実値 | **捕まらない**(列名は同じ) |
+| P21 研究 Raw-B2 | 同名 `wind_speed` の供給元が K(post-race) | **捕まらない**(列名は同じ) |
+| P22 prior 集計 | 同名だが**定義と鮮度**が違う | **捕まらない**(列名は同じ) |
+
+→ 列名の次に検査すべきは **①学習時の分散(定数か)②供給元 ③分布 ④定義の再現性** の 4 つ。
+本サイクルで用意した装置:
+
+- `FEATURE_CONTRACT.json`(41 列の source / as-of / dtype / domain / 欠損方針 / 分布 / `train_constant`)
+- `GOLDEN_RACE_SET.parquet`(371 レース・24 会場・raw 41 / z 41 / seed 別 p120 / exh120 適用結果を凍結)
+- `sia1_preflight.py`(10 検査。**p120 は max Δ 0.000e+00 で再現**)
+- `sia1_preflight_negative_control.py`(**故障を注入して 6 種すべて検出されることを確認** = ゲートが空振りしていない証明)
+
+**いつも PASS するだけのゲートは、何も守っていないゲートと区別できない。負のコントロールを必ず併設する。**
+
+### P24. アーカイブの `_fetched_at` は「情報時点」ではない — fetch 時刻で as-of 監査をすると偽陽性 100%【**方法論**(2026-09-12・System Integrity Audit v1)】
+
+`data/beforeinfo/` 357,808 ファイルの `_fetched_at` と `_openapi.closed_at` を突き合わせたところ、
+**比較可能な 37,526 件すべてが「締切より後に取得」**になった(2026-01 で中央値 締切の 189 日後)。
+
+これは as-of 違反ではなく、**アーカイブが後日バックフィルされたため**。
+中身は beforeinfo ページ = 締切前に公表される情報である。
+
+→ **ダウンロード時刻と情報時点は別物**。as-of の担保は
+①ページの種類(beforeinfo か K か)②コード側の情報時点宣言(`leakguard_env.py` の T0/T1/T2)
+③学習統計が beforeinfo から再現できるか、で行う。**fetch 時刻は使えない。**
+
 
 
 # ===== research_state.json =====
 
 ```json
 {
- "updated_at": "2026-09-12 01:45",
- "updated_by": "RES-2026-09-G closure (Q-030 hotfix + Q-031 NG-REF1)",
- "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
- "architecture_version": "v2.1",
- "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
- "current_phase": "Venue Logic レーンを閉じた (説明層として保持・Prediction Edge から降格)。NG-VA1 = VA1_PARTIAL / PARTIAL_UNDERPOWERED (機械) = 実質 Case A 寄り + 統合価値なし → 指令 §24 の分岐 C。会場差は B2 win 残差で τ が厳密に 0 (Q p=0.744・I²=0.000・生の会場 SD 0.898 < ノイズ 1.004・frozen 順位との ρ=−0.143)。判定を支える well-powered な 2 本 = oracle 上限の venue 増分 0.000225〜0.000861 (cross-fit 0.000144) = 採用線 0.003 の 1/13〜1/21、および結果 y 非依存の model-side λ=1.072±0.270 (B2 の予測関数が会場差をほぼ丸ごと再現済み)。→ U-36a を R-17 で否定・指令 §14 の Venue PoC は起票しない。Q-029 = WEATHER_SAFE (本番は beforeinfo 気象で学習・独立 5 線で確認) → CLOSE。FINDINGS P17 を訂正。監査中に別件 2 件を検出 = Q-030 (wind_dir_code の train/serve skew・実測 ΔNLL +0.04447 = 採用線の約 15 倍の劣化・1 着予測の入替 14.84%・2026-09-05 以降) / Q-031 (研究 p120 dump が K 由来 post-race 気象を読んでいた = NG-REF1)。次 = 運用の直し (Q-030) と研究土台の修復 (Q-031)",
- "baseline_model": {
-  "id": "b2f41_prod2026_prod3",
-  "description": "B2構造化着順NN (41特徴・6艇self-attention・120通り直接softmax・3seed平均) + exh120展示補正層(θ9) + 市場ブレンド(w=0.85・推論後段)",
-  "odds_as_input": false,
-  "params": 464817
- },
- "best_model": {
-  "id": "b2f41_prod2026_prod3",
-  "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
- },
- "current_experiment": "なし (NG-REF1 done_primary。次は Q-034 の裁定待ち)",
- "current_experiment_note": "RES-2026-09-G 完走 (DoD 14/14)。本番の train/serve skew を是正 (runtime revision r3) し、研究 Raw-B2 参照を production 整合の clean reference へ置換。主要 5 結論はすべて維持。残る揺れは replica の重み (D2) のみ = Q-034 待ち",
- "experiments": {
-  "registry_path": "artifacts/research/experiment_registry.jsonl",
-  "adopted": [
-   {
-    "id": "B2",
-    "change": "120通り直接スコアリング+6艇attention",
-    "effect": "全指標でB0/B1超え (唯一のアーキ勝利)"
-   },
-   {
-    "id": "extra7",
-    "change": "当地収縮+節内フォーム7特徴",
-    "effect": "fold2 NLL 3.785→3.777"
-   },
-   {
-    "id": "extra2",
-    "change": "場×コース歴史率+直近5走",
-    "effect": "extra2単独で全国Hit@1 9.88→10.07%、3seed併用で10.21%"
-   },
-   {
-    "id": "extra3",
-    "change": "ST分布+節内得点 (F=41完成)",
-    "effect": "ΔNLL -0.004〜-0.007"
-   },
-   {
-    "id": "seed3",
-    "change": "3seed確率平均",
-    "effect": "+0.14pp (3で飽和)"
-   },
-   {
-    "id": "exh120",
-    "change": "展示タイム/ST/F の後段補正層",
-    "effect": "ΔNLL -0.018 研究窓・24/24場改善"
-   },
-   {
-    "id": "mkt_blend",
-    "change": "市場ブレンド w=0.85 (推論後段)",
-    "effect": "住之江で市場単独NLL超え"
-   },
-   {
-    "id": "f41_skew_fix",
-    "change": "学習気象を beforeinfo 由来へ統一",
-    "effect": "GATE PASS (2026-08-06切替)"
-   }
-  ],
-  "rejected": [
-   {
-    "id": "b2h_embedding",
-    "reason": "racer ID embedding 改善ゼロ"
-   },
-   {
-    "id": "composite_loss/capacity/mixture/race_no/5seed/temp_calib",
-    "reason": "モデル改造系6件 全て誤差圏"
-   },
-   {
-    "id": "f43_temp_water",
-    "reason": "気温水温素値 = fold間符号反転・季節の焼き直し"
-   },
-   {
-    "id": "thin_layers_tide_style_gap",
-    "reason": "潮汐/戦型/番組ギャップ薄層 -0.0006〜0.0011 (基準0.003未達)"
-   },
-   {
-    "id": "class_code",
-    "reason": "階級ラベル全棄却 (2026-06確定・再投入禁止)"
-   },
-   {
-    "id": "explicit_interactions",
-    "reason": "明示積項は桐生で過学習方向"
-   }
-  ],
-  "frozen": [
-   {
-    "id": "lambdarank_portfolio",
-    "reason": "GATE FAIL・コード残存・Baseline扱い"
-   }
-  ],
-  "completed_w1": [
-   {
-    "id": "NG-E10",
-    "status": "done_primary",
-    "date": "2026-09-04",
-    "theme": "選手externality統計PoC+まくり筋事前登録再検証",
-    "result": "①externality分散成分 PASS: T=10970.5 vs permutation帰無8703.5±62.3 (1000回・seed42)、p=0.001。(コース,年,場)層別の頑健性でも p=0.001。②まくり筋セル OOS PASS確定: 完全OOS 2025-07..2026-06 の44,357R/354,856買い目で gap +0.001298、CI95[+0.001053,+0.001551] (0非跨ぎ)、z=10.22、AI相対見落とし+26.3% (発見時+29%・z≈8.4と同水準)。半期4期連続プラス・24場中22場プラス・全グレード帯 (A1人数proxy) CI 0非跨ぎ。③確認済みsignature 7件 (攻撃スタイル型6/9・前づけ型1/6・新人外回り型0/5=後半全滅は非定常で正しい挙動)。④自艇残差≈0層は p=0.894 = 純粋externality信号ゼロ (効果の実体は攻め/進入イベントで自艇と隣が同時にズレる型)",
-    "decision": "N1 GO (主役=まくり筋セル項・選手signature項は補助) / I-1 proxy特徴 (attack_propensity@course, approach_deviation) の前倒し / GAT起票は今回のエビデンスからは不支持 / まくり筋の用途第一=較正改善+AI艇報 (P2に締切前オッズ無し=「買える歪み」は未確定)",
-    "integrity_note": "比例配分重みの実装バグを発見→クリップ修正のみ→全層再実行・初回数値破棄 (addendum2で開示)。判定ルール・閾値の事後変更ゼロ。頑健性検定1本は結果計算前に追加宣言 (addendum1)",
-    "source": "lane-reports/e10_externality_20260904.md + registry NG-E10 done_primary行"
-   },
-   {
-    "id": "NG-I1",
-    "status": "done_primary",
-    "date": "2026-09-04",
-    "theme": "as-of行動プロファイル proxy特徴 (attack_propensity@course + approach_deviation)",
-    "result": "FAIL=特徴昇格見送り。薄層ΔNLL fold1アーム −0.000205 CI95[−0.000932,+0.000472] (0跨ぎ) / fold2アーム +0.001078 CI95[+0.000686,+0.001471] (0非跨ぎだが閾値0.003の約1/3)。fold間符号反転。改善はattack_propensity単独 (+0.00118)。placebo 0/20=fold2の小信号は本物。E10確認済みsignature 7件は全員2特徴の分布の端で捕捉=特徴設計は妥当、薄層6係数では特異選手集中効果が平均化され閾値未達",
-    "decision": "F43再学習ゲートは起票しない。i1_features.parquet (206万行・leak test PASS) は資産保存",
-    "source": "lane-reports/i1_proxy_20260904.md"
-   },
-   {
-    "id": "NG-N1",
-    "status": "done_primary",
-    "date": "2026-09-04",
-    "theme": "凍結B2への対数線形再重み付け薄層 (まくり筋セル項主役)",
-    "result": "主ゲートFAIL (閾値0.003両fold未達: fold1 +0.000531 CI[−0.000029,+0.001123] / fold2 +0.001306 CI[+0.000629,+0.002030])。ただしP2完全OOSで λ_makuri=+0.228 (過去1年fit・固定適用) によりまくり筋gap +0.001298 (z=10.2) → +0.000166 (z=1.3・CI 0跨ぎ) = 相対見落とし+26.3%→+2.7%・グレード全帯で残存消滅。副作用ゼロ (非まくり筋セル悪化なし・鏡像の過大評価z≈−10も同時解消)。signature補助項は両fold CI 0跨ぎで不採用方向。lane指摘: 閾値0.003は単一セル補正の理論上限 (≈0.0013〜0.0015) より高く原理的に到達不能だった (fold2実測はほぼ上限到達)",
-    "decision": "このままの形での昇格なし。較正層としての採否は適正スコープの閾値で再ゲートするかの Owner 判断待ち (pending_owner_decisions #6)。福岡・唐津は一律λの過補正で軽度逆方向歪み (場別λは登録外・未実施)",
-    "source": "lane-reports/n1_reweight_20260904.md"
-   },
-   {
-    "id": "NG-E1",
-    "status": "done_primary",
-    "date": "2026-09-04",
-    "theme": "レース格カテゴリ (Stage) 薄層",
-    "result": "FAIL (③織り込み済が主+①効果不在)。薄層ΔNLL fold1 −0.00055 / fold2 −0.00064 = 符号から逆 (base微悪化)。B2(F41)はsetsu_day/setsu_pts系で格由来シフトを学習済み=出力薄層に拾う残差なし。プラセボ (race_no) は両fold点推定で下回る=格≠レース番号の焼き直し。ex-ante判定器一致率99.20% (昇格条件≥98%クリア)・決定表カバレッジ未分類0.0067%",
-    "decision": "B2出力への薄層経路は閉じる。格の実測効果 (ST変化24/24場) の否定ではなく、残る道はB2入力への格特徴追加+再学習 (起票はOwner判断・pending #8)。副産物 venue_date_grade.parquet (29,715行) は NG-E19SG で使用可 (caveat: 上流欠落2023-01〜04中旬)",
-    "source": "lane-reports/e1_stage_20260904.md"
-   },
-   {
-    "id": "NG-E5W",
-    "status": "done_primary",
-    "date": "2026-09-04",
-    "theme": "風コース成分 (wind_along/wind_cross) 薄層",
-    "result": "FAIL (①効果不在)。ΔNLL fold1 +0.000184 / fold2 +0.000230 = 符号反転なしだが閾値の1/15・CI 0跨ぎ。プラセボ①場×月内perm 20本のmax未満=信号は本物だが微小。プラセボ②季節クリマトロジー置換で効果消失=季節の焼き直しではない。クリーン行(bi風向)はfold窓0行 (biは2026年のみ実在) のためK行 (wx_src=k_rotated) 研究判定+クリーン診断 (2026Q1→Q2 +0.000265 CI 0非跨ぎ・単一窓) で実行 (凍結計画に事前明記)。副次: 風速7m/s+で−0.002174へ符号逆転=線形仮定が強風で破綻",
-    "decision": "特徴昇格なし。棄却スコープは「勝者艇番への線形傾き2パラメータ構造」。再挑戦は非線形/安定板交互作用方向のみ (pending #7)。8方位量子化による効果希釈 (attenuation) の可能性を明記",
-    "source": "lane-reports/e5w_wind_20260904.md"
-   },
-   {
-    "id": "NG-E23",
-    "status": "done_primary",
-    "date": "2026-09-04",
-    "theme": "勝負駆け utility curve (q_k連続形式・E2+E3統合)",
-    "result": "FAIL (①効果不在)。選定K=24 (fold1選定・fold2判定)。ΔNLL fold1 −0.000506 / fold2 −0.000481 = 薄層はbase微悪化・K=12/18でも全負で結論不変。適格レース限定では悪化拡大=増分情報ゼロの追い証拠。θ終値|θ|≤0.033でほぼ無補正。市場軸 (確定オッズdiagnostic・2,051R) はu1五分位×6帯すべてCI 0跨ぎ=utility帯由来の市場歪み検出されず (断定せず)。day-start検証T1-T5全PASS・違反ゼロ",
-    "decision": "節の立ち位置 (勝負駆け) 路線は二値 (null済) → 連続 (本実験) の2形式でnull=同路線の再々提案は非推奨。E0/E10個人プロファイリング路線へ寄せるのが合理的",
-    "source": "lane-reports/e23_utility_20260904.md"
-   }
-  ],
-  "registered_waiting": [
-   {
-    "id": "NG-E19SG",
-    "theme": "SG/G1祭り市場効率",
-    "gate": "two-sided・締切前オッズ=real。蓄積待ち (2026-07-10〜)。grade表は E1 副産物 venue_date_grade.parquet が利用可"
-   },
-   {
-    "id": "NG-E8SWAP",
-    "theme": "当地デッドウェイト置換 (起票のみ)",
-    "gate": "E8全滅時のみ着手"
-   },
-   {
-    "id": "NG-FC1",
-    "theme": "forward collector 2 週間試験 (close_window・5 券種・メタデータのみ評価)",
-    "gate": "評価窓 2026-09-11〜09-24。D-0:30/D-0:10 存廃・3f/2tf 継続・failure handling 実地。オッズ値は 11/1 まで見ない"
-   }
-  ],
-  "done_20260910": [
-   {
-    "id": "NG-TS1",
-    "theme": "Ticket-Space Calibration Decomposition",
-    "verdict": "ケース D (選択そのもの)。AI-only 較正・EV 選択後 4 券種すべて過信 (T-1 0.61/0.73/0.74/0.76)・順序段は無傷",
-    "report": "lane-reports/ticket_space_20260910.md"
-   },
-   {
-    "id": "NG-T3D3",
-    "theme": "gap 条件付き市場ブレンド (log-linear pool・λ0+λ1·g(z_gap)・券種×lead・候補選択は fit 窓内 split)",
-    "verdict": "凍結 = case1_market_gate (3連複・2連単・2連複 MGC / 3連単 REJECT / CORE なし)。実質 = ケース3 寄り (実現値 全券種 <1・高オッズ側の金額重み過信残留)",
-    "report": "lane-reports/t3d3_market_shrinkage_20260910.md",
-    "artifacts": "artifacts/research/nextgen/t3d3/"
-   },
-   {
-    "id": "NG-T3D4",
-    "theme": "Payout-Tail Calibration / Odds-Conditioned Shrinkage (T3D3 baseline + rarity 条件付き λ・最大 2 パラメータ・金額 primary・市場較正レーンの最終ゲート)",
-    "verdict": "4 券種 FAIL → route B PREDICTION_EDGE_ROUTE (ケース3 確定・Market Gate 閉鎖・T3D5 以降禁止)。追加項は全セル 0 か負・tail money-CR 0.23〜0.43・実現値 0.35〜0.69 (全 48 セル <1)。AI と市場が同じ形で高配当側を過信 = 内分では直らない。生き残りは乖離 large/extreme × 10〜50 倍 (FINDINGS P10)。2連複 T-3 (2 場) NEEDS_MORE_DATA (再現せず)",
-    "report": "lane-reports/t3d4_payout_tail_20260910.md",
-    "artifacts": "artifacts/research/nextgen/t3d4/"
-   }
-  ],
-  "designed_not_registered": [
-   {
-    "id": "NG-BM1",
-    "theme": "B2 Raw / B2+exh120 (production) / market の 3 者ベンチマーク",
-    "design": "artifacts/research/nextgen/designs/b2raw_vs_production_vs_market_benchmark_20260911.md",
-    "gate": "設計のみ (指令 2026-09-11 第 2 弾 §15)。実測は 2026-11-01 以降・判定を持たせない benchmark。実装前提 = 展示 ST をローカル beforeinfo JSON から再抽出"
-   },
-   {
-    "id": "NG-VA1",
-    "theme": "会場 × 4 コース攻撃の交互作用が B2 残差にも残るか",
-    "design": "未作成 (Q-028 GO 後に凍結 JSON を作る)",
-    "gate": "Owner GO = Q-028。会場 deviation は VENUE-V0 の凍結値を再推定せず使用。未使用窓の確認は 2026-11-01 開封後に 1 回だけ"
-   }
-  ],
-  "done_20260911": [
-   "NG-SOB1F: PARTIAL (符号 4/4・Stouffer z=4.82 p=7.3e-07・旗艦 T1 4→1 β=−1.735 CI[−2.676,−0.783]・placebo p=0.002 成立 / 規模整合のみ不成立: 4→5 β=+0.597 がバンド [+0.179,+0.511] を上抜け・SOB1 との二標本 z=+1.00 で区別不能)。副族 A (本番 B2 の織り込み不足) は prod3 で CI 0 跨ぎ。追加診断: シフトは「市場が攻め手を AI より高く買う」帯に集中 (合成 z 5.48・旗艦 β −3.93)",
-   "NG-PDS1: PDS_NULL (G1 6 本すべて不合格・CI 半幅 0.0014 の well-powered null / G2 再現なし・3 本符号反転 / G3 展示 z 統制で f_st 保持率 0.21 = 共通罠 4 例目 / G3b oracle 上限 primary 3 本同時 0.00013 << 採用線 0.003 / G5 は AI>Market 帯で CR_AI 0.74〜0.81 横並び・市場 0.98〜1.11)"
-  ],
-  "done_20260911_2": [
-   {
-    "id": "NG-U2",
-    "theme": "場 × 難条件 × 習熟 (Gap Audit 採点 3 位 E)",
-    "verdict": "U2_NULL",
-    "report": "lane-reports/u2_venue_familiarity_20260911.md"
-   },
-   {
-    "id": "VENUE-V0",
-    "theme": "Venue Logic Research v0 (24 場の Race Logic 異質性の診断監査)",
-    "verdict": "VENUE_PARTIAL",
-    "report": "lane-reports/venue_logic_v0_20260911.md"
-   }
-  ]
- },
- "hypotheses": {
-  "note": "本節は要約サブセット。全仮説(29件)の悉皆台帳は HYPOTHESES.md — 収載範囲は台帳側が上位互換",
-  "supported": [
-   "市場は本命を過小評価する (favorite-longshot。implied0.5+で-2.9pp)",
-   "1号艇は全階級で買い得 (イン利は階級を超える)",
-   "レースの格で走りが変わる (準優ST-0.0094・24/24場同符号・逃げ率46.7→71.3%)。ただし NG-E1 (2026-09-04) で「B2は既に織り込み済み=出力薄層に残差なし」と確定。現象は実在・予測増分はゼロ",
-   "AIはまくり筋の荒れを系統的に見落とす (NG-E10 OOS確定: gap+0.001298・z=10.2・相対+26.3%・22/24場)。NG-N1 (2026-09-04) で λ_makuri=+0.228 の1パラメータ補正により gap→+2.7% (z=1.3) まで回収可能・副作用ゼロと実証 (採用はOwner判断待ち)。「買える歪み」は未確定=P2にオッズ無し",
-   "特定選手が隣接コースを系統的に殺す/活かす=選手externalityは実在 (NG-E10 分散成分 permutation p=0.001・確認済みsignature 7件。実体は攻め/進入イベント由来の系統ズレ)",
-   "節内の調整推移 (展示タイム系) はB2残差を予測する独立情報 (NG-MS1 2026-09-05: 当日z統制でも残存・元々の強さと直交・最低3次元。**存在確認レベル=予測価値/ROIは未検証**)",
-   "強風でレース生成過程そのものが変わる (NG-E5NR Phase A 2026-09-05: 逃げ率7m/s+で−10pp・まくり率+3.8pp・展示の予言力低下。16/18セル生存・記述的確定。**K風=事後観測のため予測特徴化はT1風ソースが前提**)",
-   "モーター調整の上手さに選手固有の系統差が実在 (NG-ADJ1 2026-09-05: ICC=0.16=機体差の3倍・前後半ρ=0.752 CI[0.726,0.776]。**存在確認レベル・中身は未分解**)"
-  ],
-  "testing": [
-   "SG/G1は観光マネーで市場が甘くなる (SG当日 AI NLL 0.818 vs 0.981・n=12) → NG-E19SG",
-   "Prediction Edge Discovery 第 1 弾: 攻め手在席シフトが将来窓で再現する (NG-SOB1F・C) / 選手の動的状態が次走の B2 残差を予測し展示統制でも消えない (NG-PDS1・A) → Owner GO Q-024"
-  ],
-  "partially_supported": [
-   "4カド攻撃型は展開を作る (NG-E10: 攻撃スタイル型signature 6/9再現。NG-I1 (2026-09-04): proxy 2特徴は7件全員を分布の端で正しく捕捉=設計妥当、ただし薄層ゲートはFAIL=全選手一律の薄い補正では特異選手集中効果が平均化される)",
-   "U-36 会場 × 4 コース攻撃の交互作用は B2 が取り切れていない → 部分支持 (VENUE-V0: 全国 −1.153pp/SD・I²=0.60・前後期 rank ρ=+0.75・置換 p=0.005。ただしモデル非依存スケールでの結果であり B2 残差での確認は未実施 = NG-VA1)"
-  ],
-  "rejected": [
-   "階級が予測に効く (全棄却)",
-   "高階級は市場で人気過剰 (全級±0.7pp=正確に織り込み)",
-   "満潮=まくり有利 (実測は逆方向)",
-   "汎用の攻撃タグ/番組格差/1-4-5筋にエッジ (実在するが市場織り込み済み)",
-   "節の立ち位置 (勝負駆け) が予測に効く (バイナリ圏内/圏外=統制後消滅 → 連続utility=NG-E23で両fold負。2形式null・同路線の再々提案は非推奨 2026-09-04)",
-   "風のコース成分が線形に効く (NG-E5W: 信号実在だが閾値の1/15・強風7m/s+で符号逆転=線形仮定が破綻。非線形/安定板交互作用方向のみ残す 2026-09-04)",
-   "配当の高さ (rarity) に応じて AI を市場側へ縮めれば実払戻ベースで +EV が残る → 否定 (NG-T3D4・2026-09-10)。AI と市場が同じ形で高配当側を過信しており内分では下げられない。市場ブレンド / 較正のパラメータ追加は同一形で再提案しない",
-   "AI と市場の乖離が大きいほど AI 誤差が支配する → 否定 (NG-T3D4)。逆に乖離 large/extreme × 10〜50 倍が生き残り、乖離 small × 100 倍超が負ける (FINDINGS P10)",
-   "R-14 難条件 × 当地習熟 (条件付きの当地経験) は B2 残差に情報を持つ → 否定 (2026-09-11 NG-U2・DiD +0.0855pp CI[−0.72,+0.85]・置換 p=0.850・oracle 上限 0.000165 = 採用線の 1/18)。R-6 (無条件当地) と合わせ当地経験は静的にも条件付きにも閉じた",
-   "R-16 24 会場は『別ゲーム』である (Venue を全域の環境変数として扱う) → 全域の形では否定・限定形で部分支持 (2026-09-11 VENUE-V0・16 チャネル中 1 本のみ異質)。24 会場ぶんの Venue 埋め込み・会場別モデル群は作らない",
-   "U-35 (H-B 特定水面への習熟 × 調整能力 × 難条件 × コース) → 閉鎖 (前提の U-2 が否定・旗艦の難条件層別も z=−0.41 で不成立)"
-  ],
-  "untested": [
-   "安定板+強風=イン受難 (尼崎3R連続一貫・n=3逸話。E5W強風符号逆転が傍証を追加)",
-   "部品交換は選手の潜在診断信号",
-   "師弟・先輩後輩で行動が変わる",
-   "ルーキー急成長を市場が遅れて評価する",
-   "U-18 展開圧力×対応力 — **Step1-2ミニPoC完了 (NG-PXR1 2026-09-06): B側対応力は検出不能 (p=0.99)・A側slopeも宣言と逆符号が主 → GAT棚上げ確定 (E10と2重の否定)**。「圧力が無い」ではなく「対応力の個人差が現データで検出不能」。副産物=攻め手在席時の1号艇過小評価/外隣過大評価の条件付き較正パターン (別起票候補)",
-   "U-19 コース条件付き相性 (Course-conditioned Matchup Skill)",
-   "U-20 波及と受益艇 (Interaction propagation / beneficiary effect)",
-   "U-21 市場の重み付け不足情報 (Known-but-underweighted market information)",
-   "U-22 条件付き相互作用の誤価格 (Conditional interaction mispricing。S-5=まくり筋はAI側較正歪みのみ確定、の判定は上書きしない)",
-   "U-23 二次・三次受益艇の誤価格 (Second-order beneficiary mispricing)",
-   "U-24 シナリオ分散買い (Scenario-aware betting portfolio・購入層の概念。実装は市場レイヤ成熟後)",
-   "U-25 頑健EV+下振れ最適化 (Robust EV + downside-aware optimization)",
-   "U-26 直前風変化 (Current Wind Delta) — 展示時→本番直前の風変化がST・展示予測力を変える (Owner 2026-09-06。E5NRの「強風で展示予言力低下」が傍証)",
-   "U-27 風の不安定性 (Wind Volatility) — 平均風速でなく変動 (SD/max-min/gust/風向変化/regime transition) がST分散・荒れやすさに影響。平均5m安定日と2-9m往復日を同一扱いしない",
-   "U-28 選手の風適応力 (Player Wind Adaptation) — 風変化への適応能力に選手差。まず風変化に対するST誤差・分散の再現可能な選手差をas-of+shrinkageで確認 (即特徴量化しない)",
-   "U-29 環境×モーター状態 (Environment × Motor) — 空気密度/水温/気温−水温差等の「変化」がCurrent Motor Stateと交互作用 (素値の単純投入は再試行しない・季節proxy混同に厳重注意)",
-   "U-30 シナリオ条件付き分布 (Conditional Scenario Distribution) — P(Scenario)×P(Order|Scenario)の2段構造。全体数%でもScenario内中心舟券の情報を捨てない",
-   "U-31 意味のある穴 vs 薄い穴 (Meaningful Tail vs Diffuse Tail) — レアScenario内の確率集中で「買える穴」と「ノイズ穴」を区別",
-   "U-32 読めるレース (Race Compressibility) — 少数点に真の確率質量を圧縮できるレースが存在する (entropy系指標で識別)",
-   "U-33 価値加重シナリオカバレッジ (Value-weighted Scenario Coverage) — 全世界線でなく価値のある世界線だけを複数カバー (NO COVERも正式な選択)",
-   "U-34: Course Interaction × Tactical Profile (H-A) — BACKLOG ONLY・SOB1将来窓∧SC2 PASS 後に起票 (Owner 指令 2026-09-09 §6)",
-   "U-35: Venue-Specific Adjustment Advantage (H-B) — BACKLOG ONLY・無条件当地特徴は R-6 否定維持 (Owner 指令 2026-09-09 §6)",
-   "U-36: Race Formation Sensitivity Map (H-C) — BACKLOG ONLY・設計候補のみ・EXIN1 結果が前提 (Owner 指令 2026-09-09 §6)",
-   "U-37: Expert Forecaster Reverse Engineering (H-D) — BACKLOG ONLY・最初の成果物 = Expert Feature Gap Matrix (Owner 指令 2026-09-09 §6)"
-  ]
- },
- "supported_findings": [
-  "P11 (2026-09-11・NG-SOB1F ベンチマーク): 素の単勝確率では「AI と市場が食い違う帯 = AI が外している帯」。AI>市場 極端帯 CR_AI 0.575 [0.480,0.670] / 市場 1.049、AI<市場 帯 CR_AI 1.326 / 市場 0.920、AI≈市場 帯のみ AI がわずかに優位 (lane NLL −0.0015)。レース NLL は AI 1.1571 vs 市場 1.1312 (差 +0.0259 CI[+0.0153,+0.0369])。p_AI = 生 B2 (exh120 未適用・市場ブレンドなし)",
-  "P12 (2026-09-11・NG-SOB1F §6): 攻め手在席の構造シフトは「市場が攻め手を AI より高く買う」レースに集中 (合成 z 5.48 vs 一致レース 1.47)。= AI に足りないが市場は既に持っている情報",
-  "P13 (2026-09-11・NG-PDS1): 状態系特徴の共通罠 4 例目。当日展示 z 統制で f_st の保持率 0.21。今後の状態系ゲートは展示 z 併用の統制を第一関門に",
-  "予測/市場評価/購入判断の3層分離は既に de-facto 実装済み (B2オッズ非入力・ev層shadow専用純関数・NO BET fail-closed。2026-09-04実コード検証)",
-  "展示補正は方向11/12正・増幅が保守的 (Intent層の存在理由)",
-  "実験史: モデル改造12連敗・情報追加と推論工夫のみ有効 — W1第1波5連FAILで「B2出力への後付け薄層」の限界も確定 (取れる残差が既にほぼ無い)",
-  "まくり筋の較正歪みは1パラメータ後段補正で回収可能 (NG-N1: gap z=10.2→1.3・副作用ゼロ・完全OOS)",
-  "風向アイコン=コース図基準の発見 → 24場コース方位テーブル half-auto 完成 (high19/mid5)",
-  "モーター交換月は年次で移動する (K 2連率リセット検出で全24場確定)",
-  "EV 選択後に生き残るのは乖離 large/extreme × 10〜50 倍 (2連単 / 2連複で money-CR 0.89〜1.07・実現 0.94〜1.10・CI は 1 を跨ぐ)。乖離 small × 100 倍超は誤差収穫 (NG-T3D4・FINDINGS P10)",
-  "P14 (2026-09-11・VENUE-V0): 会場差があるのは『崩れ方』であって『拾われ方』ではない。16 チャネル中 1 本のみ異質 = 旗艦 T1 4→1 (全国 −1.153pp/SD・桐生 −2.468 〜 芦屋 −0.431・I²=0.605・置換 p=0.005・前後期 rank ρ=+0.749)。受益側は T1 4→5 I²=0.13 / T2 4→5 I²=0.05 / T2 4→1 は τ=0 へ縮約 = 全国共通",
-  "P15 (2026-09-11・VENUE-V0): scale reversal (1 着は落とすが 2 着に残る) の有無は会場ではなく攻め手のコースが決める。3 攻め→1 は 24/24 場・2 攻め→1 は 20/24 場・4 攻め→1 は 0/24 場",
-  "P16 (2026-09-11・NG-U2 + VENUE-V0): 『難条件がレース構造を変える』は B2 残差のレベルでは信号を持たない。U2 の DiD は置換 p=0.850、旗艦の難条件層別も差の z = −0.41 / −1.01。E5NR Phase A の 7m/s+ 知見は事後観測の K 風での記述であり別物",
-  "P17 (2026-09-11・NG-U2 前処理): K ファイル (結果ページ) 由来の気象 4 列は as-of 不適合。研究では beforeinfo へ差し替えて回避したが src/model.py の LEAKAGE_COLS に未登録で FEATURE_COLS に入っている = Q-029",
-  "P18 (2026-09-11・VENUE-V0 補助診断): n=24 の meta-regression では『天候が会場差を説明したか』に答えられない。旗艦 τ² は 92% 減るがランダム共変量プラセボでも平均 95% 減 (p=0.653)。同種分析にはプラセボ併記を義務化",
-  "P19 会場差は B2 残差に残っていない + 理想的に知れても採用線に届かない (NG-VA1 2026-09-12): 残差 τ=0・Q p=0.744・I²=0.000・frozen 順位との ρ=−0.143。oracle 上限の venue 増分 0.000225 (frozen dev) / 0.000861 (会場自由・過学習フロア 0.000804) / cross-fit 0.000144 = 採用線の 1/13〜1/21。model-side λ=1.072±0.270 (p=0.00065) = B2 の予測が会場差をほぼ再現済み。国全体の攻撃→イン被害は残差に生存 (−0.934±0.204・exh120 後も −0.904±0.203 = 展示層は吸収しない) だが national 単独の上限も 0.000381。**留保: 残差スロープ経路は検出力不足 (SE(γ)=0.475・99% CI が +0.97 まで届く)。凍結時に宣言し G6 を NULL 阻止ゲートとして定義したため機械判定は PARTIAL**",
-  "P20 wind_dir_code の train/serve skew で 2026-09-05 以降の本番予測が実測 ΔNLL +0.04447 劣化 (採用線の約 15 倍)・1 着予測の入替 14.84% (Q-029 監査の副産物 → Q-030)",
-  "P21 研究の Raw-B2 参照 (p2 replica) が K 由来 post-race 気象で学習されていた。残差系の全実験に同じ留保が付く (→ Q-031 / NG-REF1)"
- ],
- "rejected_findings": [
-  "選手の動的状態 (直近 k 走 − 自己ベースライン系 6 本) は B2 残差を説明する → 否定 (NG-PDS1・well-powered null・増分上限 0.00013 = 採用線の 1/23)。静的 latent (B2H REJECT) に続き動的も否定 = 選手個人の情報路線は閉鎖",
-  "U-5 ルーキー急成長を市場が遅れて評価 → AI 側前提が不成立 (NG-PDS1)",
-  "気温・水温の素値は予測に効く (実体の8-9割が季節の焼き直し)",
-  "『A1は人気しすぎ』(市場は階級を正確に織り込む)",
-  "純粋externality (自艇は無傷で隣だけ動く型) は信号ゼロ (NG-E10 自艇残差≈0層: p=0.894)",
-  "rarity 条件付き市場 shrinkage (NG-T3D4): 追加項は全セル 0 か負・実現値 全 48 セル <1。高配当側の過信は AI と市場が共有 (favorite-longshot 型)",
-  "R-17 会場 × 4 コース攻撃の交互作用は B2 が取り切れていない (U-36a) — 否定 (2026-09-12・NG-VA1)。24 場別 Venue 埋め込み・会場別モデル群・指令 §14 の Venue-dependent Inside Resistance PoC はいずれも起票しない。Venue Logic は説明層として保持"
- ],
- "metrics": {
-  "national_fold2_3seed": {
-   "nll": 3.7565,
-   "hit1": 0.102,
-   "tansho_acc": 0.5746
+  "updated_at": "2026-09-12T04:30:00",
+  "updated_by": "Claude (Owner 指令 2026-09-12: Q-030 COMMIT+PUSH GO / Q-034 GO / SYSTEM INTEGRITY AUDIT GO)",
+  "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
+  "architecture_version": "v2.1",
+  "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
+  "current_phase": "RES-2026-09-H 完走 (DoD 13/14)。Q-030 hotfix を git 確定 (commit 9e39b83)・Q-034 clean replica 完成・System Integrity Audit v1 実施。最終判定 INTEGRITY_YELLOW (production 安全・S4 ゼロ・未解決 S3 が 1 件)。Completion Gate 7/8 で未達は unresolved S3 = 0 のみ。新しい Prediction Edge / Race Logic 研究は Q-035 の裁定まで保留",
+  "baseline_model": {
+    "id": "b2f41_prod2026_prod3",
+    "description": "B2構造化着順NN (41特徴・6艇self-attention・120通り直接softmax・3seed平均) + exh120展示補正層(θ9) + 市場ブレンド(w=0.85・推論後段)",
+    "odds_as_input": false,
+    "params": 464817
   },
-  "market_gap_nll": "+0.06〜0.07 (確定オッズde-vig比・diagnostic)",
-  "sg_kiryu_20260830": {
-   "head_hits": "9/12",
-   "trifecta_top1": "4/12",
-   "ai_nll": 0.818,
-   "market_nll": 0.981,
-   "n": 12,
-   "label": "逸話・断定禁止"
+  "best_model": {
+    "id": "b2f41_prod2026_prod3",
+    "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
   },
-  "adoption_line_thin_layer_dnll": 0.003,
-  "e10": {
-   "externality_variance_T": 10970.5,
-   "externality_null_mean": 8703.5,
-   "externality_null_sd": 62.3,
-   "externality_p": 0.001,
-   "pure_externality_p": 0.894,
-   "own_diag_sd_pp": "2.9-4.5 (LGB代理の選手スキル取り残し・caveat)",
-   "makuri_oos_window": "2025-07-01..2026-06-30",
-   "makuri_n_races": 44357,
-   "makuri_n_tickets": 354856,
-   "makuri_gap": 0.001298,
-   "makuri_ci95": [
-    0.001053,
-    0.001551
-   ],
-   "makuri_z": 10.22,
-   "makuri_relative_miss": "+26.3%",
-   "makuri_venues_positive": "22/24",
-   "confirmed_signatures": 7,
-   "label": "確定は較正の歪み。P2に締切前オッズ無し=買える歪みは未確定",
-   "source": "lane-reports/e10_externality_20260904.md"
+  "current_experiment": "SIA-V1 (Prediction System Integrity Audit v1) — done_primary",
+  "current_experiment_note": "41 列 lineage 全数解決 / train-serve parity = EXACT 17・UNEXPECTED_DIFFERENCE 24 (全部 prior 集計) / GOLDEN_RACE_SET 371R・24 会場 / FEATURE_CONTRACT fc-v1-2026-09-12 / preflight 10/10 PASS・負のコントロール 6/6 DETECTED / as-of 違反 0 件 / S4 = 0 件 / 新 S3 = INC-2026-0912-PRIORSTALE (未修復・Q-035)",
+  "experiments": {
+    "registry_path": "artifacts/research/experiment_registry.jsonl",
+    "adopted": [
+      {
+        "id": "B2",
+        "change": "120通り直接スコアリング+6艇attention",
+        "effect": "全指標でB0/B1超え (唯一のアーキ勝利)"
+      },
+      {
+        "id": "extra7",
+        "change": "当地収縮+節内フォーム7特徴",
+        "effect": "fold2 NLL 3.785→3.777"
+      },
+      {
+        "id": "extra2",
+        "change": "場×コース歴史率+直近5走",
+        "effect": "extra2単独で全国Hit@1 9.88→10.07%、3seed併用で10.21%"
+      },
+      {
+        "id": "extra3",
+        "change": "ST分布+節内得点 (F=41完成)",
+        "effect": "ΔNLL -0.004〜-0.007"
+      },
+      {
+        "id": "seed3",
+        "change": "3seed確率平均",
+        "effect": "+0.14pp (3で飽和)"
+      },
+      {
+        "id": "exh120",
+        "change": "展示タイム/ST/F の後段補正層",
+        "effect": "ΔNLL -0.018 研究窓・24/24場改善"
+      },
+      {
+        "id": "mkt_blend",
+        "change": "市場ブレンド w=0.85 (推論後段)",
+        "effect": "住之江で市場単独NLL超え"
+      },
+      {
+        "id": "f41_skew_fix",
+        "change": "学習気象を beforeinfo 由来へ統一",
+        "effect": "GATE PASS (2026-08-06切替)"
+      }
+    ],
+    "rejected": [
+      {
+        "id": "b2h_embedding",
+        "reason": "racer ID embedding 改善ゼロ"
+      },
+      {
+        "id": "composite_loss/capacity/mixture/race_no/5seed/temp_calib",
+        "reason": "モデル改造系6件 全て誤差圏"
+      },
+      {
+        "id": "f43_temp_water",
+        "reason": "気温水温素値 = fold間符号反転・季節の焼き直し"
+      },
+      {
+        "id": "thin_layers_tide_style_gap",
+        "reason": "潮汐/戦型/番組ギャップ薄層 -0.0006〜0.0011 (基準0.003未達)"
+      },
+      {
+        "id": "class_code",
+        "reason": "階級ラベル全棄却 (2026-06確定・再投入禁止)"
+      },
+      {
+        "id": "explicit_interactions",
+        "reason": "明示積項は桐生で過学習方向"
+      }
+    ],
+    "frozen": [
+      {
+        "id": "lambdarank_portfolio",
+        "reason": "GATE FAIL・コード残存・Baseline扱い"
+      }
+    ],
+    "completed_w1": [
+      {
+        "id": "NG-E10",
+        "status": "done_primary",
+        "date": "2026-09-04",
+        "theme": "選手externality統計PoC+まくり筋事前登録再検証",
+        "result": "①externality分散成分 PASS: T=10970.5 vs permutation帰無8703.5±62.3 (1000回・seed42)、p=0.001。(コース,年,場)層別の頑健性でも p=0.001。②まくり筋セル OOS PASS確定: 完全OOS 2025-07..2026-06 の44,357R/354,856買い目で gap +0.001298、CI95[+0.001053,+0.001551] (0非跨ぎ)、z=10.22、AI相対見落とし+26.3% (発見時+29%・z≈8.4と同水準)。半期4期連続プラス・24場中22場プラス・全グレード帯 (A1人数proxy) CI 0非跨ぎ。③確認済みsignature 7件 (攻撃スタイル型6/9・前づけ型1/6・新人外回り型0/5=後半全滅は非定常で正しい挙動)。④自艇残差≈0層は p=0.894 = 純粋externality信号ゼロ (効果の実体は攻め/進入イベントで自艇と隣が同時にズレる型)",
+        "decision": "N1 GO (主役=まくり筋セル項・選手signature項は補助) / I-1 proxy特徴 (attack_propensity@course, approach_deviation) の前倒し / GAT起票は今回のエビデンスからは不支持 / まくり筋の用途第一=較正改善+AI艇報 (P2に締切前オッズ無し=「買える歪み」は未確定)",
+        "integrity_note": "比例配分重みの実装バグを発見→クリップ修正のみ→全層再実行・初回数値破棄 (addendum2で開示)。判定ルール・閾値の事後変更ゼロ。頑健性検定1本は結果計算前に追加宣言 (addendum1)",
+        "source": "lane-reports/e10_externality_20260904.md + registry NG-E10 done_primary行"
+      },
+      {
+        "id": "NG-I1",
+        "status": "done_primary",
+        "date": "2026-09-04",
+        "theme": "as-of行動プロファイル proxy特徴 (attack_propensity@course + approach_deviation)",
+        "result": "FAIL=特徴昇格見送り。薄層ΔNLL fold1アーム −0.000205 CI95[−0.000932,+0.000472] (0跨ぎ) / fold2アーム +0.001078 CI95[+0.000686,+0.001471] (0非跨ぎだが閾値0.003の約1/3)。fold間符号反転。改善はattack_propensity単独 (+0.00118)。placebo 0/20=fold2の小信号は本物。E10確認済みsignature 7件は全員2特徴の分布の端で捕捉=特徴設計は妥当、薄層6係数では特異選手集中効果が平均化され閾値未達",
+        "decision": "F43再学習ゲートは起票しない。i1_features.parquet (206万行・leak test PASS) は資産保存",
+        "source": "lane-reports/i1_proxy_20260904.md"
+      },
+      {
+        "id": "NG-N1",
+        "status": "done_primary",
+        "date": "2026-09-04",
+        "theme": "凍結B2への対数線形再重み付け薄層 (まくり筋セル項主役)",
+        "result": "主ゲートFAIL (閾値0.003両fold未達: fold1 +0.000531 CI[−0.000029,+0.001123] / fold2 +0.001306 CI[+0.000629,+0.002030])。ただしP2完全OOSで λ_makuri=+0.228 (過去1年fit・固定適用) によりまくり筋gap +0.001298 (z=10.2) → +0.000166 (z=1.3・CI 0跨ぎ) = 相対見落とし+26.3%→+2.7%・グレード全帯で残存消滅。副作用ゼロ (非まくり筋セル悪化なし・鏡像の過大評価z≈−10も同時解消)。signature補助項は両fold CI 0跨ぎで不採用方向。lane指摘: 閾値0.003は単一セル補正の理論上限 (≈0.0013〜0.0015) より高く原理的に到達不能だった (fold2実測はほぼ上限到達)",
+        "decision": "このままの形での昇格なし。較正層としての採否は適正スコープの閾値で再ゲートするかの Owner 判断待ち (pending_owner_decisions #6)。福岡・唐津は一律λの過補正で軽度逆方向歪み (場別λは登録外・未実施)",
+        "source": "lane-reports/n1_reweight_20260904.md"
+      },
+      {
+        "id": "NG-E1",
+        "status": "done_primary",
+        "date": "2026-09-04",
+        "theme": "レース格カテゴリ (Stage) 薄層",
+        "result": "FAIL (③織り込み済が主+①効果不在)。薄層ΔNLL fold1 −0.00055 / fold2 −0.00064 = 符号から逆 (base微悪化)。B2(F41)はsetsu_day/setsu_pts系で格由来シフトを学習済み=出力薄層に拾う残差なし。プラセボ (race_no) は両fold点推定で下回る=格≠レース番号の焼き直し。ex-ante判定器一致率99.20% (昇格条件≥98%クリア)・決定表カバレッジ未分類0.0067%",
+        "decision": "B2出力への薄層経路は閉じる。格の実測効果 (ST変化24/24場) の否定ではなく、残る道はB2入力への格特徴追加+再学習 (起票はOwner判断・pending #8)。副産物 venue_date_grade.parquet (29,715行) は NG-E19SG で使用可 (caveat: 上流欠落2023-01〜04中旬)",
+        "source": "lane-reports/e1_stage_20260904.md"
+      },
+      {
+        "id": "NG-E5W",
+        "status": "done_primary",
+        "date": "2026-09-04",
+        "theme": "風コース成分 (wind_along/wind_cross) 薄層",
+        "result": "FAIL (①効果不在)。ΔNLL fold1 +0.000184 / fold2 +0.000230 = 符号反転なしだが閾値の1/15・CI 0跨ぎ。プラセボ①場×月内perm 20本のmax未満=信号は本物だが微小。プラセボ②季節クリマトロジー置換で効果消失=季節の焼き直しではない。クリーン行(bi風向)はfold窓0行 (biは2026年のみ実在) のためK行 (wx_src=k_rotated) 研究判定+クリーン診断 (2026Q1→Q2 +0.000265 CI 0非跨ぎ・単一窓) で実行 (凍結計画に事前明記)。副次: 風速7m/s+で−0.002174へ符号逆転=線形仮定が強風で破綻",
+        "decision": "特徴昇格なし。棄却スコープは「勝者艇番への線形傾き2パラメータ構造」。再挑戦は非線形/安定板交互作用方向のみ (pending #7)。8方位量子化による効果希釈 (attenuation) の可能性を明記",
+        "source": "lane-reports/e5w_wind_20260904.md"
+      },
+      {
+        "id": "NG-E23",
+        "status": "done_primary",
+        "date": "2026-09-04",
+        "theme": "勝負駆け utility curve (q_k連続形式・E2+E3統合)",
+        "result": "FAIL (①効果不在)。選定K=24 (fold1選定・fold2判定)。ΔNLL fold1 −0.000506 / fold2 −0.000481 = 薄層はbase微悪化・K=12/18でも全負で結論不変。適格レース限定では悪化拡大=増分情報ゼロの追い証拠。θ終値|θ|≤0.033でほぼ無補正。市場軸 (確定オッズdiagnostic・2,051R) はu1五分位×6帯すべてCI 0跨ぎ=utility帯由来の市場歪み検出されず (断定せず)。day-start検証T1-T5全PASS・違反ゼロ",
+        "decision": "節の立ち位置 (勝負駆け) 路線は二値 (null済) → 連続 (本実験) の2形式でnull=同路線の再々提案は非推奨。E0/E10個人プロファイリング路線へ寄せるのが合理的",
+        "source": "lane-reports/e23_utility_20260904.md"
+      }
+    ],
+    "registered_waiting": [
+      {
+        "id": "NG-E19SG",
+        "theme": "SG/G1祭り市場効率",
+        "gate": "two-sided・締切前オッズ=real。蓄積待ち (2026-07-10〜)。grade表は E1 副産物 venue_date_grade.parquet が利用可"
+      },
+      {
+        "id": "NG-E8SWAP",
+        "theme": "当地デッドウェイト置換 (起票のみ)",
+        "gate": "E8全滅時のみ着手"
+      },
+      {
+        "id": "NG-FC1",
+        "theme": "forward collector 2 週間試験 (close_window・5 券種・メタデータのみ評価)",
+        "gate": "評価窓 2026-09-11〜09-24。D-0:30/D-0:10 存廃・3f/2tf 継続・failure handling 実地。オッズ値は 11/1 まで見ない"
+      }
+    ],
+    "done_20260910": [
+      {
+        "id": "NG-TS1",
+        "theme": "Ticket-Space Calibration Decomposition",
+        "verdict": "ケース D (選択そのもの)。AI-only 較正・EV 選択後 4 券種すべて過信 (T-1 0.61/0.73/0.74/0.76)・順序段は無傷",
+        "report": "lane-reports/ticket_space_20260910.md"
+      },
+      {
+        "id": "NG-T3D3",
+        "theme": "gap 条件付き市場ブレンド (log-linear pool・λ0+λ1·g(z_gap)・券種×lead・候補選択は fit 窓内 split)",
+        "verdict": "凍結 = case1_market_gate (3連複・2連単・2連複 MGC / 3連単 REJECT / CORE なし)。実質 = ケース3 寄り (実現値 全券種 <1・高オッズ側の金額重み過信残留)",
+        "report": "lane-reports/t3d3_market_shrinkage_20260910.md",
+        "artifacts": "artifacts/research/nextgen/t3d3/"
+      },
+      {
+        "id": "NG-T3D4",
+        "theme": "Payout-Tail Calibration / Odds-Conditioned Shrinkage (T3D3 baseline + rarity 条件付き λ・最大 2 パラメータ・金額 primary・市場較正レーンの最終ゲート)",
+        "verdict": "4 券種 FAIL → route B PREDICTION_EDGE_ROUTE (ケース3 確定・Market Gate 閉鎖・T3D5 以降禁止)。追加項は全セル 0 か負・tail money-CR 0.23〜0.43・実現値 0.35〜0.69 (全 48 セル <1)。AI と市場が同じ形で高配当側を過信 = 内分では直らない。生き残りは乖離 large/extreme × 10〜50 倍 (FINDINGS P10)。2連複 T-3 (2 場) NEEDS_MORE_DATA (再現せず)",
+        "report": "lane-reports/t3d4_payout_tail_20260910.md",
+        "artifacts": "artifacts/research/nextgen/t3d4/"
+      }
+    ],
+    "designed_not_registered": [
+      {
+        "id": "NG-BM1",
+        "theme": "B2 Raw / B2+exh120 (production) / market の 3 者ベンチマーク",
+        "design": "artifacts/research/nextgen/designs/b2raw_vs_production_vs_market_benchmark_20260911.md",
+        "gate": "設計のみ (指令 2026-09-11 第 2 弾 §15)。実測は 2026-11-01 以降・判定を持たせない benchmark。実装前提 = 展示 ST をローカル beforeinfo JSON から再抽出"
+      },
+      {
+        "id": "NG-VA1",
+        "theme": "会場 × 4 コース攻撃の交互作用が B2 残差にも残るか",
+        "design": "未作成 (Q-028 GO 後に凍結 JSON を作る)",
+        "gate": "Owner GO = Q-028。会場 deviation は VENUE-V0 の凍結値を再推定せず使用。未使用窓の確認は 2026-11-01 開封後に 1 回だけ"
+      }
+    ],
+    "done_20260911": [
+      "NG-SOB1F: PARTIAL (符号 4/4・Stouffer z=4.82 p=7.3e-07・旗艦 T1 4→1 β=−1.735 CI[−2.676,−0.783]・placebo p=0.002 成立 / 規模整合のみ不成立: 4→5 β=+0.597 がバンド [+0.179,+0.511] を上抜け・SOB1 との二標本 z=+1.00 で区別不能)。副族 A (本番 B2 の織り込み不足) は prod3 で CI 0 跨ぎ。追加診断: シフトは「市場が攻め手を AI より高く買う」帯に集中 (合成 z 5.48・旗艦 β −3.93)",
+      "NG-PDS1: PDS_NULL (G1 6 本すべて不合格・CI 半幅 0.0014 の well-powered null / G2 再現なし・3 本符号反転 / G3 展示 z 統制で f_st 保持率 0.21 = 共通罠 4 例目 / G3b oracle 上限 primary 3 本同時 0.00013 << 採用線 0.003 / G5 は AI>Market 帯で CR_AI 0.74〜0.81 横並び・市場 0.98〜1.11)"
+    ],
+    "done_20260911_2": [
+      {
+        "id": "NG-U2",
+        "theme": "場 × 難条件 × 習熟 (Gap Audit 採点 3 位 E)",
+        "verdict": "U2_NULL",
+        "report": "lane-reports/u2_venue_familiarity_20260911.md"
+      },
+      {
+        "id": "VENUE-V0",
+        "theme": "Venue Logic Research v0 (24 場の Race Logic 異質性の診断監査)",
+        "verdict": "VENUE_PARTIAL",
+        "report": "lane-reports/venue_logic_v0_20260911.md"
+      }
+    ]
   },
-  "w1_batch_20260904": {
-   "n1_lambda_makuri": 0.228,
-   "n1_p2_gap_before": 0.001298,
-   "n1_p2_gap_after": 0.000166,
-   "n1_p2_z_after": 1.3,
-   "n1_thin_dnll_fold1": 0.000531,
-   "n1_thin_dnll_fold2": 0.001306,
-   "i1_thin_dnll_fold2": 0.001078,
-   "i1_signature_capture": "7/7 (分布の端)",
-   "e1_agreement_rate": 0.992,
-   "e1_thin_dnll": "fold1 −0.00055 / fold2 −0.00064 (負=悪化)",
-   "e5w_thin_dnll": "fold1 +0.000184 / fold2 +0.000230",
-   "e5w_strong_wind_dnll": -0.002174,
-   "e23_thin_dnll": "fold1 −0.000506 / fold2 −0.000481 (K=24)",
-   "label": "5本とも主ゲートFAIL (採用ライン0.003)。数値の出典は各 lane-report",
-   "source": "lane-reports/{i1_proxy,n1_reweight,e1_stage,e5w_wind,e23_utility}_20260904.md"
+  "hypotheses": {
+    "note": "本節は要約サブセット。全仮説(29件)の悉皆台帳は HYPOTHESES.md — 収載範囲は台帳側が上位互換",
+    "supported": [
+      "市場は本命を過小評価する (favorite-longshot。implied0.5+で-2.9pp)",
+      "1号艇は全階級で買い得 (イン利は階級を超える)",
+      "レースの格で走りが変わる (準優ST-0.0094・24/24場同符号・逃げ率46.7→71.3%)。ただし NG-E1 (2026-09-04) で「B2は既に織り込み済み=出力薄層に残差なし」と確定。現象は実在・予測増分はゼロ",
+      "AIはまくり筋の荒れを系統的に見落とす (NG-E10 OOS確定: gap+0.001298・z=10.2・相対+26.3%・22/24場)。NG-N1 (2026-09-04) で λ_makuri=+0.228 の1パラメータ補正により gap→+2.7% (z=1.3) まで回収可能・副作用ゼロと実証 (採用はOwner判断待ち)。「買える歪み」は未確定=P2にオッズ無し",
+      "特定選手が隣接コースを系統的に殺す/活かす=選手externalityは実在 (NG-E10 分散成分 permutation p=0.001・確認済みsignature 7件。実体は攻め/進入イベント由来の系統ズレ)",
+      "節内の調整推移 (展示タイム系) はB2残差を予測する独立情報 (NG-MS1 2026-09-05: 当日z統制でも残存・元々の強さと直交・最低3次元。**存在確認レベル=予測価値/ROIは未検証**)",
+      "強風でレース生成過程そのものが変わる (NG-E5NR Phase A 2026-09-05: 逃げ率7m/s+で−10pp・まくり率+3.8pp・展示の予言力低下。16/18セル生存・記述的確定。**K風=事後観測のため予測特徴化はT1風ソースが前提**)",
+      "モーター調整の上手さに選手固有の系統差が実在 (NG-ADJ1 2026-09-05: ICC=0.16=機体差の3倍・前後半ρ=0.752 CI[0.726,0.776]。**存在確認レベル・中身は未分解**)"
+    ],
+    "testing": [
+      "SG/G1は観光マネーで市場が甘くなる (SG当日 AI NLL 0.818 vs 0.981・n=12) → NG-E19SG",
+      "Prediction Edge Discovery 第 1 弾: 攻め手在席シフトが将来窓で再現する (NG-SOB1F・C) / 選手の動的状態が次走の B2 残差を予測し展示統制でも消えない (NG-PDS1・A) → Owner GO Q-024"
+    ],
+    "partially_supported": [
+      "4カド攻撃型は展開を作る (NG-E10: 攻撃スタイル型signature 6/9再現。NG-I1 (2026-09-04): proxy 2特徴は7件全員を分布の端で正しく捕捉=設計妥当、ただし薄層ゲートはFAIL=全選手一律の薄い補正では特異選手集中効果が平均化される)",
+      "U-36 会場 × 4 コース攻撃の交互作用は B2 が取り切れていない → 部分支持 (VENUE-V0: 全国 −1.153pp/SD・I²=0.60・前後期 rank ρ=+0.75・置換 p=0.005。ただしモデル非依存スケールでの結果であり B2 残差での確認は未実施 = NG-VA1)"
+    ],
+    "rejected": [
+      "階級が予測に効く (全棄却)",
+      "高階級は市場で人気過剰 (全級±0.7pp=正確に織り込み)",
+      "満潮=まくり有利 (実測は逆方向)",
+      "汎用の攻撃タグ/番組格差/1-4-5筋にエッジ (実在するが市場織り込み済み)",
+      "節の立ち位置 (勝負駆け) が予測に効く (バイナリ圏内/圏外=統制後消滅 → 連続utility=NG-E23で両fold負。2形式null・同路線の再々提案は非推奨 2026-09-04)",
+      "風のコース成分が線形に効く (NG-E5W: 信号実在だが閾値の1/15・強風7m/s+で符号逆転=線形仮定が破綻。非線形/安定板交互作用方向のみ残す 2026-09-04)",
+      "配当の高さ (rarity) に応じて AI を市場側へ縮めれば実払戻ベースで +EV が残る → 否定 (NG-T3D4・2026-09-10)。AI と市場が同じ形で高配当側を過信しており内分では下げられない。市場ブレンド / 較正のパラメータ追加は同一形で再提案しない",
+      "AI と市場の乖離が大きいほど AI 誤差が支配する → 否定 (NG-T3D4)。逆に乖離 large/extreme × 10〜50 倍が生き残り、乖離 small × 100 倍超が負ける (FINDINGS P10)",
+      "R-14 難条件 × 当地習熟 (条件付きの当地経験) は B2 残差に情報を持つ → 否定 (2026-09-11 NG-U2・DiD +0.0855pp CI[−0.72,+0.85]・置換 p=0.850・oracle 上限 0.000165 = 採用線の 1/18)。R-6 (無条件当地) と合わせ当地経験は静的にも条件付きにも閉じた",
+      "R-16 24 会場は『別ゲーム』である (Venue を全域の環境変数として扱う) → 全域の形では否定・限定形で部分支持 (2026-09-11 VENUE-V0・16 チャネル中 1 本のみ異質)。24 会場ぶんの Venue 埋め込み・会場別モデル群は作らない",
+      "U-35 (H-B 特定水面への習熟 × 調整能力 × 難条件 × コース) → 閉鎖 (前提の U-2 が否定・旗艦の難条件層別も z=−0.41 で不成立)"
+    ],
+    "untested": [
+      "安定板+強風=イン受難 (尼崎3R連続一貫・n=3逸話。E5W強風符号逆転が傍証を追加)",
+      "部品交換は選手の潜在診断信号",
+      "師弟・先輩後輩で行動が変わる",
+      "ルーキー急成長を市場が遅れて評価する",
+      "U-18 展開圧力×対応力 — **Step1-2ミニPoC完了 (NG-PXR1 2026-09-06): B側対応力は検出不能 (p=0.99)・A側slopeも宣言と逆符号が主 → GAT棚上げ確定 (E10と2重の否定)**。「圧力が無い」ではなく「対応力の個人差が現データで検出不能」。副産物=攻め手在席時の1号艇過小評価/外隣過大評価の条件付き較正パターン (別起票候補)",
+      "U-19 コース条件付き相性 (Course-conditioned Matchup Skill)",
+      "U-20 波及と受益艇 (Interaction propagation / beneficiary effect)",
+      "U-21 市場の重み付け不足情報 (Known-but-underweighted market information)",
+      "U-22 条件付き相互作用の誤価格 (Conditional interaction mispricing。S-5=まくり筋はAI側較正歪みのみ確定、の判定は上書きしない)",
+      "U-23 二次・三次受益艇の誤価格 (Second-order beneficiary mispricing)",
+      "U-24 シナリオ分散買い (Scenario-aware betting portfolio・購入層の概念。実装は市場レイヤ成熟後)",
+      "U-25 頑健EV+下振れ最適化 (Robust EV + downside-aware optimization)",
+      "U-26 直前風変化 (Current Wind Delta) — 展示時→本番直前の風変化がST・展示予測力を変える (Owner 2026-09-06。E5NRの「強風で展示予言力低下」が傍証)",
+      "U-27 風の不安定性 (Wind Volatility) — 平均風速でなく変動 (SD/max-min/gust/風向変化/regime transition) がST分散・荒れやすさに影響。平均5m安定日と2-9m往復日を同一扱いしない",
+      "U-28 選手の風適応力 (Player Wind Adaptation) — 風変化への適応能力に選手差。まず風変化に対するST誤差・分散の再現可能な選手差をas-of+shrinkageで確認 (即特徴量化しない)",
+      "U-29 環境×モーター状態 (Environment × Motor) — 空気密度/水温/気温−水温差等の「変化」がCurrent Motor Stateと交互作用 (素値の単純投入は再試行しない・季節proxy混同に厳重注意)",
+      "U-30 シナリオ条件付き分布 (Conditional Scenario Distribution) — P(Scenario)×P(Order|Scenario)の2段構造。全体数%でもScenario内中心舟券の情報を捨てない",
+      "U-31 意味のある穴 vs 薄い穴 (Meaningful Tail vs Diffuse Tail) — レアScenario内の確率集中で「買える穴」と「ノイズ穴」を区別",
+      "U-32 読めるレース (Race Compressibility) — 少数点に真の確率質量を圧縮できるレースが存在する (entropy系指標で識別)",
+      "U-33 価値加重シナリオカバレッジ (Value-weighted Scenario Coverage) — 全世界線でなく価値のある世界線だけを複数カバー (NO COVERも正式な選択)",
+      "U-34: Course Interaction × Tactical Profile (H-A) — BACKLOG ONLY・SOB1将来窓∧SC2 PASS 後に起票 (Owner 指令 2026-09-09 §6)",
+      "U-35: Venue-Specific Adjustment Advantage (H-B) — BACKLOG ONLY・無条件当地特徴は R-6 否定維持 (Owner 指令 2026-09-09 §6)",
+      "U-36: Race Formation Sensitivity Map (H-C) — BACKLOG ONLY・設計候補のみ・EXIN1 結果が前提 (Owner 指令 2026-09-09 §6)",
+      "U-37: Expert Forecaster Reverse Engineering (H-D) — BACKLOG ONLY・最初の成果物 = Expert Feature Gap Matrix (Owner 指令 2026-09-09 §6)"
+    ]
   },
-  "t3d3_20260910": {
-   "test": "prod3 2026-07-01〜08-31",
-   "lambda": {
-    "sanrentan_T1": 0.59,
-    "sanrenpuku_T1": 0.5,
-    "nirentan_T1": 0.41,
-    "nirenpuku_T1": 0.31,
-    "tansho_T3": 0.09
-   },
-   "nll_ai_mkt_blend": {
-    "sanrentan": [
-     3.739,
-     3.688,
-     3.684
-    ],
-    "sanrenpuku": [
-     2.298,
-     2.293,
-     2.276
-    ],
-    "nirentan": [
-     2.515,
-     2.512,
-     2.489
-    ],
-    "nirenpuku": [
-     1.969,
-     1.994,
-     1.957
-    ],
-    "tansho": [
-     1.1315,
-     1.2914,
-     1.1355
-    ]
-   },
-   "S5_hitCR_ai_to_blend": {
-    "sanrentan": [
-     0.52,
-     0.62
-    ],
-    "sanrenpuku": [
-     0.61,
-     0.84
-    ],
-    "nirentan": [
-     0.73,
-     0.905
-    ],
-    "nirenpuku": [
-     0.72,
-     0.86
-    ]
-   },
-   "realized_return_tau115_top3_T1": {
-    "sanrentan": 0.64,
-    "sanrenpuku": 0.71,
-    "nirentan": 0.69,
-    "nirenpuku": 0.67
-   },
-   "bets_per_year_est_tau115_top1": {
-    "nirentan": 39750,
-    "nirenpuku": 35759
-   },
-   "case_frozen": "case1_market_gate",
-   "case_substantive": "case3-leaning"
-  },
-  "t3d4_20260910": {
-   "test": "prod3 2026-07-01〜08-31・T-1・τ1.15 top3",
-   "t4_candidate_beta": {
-    "sanrenpuku": "C2_pos −0.336",
-    "nirentan": "C0 (追加なし)",
-    "nirenpuku": "C1 +0.024",
-    "sanrentan": "C2_pos −0.387"
-   },
-   "tail_moneyCR_t3d3_to_t4": {
-    "sanrenpuku": [
-     0.73,
-     0.43
-    ],
-    "nirentan": [
-     0.35,
-     0.35
-    ],
-    "nirenpuku": [
-     0.4,
-     0.43
-    ],
-    "sanrentan": [
-     0.38,
-     0.23
-    ]
-   },
-   "moneyCR_anchor_t4": {
-    "sanrenpuku": 0.5,
-    "nirentan": 0.64,
-    "nirenpuku": 0.64,
-    "sanrentan": 0.22
-   },
-   "realized_diag_t4_tau115_top3": {
-    "sanrenpuku": [
-     0.58,
-     0.36,
-     0.83
-    ],
-    "nirentan": [
-     0.69,
-     0.52,
-     0.88
-    ],
-    "nirenpuku": [
-     0.69,
-     0.52,
-     0.91
-    ],
-    "sanrentan": [
-     0.35,
-     0.02,
-     0.9
-    ]
-   },
-   "price_ratio_on_hits": {
-    "sanrenpuku": 0.75,
-    "nirentan": 0.77,
-    "nirenpuku": 0.75,
-    "sanrentan": 0.95
-   },
-   "tail_overconfidence_starts_at_odds": {
-    "nirenpuku": 36,
-    "nirentan": 90,
-    "sanrenpuku": 35,
-    "sanrentan": 350
-   },
-   "rarest_decile_CR_ai_vs_market": {
-    "nirenpuku": [
-     0.21,
-     0.27
-    ],
-    "nirentan": [
-     0.09,
-     0.12
-    ],
-    "sanrenpuku": [
-     0.34,
-     0.33
-    ],
-    "sanrentan": [
-     0.07,
-     0.08
-    ]
-   },
-   "gap_segment_survivors": {
-    "nirentan_large_47x": [
-     1.1,
-     0.73,
-     1.45
-    ],
-    "nirentan_extreme_19x": [
-     0.94,
-     0.69,
-     1.23
-    ],
-    "nirenpuku_large_23x": [
-     0.95,
-     0.7,
-     1.21
-    ],
-    "nirenpuku_extreme_13x": [
-     1.03,
-     0.8,
-     1.3
-    ]
-   },
-   "nirenpuku_T3_2venues": [
-    1.03,
-    0.68,
-    1.43
-   ],
-   "route": "B_PREDICTION_EDGE_ROUTE",
-   "attribution_dominant": "A_fundamental (log −0.44〜−0.69) > B_price (−0.26〜−0.29) ≒ C_selection"
-  },
-  "sob1f_20260911": {
-   "verdict": "PARTIAL",
-   "n_races": 8997,
-   "stouffer_z": 4.8158,
-   "p_one_sided": 7.33e-07,
-   "placebo_p": 0.002,
-   "primary_beta_pp_per_sd": {
-    "T1_4to1": -1.7351,
-    "T1_3to1": -1.0467,
-    "T1_2to1": -0.7306,
-    "T1_4to5": 0.5974
-   },
-   "benchmark_single_win_3222R": {
-    "raceNLL_ai": 1.1571,
-    "raceNLL_mkt": 1.1312,
-    "hit1_ai": 0.5841,
-    "hit1_mkt": 0.5863,
-    "CR_ai_by_band": {
-     "AI<Market": 1.326,
-     "AI≈Market": 1.014,
-     "small": 0.882,
-     "medium": 0.882,
-     "large": 0.709,
-     "extreme": 0.575
+  "supported_findings": [
+    "P11 (2026-09-11・NG-SOB1F ベンチマーク): 素の単勝確率では「AI と市場が食い違う帯 = AI が外している帯」。AI>市場 極端帯 CR_AI 0.575 [0.480,0.670] / 市場 1.049、AI<市場 帯 CR_AI 1.326 / 市場 0.920、AI≈市場 帯のみ AI がわずかに優位 (lane NLL −0.0015)。レース NLL は AI 1.1571 vs 市場 1.1312 (差 +0.0259 CI[+0.0153,+0.0369])。p_AI = 生 B2 (exh120 未適用・市場ブレンドなし)",
+    "P12 (2026-09-11・NG-SOB1F §6): 攻め手在席の構造シフトは「市場が攻め手を AI より高く買う」レースに集中 (合成 z 5.48 vs 一致レース 1.47)。= AI に足りないが市場は既に持っている情報",
+    "P13 (2026-09-11・NG-PDS1): 状態系特徴の共通罠 4 例目。当日展示 z 統制で f_st の保持率 0.21。今後の状態系ゲートは展示 z 併用の統制を第一関門に",
+    "予測/市場評価/購入判断の3層分離は既に de-facto 実装済み (B2オッズ非入力・ev層shadow専用純関数・NO BET fail-closed。2026-09-04実コード検証)",
+    "展示補正は方向11/12正・増幅が保守的 (Intent層の存在理由)",
+    "実験史: モデル改造12連敗・情報追加と推論工夫のみ有効 — W1第1波5連FAILで「B2出力への後付け薄層」の限界も確定 (取れる残差が既にほぼ無い)",
+    "まくり筋の較正歪みは1パラメータ後段補正で回収可能 (NG-N1: gap z=10.2→1.3・副作用ゼロ・完全OOS)",
+    "風向アイコン=コース図基準の発見 → 24場コース方位テーブル half-auto 完成 (high19/mid5)",
+    "モーター交換月は年次で移動する (K 2連率リセット検出で全24場確定)",
+    "EV 選択後に生き残るのは乖離 large/extreme × 10〜50 倍 (2連単 / 2連複で money-CR 0.89〜1.07・実現 0.94〜1.10・CI は 1 を跨ぐ)。乖離 small × 100 倍超は誤差収穫 (NG-T3D4・FINDINGS P10)",
+    "P14 (2026-09-11・VENUE-V0): 会場差があるのは『崩れ方』であって『拾われ方』ではない。16 チャネル中 1 本のみ異質 = 旗艦 T1 4→1 (全国 −1.153pp/SD・桐生 −2.468 〜 芦屋 −0.431・I²=0.605・置換 p=0.005・前後期 rank ρ=+0.749)。受益側は T1 4→5 I²=0.13 / T2 4→5 I²=0.05 / T2 4→1 は τ=0 へ縮約 = 全国共通",
+    "P15 (2026-09-11・VENUE-V0): scale reversal (1 着は落とすが 2 着に残る) の有無は会場ではなく攻め手のコースが決める。3 攻め→1 は 24/24 場・2 攻め→1 は 20/24 場・4 攻め→1 は 0/24 場",
+    "P16 (2026-09-11・NG-U2 + VENUE-V0): 『難条件がレース構造を変える』は B2 残差のレベルでは信号を持たない。U2 の DiD は置換 p=0.850、旗艦の難条件層別も差の z = −0.41 / −1.01。E5NR Phase A の 7m/s+ 知見は事後観測の K 風での記述であり別物",
+    "P17 (2026-09-11・NG-U2 前処理): K ファイル (結果ページ) 由来の気象 4 列は as-of 不適合。研究では beforeinfo へ差し替えて回避したが src/model.py の LEAKAGE_COLS に未登録で FEATURE_COLS に入っている = Q-029",
+    "P18 (2026-09-11・VENUE-V0 補助診断): n=24 の meta-regression では『天候が会場差を説明したか』に答えられない。旗艦 τ² は 92% 減るがランダム共変量プラセボでも平均 95% 減 (p=0.653)。同種分析にはプラセボ併記を義務化",
+    "P19 会場差は B2 残差に残っていない + 理想的に知れても採用線に届かない (NG-VA1 2026-09-12): 残差 τ=0・Q p=0.744・I²=0.000・frozen 順位との ρ=−0.143。oracle 上限の venue 増分 0.000225 (frozen dev) / 0.000861 (会場自由・過学習フロア 0.000804) / cross-fit 0.000144 = 採用線の 1/13〜1/21。model-side λ=1.072±0.270 (p=0.00065) = B2 の予測が会場差をほぼ再現済み。国全体の攻撃→イン被害は残差に生存 (−0.934±0.204・exh120 後も −0.904±0.203 = 展示層は吸収しない) だが national 単独の上限も 0.000381。**留保: 残差スロープ経路は検出力不足 (SE(γ)=0.475・99% CI が +0.97 まで届く)。凍結時に宣言し G6 を NULL 阻止ゲートとして定義したため機械判定は PARTIAL**",
+    "P20 wind_dir_code の train/serve skew で 2026-09-05 以降の本番予測が実測 ΔNLL +0.04447 劣化 (採用線の約 15 倍)・1 着予測の入替 14.84% (Q-029 監査の副産物 → Q-030)",
+    "P21 研究の Raw-B2 参照 (p2 replica) が K 由来 post-race 気象で学習されていた。残差系の全実験に同じ留保が付く (→ Q-031 / NG-REF1)"
+  ],
+  "rejected_findings": [
+    "選手の動的状態 (直近 k 走 − 自己ベースライン系 6 本) は B2 残差を説明する → 否定 (NG-PDS1・well-powered null・増分上限 0.00013 = 採用線の 1/23)。静的 latent (B2H REJECT) に続き動的も否定 = 選手個人の情報路線は閉鎖",
+    "U-5 ルーキー急成長を市場が遅れて評価 → AI 側前提が不成立 (NG-PDS1)",
+    "気温・水温の素値は予測に効く (実体の8-9割が季節の焼き直し)",
+    "『A1は人気しすぎ』(市場は階級を正確に織り込む)",
+    "純粋externality (自艇は無傷で隣だけ動く型) は信号ゼロ (NG-E10 自艇残差≈0層: p=0.894)",
+    "rarity 条件付き市場 shrinkage (NG-T3D4): 追加項は全セル 0 か負・実現値 全 48 セル <1。高配当側の過信は AI と市場が共有 (favorite-longshot 型)",
+    "R-17 会場 × 4 コース攻撃の交互作用は B2 が取り切れていない (U-36a) — 否定 (2026-09-12・NG-VA1)。24 場別 Venue 埋め込み・会場別モデル群・指令 §14 の Venue-dependent Inside Resistance PoC はいずれも起票しない。Venue Logic は説明層として保持"
+  ],
+  "metrics": {
+    "national_fold2_3seed": {
+      "nll": 3.7565,
+      "hit1": 0.102,
+      "tansho_acc": 0.5746
     },
-    "CR_mkt_by_band": {
-     "AI<Market": 0.92,
-     "AI≈Market": 1.028,
-     "small": 1.022,
-     "medium": 1.112,
-     "large": 1.015,
-     "extreme": 1.049
+    "market_gap_nll": "+0.06〜0.07 (確定オッズde-vig比・diagnostic)",
+    "sg_kiryu_20260830": {
+      "head_hits": "9/12",
+      "trifecta_top1": "4/12",
+      "ai_nll": 0.818,
+      "market_nll": 0.981,
+      "n": 12,
+      "label": "逸話・断定禁止"
+    },
+    "adoption_line_thin_layer_dnll": 0.003,
+    "e10": {
+      "externality_variance_T": 10970.5,
+      "externality_null_mean": 8703.5,
+      "externality_null_sd": 62.3,
+      "externality_p": 0.001,
+      "pure_externality_p": 0.894,
+      "own_diag_sd_pp": "2.9-4.5 (LGB代理の選手スキル取り残し・caveat)",
+      "makuri_oos_window": "2025-07-01..2026-06-30",
+      "makuri_n_races": 44357,
+      "makuri_n_tickets": 354856,
+      "makuri_gap": 0.001298,
+      "makuri_ci95": [
+        0.001053,
+        0.001551
+      ],
+      "makuri_z": 10.22,
+      "makuri_relative_miss": "+26.3%",
+      "makuri_venues_positive": "22/24",
+      "confirmed_signatures": 7,
+      "label": "確定は較正の歪み。P2に締切前オッズ無し=買える歪みは未確定",
+      "source": "lane-reports/e10_externality_20260904.md"
+    },
+    "w1_batch_20260904": {
+      "n1_lambda_makuri": 0.228,
+      "n1_p2_gap_before": 0.001298,
+      "n1_p2_gap_after": 0.000166,
+      "n1_p2_z_after": 1.3,
+      "n1_thin_dnll_fold1": 0.000531,
+      "n1_thin_dnll_fold2": 0.001306,
+      "i1_thin_dnll_fold2": 0.001078,
+      "i1_signature_capture": "7/7 (分布の端)",
+      "e1_agreement_rate": 0.992,
+      "e1_thin_dnll": "fold1 −0.00055 / fold2 −0.00064 (負=悪化)",
+      "e5w_thin_dnll": "fold1 +0.000184 / fold2 +0.000230",
+      "e5w_strong_wind_dnll": -0.002174,
+      "e23_thin_dnll": "fold1 −0.000506 / fold2 −0.000481 (K=24)",
+      "label": "5本とも主ゲートFAIL (採用ライン0.003)。数値の出典は各 lane-report",
+      "source": "lane-reports/{i1_proxy,n1_reweight,e1_stage,e5w_wind,e23_utility}_20260904.md"
+    },
+    "t3d3_20260910": {
+      "test": "prod3 2026-07-01〜08-31",
+      "lambda": {
+        "sanrentan_T1": 0.59,
+        "sanrenpuku_T1": 0.5,
+        "nirentan_T1": 0.41,
+        "nirenpuku_T1": 0.31,
+        "tansho_T3": 0.09
+      },
+      "nll_ai_mkt_blend": {
+        "sanrentan": [
+          3.739,
+          3.688,
+          3.684
+        ],
+        "sanrenpuku": [
+          2.298,
+          2.293,
+          2.276
+        ],
+        "nirentan": [
+          2.515,
+          2.512,
+          2.489
+        ],
+        "nirenpuku": [
+          1.969,
+          1.994,
+          1.957
+        ],
+        "tansho": [
+          1.1315,
+          1.2914,
+          1.1355
+        ]
+      },
+      "S5_hitCR_ai_to_blend": {
+        "sanrentan": [
+          0.52,
+          0.62
+        ],
+        "sanrenpuku": [
+          0.61,
+          0.84
+        ],
+        "nirentan": [
+          0.73,
+          0.905
+        ],
+        "nirenpuku": [
+          0.72,
+          0.86
+        ]
+      },
+      "realized_return_tau115_top3_T1": {
+        "sanrentan": 0.64,
+        "sanrenpuku": 0.71,
+        "nirentan": 0.69,
+        "nirenpuku": 0.67
+      },
+      "bets_per_year_est_tau115_top1": {
+        "nirentan": 39750,
+        "nirenpuku": 35759
+      },
+      "case_frozen": "case1_market_gate",
+      "case_substantive": "case3-leaning"
+    },
+    "t3d4_20260910": {
+      "test": "prod3 2026-07-01〜08-31・T-1・τ1.15 top3",
+      "t4_candidate_beta": {
+        "sanrenpuku": "C2_pos −0.336",
+        "nirentan": "C0 (追加なし)",
+        "nirenpuku": "C1 +0.024",
+        "sanrentan": "C2_pos −0.387"
+      },
+      "tail_moneyCR_t3d3_to_t4": {
+        "sanrenpuku": [
+          0.73,
+          0.43
+        ],
+        "nirentan": [
+          0.35,
+          0.35
+        ],
+        "nirenpuku": [
+          0.4,
+          0.43
+        ],
+        "sanrentan": [
+          0.38,
+          0.23
+        ]
+      },
+      "moneyCR_anchor_t4": {
+        "sanrenpuku": 0.5,
+        "nirentan": 0.64,
+        "nirenpuku": 0.64,
+        "sanrentan": 0.22
+      },
+      "realized_diag_t4_tau115_top3": {
+        "sanrenpuku": [
+          0.58,
+          0.36,
+          0.83
+        ],
+        "nirentan": [
+          0.69,
+          0.52,
+          0.88
+        ],
+        "nirenpuku": [
+          0.69,
+          0.52,
+          0.91
+        ],
+        "sanrentan": [
+          0.35,
+          0.02,
+          0.9
+        ]
+      },
+      "price_ratio_on_hits": {
+        "sanrenpuku": 0.75,
+        "nirentan": 0.77,
+        "nirenpuku": 0.75,
+        "sanrentan": 0.95
+      },
+      "tail_overconfidence_starts_at_odds": {
+        "nirenpuku": 36,
+        "nirentan": 90,
+        "sanrenpuku": 35,
+        "sanrentan": 350
+      },
+      "rarest_decile_CR_ai_vs_market": {
+        "nirenpuku": [
+          0.21,
+          0.27
+        ],
+        "nirentan": [
+          0.09,
+          0.12
+        ],
+        "sanrenpuku": [
+          0.34,
+          0.33
+        ],
+        "sanrentan": [
+          0.07,
+          0.08
+        ]
+      },
+      "gap_segment_survivors": {
+        "nirentan_large_47x": [
+          1.1,
+          0.73,
+          1.45
+        ],
+        "nirentan_extreme_19x": [
+          0.94,
+          0.69,
+          1.23
+        ],
+        "nirenpuku_large_23x": [
+          0.95,
+          0.7,
+          1.21
+        ],
+        "nirenpuku_extreme_13x": [
+          1.03,
+          0.8,
+          1.3
+        ]
+      },
+      "nirenpuku_T3_2venues": [
+        1.03,
+        0.68,
+        1.43
+      ],
+      "route": "B_PREDICTION_EDGE_ROUTE",
+      "attribution_dominant": "A_fundamental (log −0.44〜−0.69) > B_price (−0.26〜−0.29) ≒ C_selection"
+    },
+    "sob1f_20260911": {
+      "verdict": "PARTIAL",
+      "n_races": 8997,
+      "stouffer_z": 4.8158,
+      "p_one_sided": 7.33e-07,
+      "placebo_p": 0.002,
+      "primary_beta_pp_per_sd": {
+        "T1_4to1": -1.7351,
+        "T1_3to1": -1.0467,
+        "T1_2to1": -0.7306,
+        "T1_4to5": 0.5974
+      },
+      "benchmark_single_win_3222R": {
+        "raceNLL_ai": 1.1571,
+        "raceNLL_mkt": 1.1312,
+        "hit1_ai": 0.5841,
+        "hit1_mkt": 0.5863,
+        "CR_ai_by_band": {
+          "AI<Market": 1.326,
+          "AI≈Market": 1.014,
+          "small": 0.882,
+          "medium": 0.882,
+          "large": 0.709,
+          "extreme": 0.575
+        },
+        "CR_mkt_by_band": {
+          "AI<Market": 0.92,
+          "AI≈Market": 1.028,
+          "small": 1.022,
+          "medium": 1.112,
+          "large": 1.015,
+          "extreme": 1.049
+        }
+      }
+    },
+    "pds1_20260911": {
+      "verdict": "PDS_NULL",
+      "fit_races": 50926,
+      "future_races": 8997,
+      "g1_beta_prob_per_sd": {
+        "f_st": 0.0013,
+        "f_resid": 0.00089,
+        "f_makuri": -0.00072,
+        "f_st_course": 0.00089,
+        "f_st_var": 0.00054,
+        "f_perf": -0.00141
+      },
+      "g1_perm_p_best": 0.0539,
+      "ci_halfwidth": 0.0014,
+      "oracle_dnll_upper_bound": {
+        "f_st": 6.9e-05,
+        "f_resid": 4e-05,
+        "f_makuri": 1.6e-05,
+        "primary_joint": 0.00013,
+        "adoption_line": 0.003
+      },
+      "g5_CR_ai_range_in_AI_gt_Market": [
+        0.742,
+        0.811
+      ],
+      "g5_CR_mkt_range": [
+        0.982,
+        1.111
+      ]
+    },
+    "u2_20260911": {
+      "verdict": "U2_NULL",
+      "fit_races": 46648,
+      "future_races": 8236,
+      "did_pp_fit": 0.0855,
+      "did_ci_fit": [
+        -0.7199,
+        0.8532
+      ],
+      "did_pp_future": 0.0428,
+      "did_ci_future": [
+        -2.2527,
+        2.194
+      ],
+      "placebo_p": 0.8503,
+      "placebo_null_sd_pp": 0.3719,
+      "oracle_dnll_upper_bound": 0.000165,
+      "adoption_line": 0.003,
+      "loo_ci_excl0": "0/24",
+      "max_leverage": 1.9186,
+      "s1_top1_fit_pp": 0.7406,
+      "s1_top1_fit_ci": [
+        0.1247,
+        1.4068
+      ],
+      "s1_top1_future_pp": 0.8521,
+      "s1_top1_future_ci": [
+        -0.7627,
+        2.5652
+      ],
+      "s4_venue_Q_p": 0.2964,
+      "s4_venue_I2": 0.1205,
+      "power_note": "置換帰無 SD 0.372pp = 0.7pp 超の交互作用なら検出できた。0.2pp floor までは否定していない"
+    },
+    "venue_v0_20260911": {
+      "verdict": "VENUE_PARTIAL",
+      "audit_races": 261194,
+      "min_venue_races": 9891,
+      "venues": 24,
+      "channels_tested": 16,
+      "channels_passed": [
+        "T1_4to1"
+      ],
+      "flagship_national_pp": -1.1534,
+      "flagship_tau_pp": 0.5536,
+      "flagship_I2": 0.6046,
+      "flagship_Q_p": 7.0043e-05,
+      "flagship_perm_p": 0.004975,
+      "flagship_split_rank_rho": 0.7487,
+      "flagship_split_rank_p": 2.572e-05,
+      "flagship_shrunk_range_pp": [
+        -2.4681,
+        -0.4305
+      ],
+      "flagship_shrunk_range_over_median_se": 4.5581,
+      "near_miss": "T1_2to1 (前後期 rank rho 0.38 < 0.40 のみ不成立・Q_p 2e-05 / I² 0.68 / 置換 0.005 は通過)",
+      "beneficiary_homogeneous": {
+        "T1_4to5_I2": 0.13,
+        "T2_4to5_I2": 0.05,
+        "T2_4to1_tau": 0.0,
+        "T1_3to6_tau": 0.0
+      },
+      "scale_reversal_venues": {
+        "2to1": "20/24",
+        "3to1": "24/24",
+        "4to1": "0/24"
+      },
+      "st_advantage_national_pp_by_lane": [
+        6.336,
+        3.482,
+        3.163,
+        3.256,
+        1.815,
+        1.294
+      ],
+      "condition_interaction_z": {
+        "T1_4to1": -0.41,
+        "T2_4to5": -1.01
+      },
+      "climatology_metaregression": "取り下げ (explained 0.92 だがランダム共変量プラセボ平均 0.95・p=0.653)",
+      "cross_window_rank_rho": {
+        "B2_window": 0.37,
+        "future_window": 0.116,
+        "note": "いずれも検出力不足 (会場 SE 中央値 1.07 / 2.52 pp/SD > tau 0.55)"
+      },
+      "profile_split_half_mean_abs_rho": 0.418,
+      "clustering_silhouette_k4": 0.195
     }
-   }
   },
-  "pds1_20260911": {
-   "verdict": "PDS_NULL",
-   "fit_races": 50926,
-   "future_races": 8997,
-   "g1_beta_prob_per_sd": {
-    "f_st": 0.0013,
-    "f_resid": 0.00089,
-    "f_makuri": -0.00072,
-    "f_st_course": 0.00089,
-    "f_st_var": 0.00054,
-    "f_perf": -0.00141
-   },
-   "g1_perm_p_best": 0.0539,
-   "ci_halfwidth": 0.0014,
-   "oracle_dnll_upper_bound": {
-    "f_st": 6.9e-05,
-    "f_resid": 4e-05,
-    "f_makuri": 1.6e-05,
-    "primary_joint": 0.00013,
-    "adoption_line": 0.003
-   },
-   "g5_CR_ai_range_in_AI_gt_Market": [
-    0.742,
-    0.811
-   ],
-   "g5_CR_mkt_range": [
-    0.982,
-    1.111
-   ]
+  "data_status": {
+    "official_bk": "2020〜全国・ほぼ完全 (K結果はレース後公開=ラベル専用)",
+    "beforeinfo": "2020〜 (2023-01〜04欠落=素データ自体なし)。全356,476ファイルのフルスキャン実測 (2026-09-04 W2監査・エラー0): チルト充足94-97% (F41未収載=未利用100%)・安定板true率4.5-9.8%/年 (場別分布は物理と整合・2026はopenapi由来で構造的欠測0.6%)・気温98.7%/水温95%。**部品交換列は6.5年間パーサ取り違えで前走成績(同日前走のレース番号)を保存していた=部品交換データは実質未収集** (選手ID照合119/119で確定。正解実装は fetch_beforeinfo_ext.py に既在。前向き修理≈0.5日・過去分は生HTML未保存のため再スクレイプ35万ページ≒12日=Owner GO必須・openapiでは取れない)",
+    "era5": "2020〜2026-09 毎時24場 140万行 (気圧/湿度/突風/空気密度)。事後再解析=本番は予報アーカイブ要",
+    "odds_preclose": "全国 3連単 2026-07-10〜 (national_v2)・単勝 2026-07-16〜 (national_tan) 蓄積中 (real EV評価はこれのみ)。**2026-09-10 15:45〜 forward collector close_window (24 場・5 券種・D-3:00〜D+10:00・NG-FC1 試験運用) 稼働** = 3連複/2連単/2連複の全国締切前オッズの自前収集開始 (値は 11/1 まで封印)",
+    "setsu_master": "全期間5,311節 (artifacts/research/nextgen/setsu_master.parquet)",
+    "static_assets": "venue_course_azimuth.json (high19/mid5) / venue_branch_map / motor_exchange_months / venue_latlon / venue_date_grade.parquet (E1副産物・29,715行)",
+    "research_assets_w1": "i1_features.parquet (選手×コースas-of行動プロファイル206万行・leak test PASS) / e1_stage_decision_table.csv (8カテゴリ・一致率99.2%) / e5w_features.parquet (風コース成分) / e23 utility.parquet",
+    "missing_wishlist": [
+      "選手コメント時系列(HIGH)",
+      "プロペラ形状(HIGH・困難)",
+      "1M映像展開(MED・打ち切り済)",
+      "人間関係(MED)",
+      "ピット常時(LOW-MED)"
+    ],
+    "external_gift_20260906": "知人(競艇AI研究者)の研究全量バンドル (data/external/gift_20260906/・gitignore)。2026-09-09 突合済み: G1/G2/G4/G5 一致率 100%・G3 単勝 0.0%/3連単 0.30% (先方 7/23-24 回転バグ補正後) = 突合前ラベル解除。直前板 parquet = _parsed/live_board_odds.parquet (live 6,657R・単勝ページ皆無)。secret 様 8 本未開封。統合報告 lane-reports/gift_investigation_20260909.md",
+    "features_v2_research": "2026-09-10 復旧済み: 2026-07-22 以降の as-of 17 列欠損は 08-03 build が 07-21 止まりの extras を left-join したのが原因。rc2 延長 extras + beforeinfo 再スキャンで leakage-safe 復旧 (学習窓バイト同一)。窓 2020-01-01〜2026-08-31 (09-01〜 は封印・11/1 以降に再構築)。旧 = *.gap0722_20260803build.bak",
+    "market_panels_ts": "artifacts/research/nextgen/ts/panels/ (2025-07-01〜2026-08-31)。5 券種 A/B/C 分類済み・D なし。3連複/2連単/2連複の全国締切前は先方直前板 T-1 + checkpoint (7/25〜8/1) のみ (自前ゼロ)",
+    "close_window_forward_collector": {
+      "path": "data/odds_snapshots/close_window/",
+      "since": "2026-09-10 15:45 JST",
+      "launchd": "com.kyotei-ai.collect-close-window (60 s・KYOTEI_FC_LIVE=1)",
+      "pages": "oddstf + odds3t (全 checkpoint) / odds3f + odds2tf (D-3:00, D-1:00, D+3:00, D+6:00 条件付き)",
+      "load": "≈3,100 req/日 max (既存比 +11%)",
+      "trial": "NG-FC1 2026-09-11〜09-24 メタデータのみ",
+      "sealed": "オッズ値は 2026-11-01 まで集計・閲覧禁止",
+      "watch": "応答 8〜10 秒/ページ (初回 fire 実測)"
+    },
+    "shadow_tan_method_A": {
+      "script": "scripts/shadow_report_national_tan.py",
+      "since": "2026-09-10 (nightly 23:30)",
+      "judge": "方式 A: EV_A = AI × 0.75/p3t ≥ 1.15 (監視 ≥1.05)。旧判定 (乖離 ≥0.20) は比較列として維持",
+      "log": "data/processed/national/shadow_log_tan.parquet (+7 列)"
+    }
   },
-  "u2_20260911": {
-   "verdict": "U2_NULL",
-   "fit_races": 46648,
-   "future_races": 8236,
-   "did_pp_fit": 0.0855,
-   "did_ci_fit": [
-    -0.7199,
-    0.8532
-   ],
-   "did_pp_future": 0.0428,
-   "did_ci_future": [
-    -2.2527,
-    2.194
-   ],
-   "placebo_p": 0.8503,
-   "placebo_null_sd_pp": 0.3719,
-   "oracle_dnll_upper_bound": 0.000165,
-   "adoption_line": 0.003,
-   "loo_ci_excl0": "0/24",
-   "max_leverage": 1.9186,
-   "s1_top1_fit_pp": 0.7406,
-   "s1_top1_fit_ci": [
-    0.1247,
-    1.4068
-   ],
-   "s1_top1_future_pp": 0.8521,
-   "s1_top1_future_ci": [
-    -0.7627,
-    2.5652
-   ],
-   "s4_venue_Q_p": 0.2964,
-   "s4_venue_I2": 0.1205,
-   "power_note": "置換帰無 SD 0.372pp = 0.7pp 超の交互作用なら検出できた。0.2pp floor までは否定していない"
+  "overfitting_status": {
+    "fold_contamination": "fold1/fold2は開発汚染済み=採否の最終根拠にしない",
+    "gates": "G0事前登録→G1 2fold一貫+bootstrap CI95→G2 3seed→G3 prod2026窓→G4 ECE→G5 市場(diag/real分離)→G6 8segment",
+    "danger_zones": [
+      "Player×Course×Stage×Wind等の細分サンプル枯渇 (積項でなく共有表現)",
+      "万舟数本集中の利益 (検知をハーネスに組込予定)"
+    ],
+    "w1_note": "第1波5実験は全て事前登録→凍結→機械判定を完走。バグは全件addendum開示+初回数値破棄で再実行 (I1×1件・N1×2件・E1×1件)。判定ルールの事後変更ゼロ"
   },
-  "venue_v0_20260911": {
-   "verdict": "VENUE_PARTIAL",
-   "audit_races": 261194,
-   "min_venue_races": 9891,
-   "venues": 24,
-   "channels_tested": 16,
-   "channels_passed": [
-    "T1_4to1"
-   ],
-   "flagship_national_pp": -1.1534,
-   "flagship_tau_pp": 0.5536,
-   "flagship_I2": 0.6046,
-   "flagship_Q_p": 7.0043e-05,
-   "flagship_perm_p": 0.004975,
-   "flagship_split_rank_rho": 0.7487,
-   "flagship_split_rank_p": 2.572e-05,
-   "flagship_shrunk_range_pp": [
-    -2.4681,
-    -0.4305
-   ],
-   "flagship_shrunk_range_over_median_se": 4.5581,
-   "near_miss": "T1_2to1 (前後期 rank rho 0.38 < 0.40 のみ不成立・Q_p 2e-05 / I² 0.68 / 置換 0.005 は通過)",
-   "beneficiary_homogeneous": {
-    "T1_4to5_I2": 0.13,
-    "T2_4to5_I2": 0.05,
-    "T2_4to1_tau": 0.0,
-    "T1_3to6_tau": 0.0
-   },
-   "scale_reversal_venues": {
-    "2to1": "20/24",
-    "3to1": "24/24",
-    "4to1": "0/24"
-   },
-   "st_advantage_national_pp_by_lane": [
-    6.336,
-    3.482,
-    3.163,
-    3.256,
-    1.815,
-    1.294
-   ],
-   "condition_interaction_z": {
-    "T1_4to1": -0.41,
-    "T2_4to5": -1.01
-   },
-   "climatology_metaregression": "取り下げ (explained 0.92 だがランダム共変量プラセボ平均 0.95・p=0.653)",
-   "cross_window_rank_rho": {
-    "B2_window": 0.37,
-    "future_window": 0.116,
-    "note": "いずれも検出力不足 (会場 SE 中央値 1.07 / 2.52 pp/SD > tau 0.55)"
-   },
-   "profile_split_half_mean_abs_rho": 0.418,
-   "clustering_silhouette_k4": 0.195
+  "leakage_status": "S4 = 0 件 (2026-09-12 System Integrity Audit v1)。leakage / holdout 汚染 / 結果情報漏洩は検出されなかった。features_v2.parquet は 2026-08-31 で止まり構造的に封印。data/processed/national/features.parquet は封印窓の行を持つが (2026-09-01〜09-12 の 10,728 行) 研究側は日付でカットする責任があり、E10/rc2 の全 artifact の実データ上限を実測して 2026-06-30 / 2026-08-31 を確認済み。**_fetched_at は取得時刻であって情報時点ではない** (FINDINGS P24)",
+  "pending_owner_decisions": [
+    {
+      "n": 1,
+      "item": "live気象修復パッチ (P0)",
+      "recommend": "適用",
+      "status_20260909": "未裁定のまま持ち越し (Owner 指令 2026-09-09 では言及なし)"
+    },
+    {
+      "n": 2,
+      "item": "7/27劣化153件修復",
+      "recommend": "適用",
+      "status_20260909": "未裁定のまま持ち越し (Owner 指令 2026-09-09 では言及なし)"
+    },
+    {
+      "n": 3,
+      "item": "風向16方位パーサ",
+      "recommend": "適用",
+      "status_20260909": "未裁定のまま持ち越し (Owner 指令 2026-09-09 では言及なし)"
+    },
+    {
+      "n": 4,
+      "item": "openapi日次取り込みを夜間ジョブへ",
+      "recommend": "追加",
+      "status_20260909": "未裁定のまま持ち越し (Owner 指令 2026-09-09 では言及なし)"
+    },
+    {
+      "n": 5,
+      "item": "同日ソートキー修正の本番適用",
+      "recommend": "見送り (研究ビルドのみ)",
+      "status_20260909": "未裁定のまま持ち越し (Owner 指令 2026-09-09 では言及なし)"
+    },
+    {
+      "n": 6,
+      "item": "N1 まくり筋較正層の扱い",
+      "decision": "GO (Owner 2026-09-04)。Calibration-specific Gate を NG-N1C として新規事前登録済み (①対象セル|z|<2+CI 0跨ぎ ②全体NLL非劣性 ③非対象セル非悪化 ④walk-forward 3期再現 ⑤場別致命的過補正ゼロ ⑥福岡・唐津の主因診断)。NG-N1 の旧判定は変更しない (旧ゲートではFAILのまま保持)。場別λは診断のみ・本番採用せず過学習リスク評価"
+    },
+    {
+      "n": 7,
+      "item": "E5W 風の再挑戦方向",
+      "decision": "GO (Owner 2026-09-04)。線形2パラメータ形はFAIL固定・同一形再提案禁止。NG-E5NR (Nonlinear Environmental Regime) を事前登録済み — まず「強風でレース生成過程が変わるか」の最小統計PoC (逃げ率/ST/決まり手/まくり率/外艇Top3/展示→本番の分布変化)。巨大interactionモデルの一括実装は禁止。安定板はn小逸話を真実扱いせず新規仮説として扱う"
+    },
+    {
+      "n": 8,
+      "item": "E1 格特徴のB2入力側追加+再学習",
+      "decision": "DEFER (Owner 2026-09-04)。「レース格は無意味」とは扱わない — 現象 (ST・逃げ率変化) はSUPPORTED・追加予測価値は現B2では薄い (F41から65%再構成可・新情報量薄・再学習コスト大・モデル改造12連敗)。他の新規入力とまとめて再学習するタイミング / architecture revision / Stage Expert の明確な追加証拠が出た場合に再検討"
+    },
+    {
+      "n": 9,
+      "item": "rolling/as-of λ によるまくり筋較正の再挑戦",
+      "decision": "GO (Owner 2026-09-06・side lane)。NG-N1R として事前登録済み。興味の核=まくり筋歪みそのものの時間変化。旧N1/N1CのFAILは不変。優先度はNG-MS2より下"
+    },
+    {
+      "n": 10,
+      "item": "P×R (展開圧力×対応力) Step1-2 ミニPoC",
+      "decision": "GO (Owner 2026-09-06)。NG-PXR1 として事前登録済み。固有選手ルール禁止・巨大GAT禁止。受益艇 (Attacker→Affected→Beneficiary) まで3段追跡に拡張。A×B interactionがOOSで残った場合のみpairwise/GAT再評価"
+    },
+    {
+      "n": 11,
+      "item": "現在モーター状態の最小特徴化+OOSゲート",
+      "decision": "GO (Owner 2026-09-06・Priority 1)。NG-MS2 として事前登録済み。巨大Motor Expertは作らない。特徴候補=節初日状態/当日状態/trend/improvement/volatility/convergence/tilt change/exhibition progression のas-of構成。K由来展示列の誤使用禁止"
+    },
+    {
+      "n": 12,
+      "item": "強風regime Phase B (最小regimeモデル・生存16セル対象) の起票可否 — Phase A PASS (逃げ率−10pp/まくり+3.8pp/展示予言力低下が7m/s+で確定)。重要制約: K風=事後観測のため予測特徴化にはT1時点の風ソースが必要 (biは2026のみ)",
+      "recommend": "T1風の可用性を先に固めてから起票 (風向パーサ適用済み日次取り込み #4 の蓄積 or bi 2026+のみで小規模検証)。焦って事後風でモデル化しない",
+      "status_20260909": "未裁定のまま持ち越し (Owner 指令 2026-09-09 では言及なし)"
+    },
+    {
+      "n": 13,
+      "item": "部品交換バックフィルの実施形態",
+      "decision": "B案 GO (Owner 2026-09-06)。層化5万ページ (≈7日・節単位サンプリングで交換前後の接続を保証)。目的=部品交換/新ペラ/交換種類/交換前状態/交換後展示・本番/Current Motor State接続の標本確保。Maintenance仮説に実際の増分が確認できた場合のみ全量 (A案48日) を再判断。日次前向き収集のcrontab設置はshin手動のまま"
+    },
+    {
+      "n": 14,
+      "item": "単勝 T-3 蓄積の強化 (national_tan の収集窓を締切 4〜2 分へ寄せる launchd 変更)",
+      "recommend": "適用 (T3D2 の将来窓・11/1 判定の母数を増やす。boatrace.jp への追加リクエストは同数で窓移動のみ)"
+    },
+    {
+      "n": 15,
+      "item": "2023-01-01〜04-24 全場欠落の再取得 (公式 LZH からの可否確認→取得)",
+      "recommend": "可否確認まで GO 推奨・取得は別途"
+    },
+    {
+      "n": 16,
+      "item": "公開 mirror の git 履歴 / gist 版履歴に残る先方実名の扱い (force push + gist 作り直し)",
+      "recommend": "Owner 判断 (危険操作)"
+    },
+    {
+      "n": 17,
+      "item": "crontab 3 行 (風コレクタ 2 + 部品日次 1)",
+      "recommend": "設置"
+    },
+    {
+      "n": 18,
+      "item": "NG-T3D3 起票 (gap 条件付きブレンド・design_t3d3_20260910.md)",
+      "recommend": "GO (事前登録→実行。新 NN なし・本番不変)"
+    },
+    {
+      "n": 19,
+      "item": "forward collector 実装・launchd 登録 (design v2 + draft + plist draft 完成)",
+      "recommend": "GO (2 週間試験。3連複/2連単/2連複ページの追加有無を同時裁定)",
+      "status": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済",
+      "decision": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済"
+    },
+    {
+      "n": 20,
+      "item": "shadow EV 判定を方式 A (3連単含意単勝) へ差し替え (daily_signal_notify.py・本番隣接)",
+      "recommend": "GO (持ち越し)",
+      "status": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済",
+      "decision": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済"
+    },
+    {
+      "n": 21,
+      "item": "研究成果の commit + research mirror push (Q-007 e の扱い)",
+      "recommend": "GO",
+      "status": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済",
+      "decision": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済"
+    },
+    {
+      "n": 22,
+      "item": "NG-T3D4 起票 = オッズ帯条件付き λ + 判定を『確定配当ベースの実現値 CI 下端 > 1』に置く (実現値が 1 を超えなければケース3 確定・Market Gate 閉鎖)",
+      "recommend": "GO (Q-022)",
+      "status": "裁定済 GO (Owner 研究指令 2026-09-10 第 3 弾) → 実施済: 4 券種 FAIL・route B・Market Gate 閉鎖",
+      "decision": "裁定済 GO (Owner 研究指令 2026-09-10 第 3 弾) → 実施済: 4 券種 FAIL・route B・Market Gate 閉鎖"
+    },
+    {
+      "n": 23,
+      "item": "forward collector 試験後 (9/24) の checkpoint 確定 (D-0:30/D-0:10 存廃・3f/2tf 継続) と raw HTML gz の削除",
+      "recommend": "試験結果を見て裁定 (メタデータのみ)"
+    },
+    {
+      "n": 24,
+      "item": "Prediction Edge Discovery 第 1 弾の事前登録 GO (a NG-SOB1F / b NG-PDS1)",
+      "recommend": "a GO / b GO",
+      "status": "CLOSED 2026-09-11 (Owner 研究指令: 両方 GO・実行順 a→b・独立)",
+      "decision": "CLOSED 2026-09-11 (Owner 研究指令: 両方 GO・実行順 a→b・独立)"
+    },
+    {
+      "n": 25,
+      "item": "次の主研究 1 本 = NG-U2「場 × 難条件 × 習熟」の 2×2 residual 表 (Gap Audit 次点 E・学習なし・<1 日・オッズ不使用)",
+      "recommend": "GO (指令 §21 の分岐 D。A/B/C は SOB1F PARTIAL・PDS1 NULL により不成立)",
+      "status": "未裁定 (Q-025)",
+      "decision": "裁定済 GO (2026-09-11・Owner 研究指令 第 2 弾) → NG-U2 = U2_NULL / VENUE-V0 = VENUE_PARTIAL"
+    },
+    {
+      "n": 26,
+      "item": "wind_dir_code の train/serve skew 是正 (本番推論を -1 固定へ戻す・再学習なし)",
+      "recommend": "GO (推論側 1 行。実測 ΔNLL +0.04447 = 採用線の約 15 倍の劣化・1 着予測の入替 14.84%・可逆・情報損失ほぼ皆無)",
+      "status": "裁定済み GO (2026-09-12) → 実装・検証完了。runtime revision r3 で推論側を学習時定数へ固定。8,997R で 6 指標すべて改善 (NLL 3.78427→3.74452 / Hit@1 9.79→10.06% / change rate 14.84% / TVD 0.0912)。INC-2026-0905-WINDDIR 起票。**未 commit = commit+push の GO が残件**",
+      "source": "FINDINGS P20 / lane-reports/q029_weather_provenance_audit_20260912.md §5-A / lane-reports/q030_wind_dir_hotfix_20260912.md / research/INCIDENTS.md"
+    },
+    {
+      "n": 27,
+      "item": "研究 p120 dump の K 気象 provenance 是正と Raw-B2 参照の再構築 (NG-REF1・production 不変)",
+      "recommend": "GO (次の主研究 1 本。SOB1F / PDS1 / U2 / VENUE-V0 L3 / VA1 の土台)",
+      "status": "裁定済み GO (2026-09-12) → 前半完了。D1 (prod3 dump の K 気象) を解消し canonical reference ref1_p120_prod3_clean.parquet (8,997R) を作成。汚染は気象 4 列のみと実測。5 問すべて結論維持 (AI と市場の距離だけ 41% 縮む)。D2 (replica の重みが K 気象で学習) は「model weights は変更しない」条件により据え置き → Q-034",
+      "source": "FINDINGS P21 / lane-reports/q029_weather_provenance_audit_20260912.md §5-B / lane-reports/ref1_clean_reference_20260912.md / research/REF1_DEPENDENCY_AUDIT.md"
+    },
+    {
+      "n": 28,
+      "item": "研究用 p2 replica バンドルを beforeinfo 構成で再学習してよいか (研究 artifact のみ・production 不変)",
+      "recommend": "GO。D2 は入力差し替えでは直らず再学習が唯一の解消手段。未裁定の間、E10 系 (P1 / P5)・SOB1F の乖離帯境界・U2 / PDS1 の存在アーム・VA1 の fit 窓・VENUE-V0 L3・ts1 / t3d3 / t3d4 の replica アームが PROVISIONAL_PENDING_REF1 のまま",
+      "status": "未裁定 (Q-034・urgency medium)",
+      "source": "research/REF1_DEPENDENCY_AUDIT.md §0 / §3-(d) / §6"
+    },
+    {
+      "n": 29,
+      "item": "Q-035: INC-2026-0912-PRIORSTALE (prior 集計 24 列の train/serve 不一致・S3) をどう扱うか",
+      "recommend": "段階 GO (まず節 4 列の 3 日打ち切りだけ直す。単独で差の約半分が消える)",
+      "status_20260912": "未裁定",
+      "note": "leakage ではない (S3)。『直せば当たるようになる』とは言えない — 回収率への効果は未測定"
+    },
+    {
+      "n": 30,
+      "item": "Q-036: System Integrity Audit v1 の S1/S2 整備 4 件 (silent fallback のログ化 / odds_pre の契約 / exh120 劣化経路の golden / manifest 無し artifact)",
+      "recommend": "GO (①silent fallback のログ化 と ②odds_pre の契約 を先に)",
+      "status_20260912": "未裁定"
+    }
+  ],
+  "w2_directives_owner_20260904": {
+    "design_shift": "B2出力への後付け薄層は枯渇 → ①真に新しい入力情報 ②条件付き/regime-specific情報 ③Calibration ④Market Evaluation ⑤Current State推定へ重心移動。「公開静的情報をもう1個足す」より「レース当日のCurrent State推定」を優先",
+    "motor_current_state": "W2最重要候補の1つ。単一スカラー化しない (Stretch/Acceleration/Turn Exit/Turning/Handling/起こし/Stability/Setup Confidence 等の複数軸latent候補)。人間が正解ラベルを固定しすぎない — 観測可能proxyは明示・不明部はlatent表現",
+    "maintenance": "部品名フラグで終わらせない。Latent Problem → Intervention → Observed Response の構造 (交換前の不調・交換後の展示/ST/着順残差/コメント変化・翌日以降の改善・選手差)",
+    "player_adjustment_skill": "同じ悪モーターからの改善能力の選手差。partial pooling / shrinkage / as-of更新前提。小標本選手を固定評価しない",
+    "setup_confidence": "ペラ形状が直接取れなくても調整発言/頻度/チルト変更/展示推移/本番結果から Setup Confidence / Adjustment Volatility / Convergence を推定できないか",
+    "discipline": "Expert群/GAT/Master Integratorを一気に実装しない。存在確認→最小PoC→OOS再現→単純特徴で表現できない場合のみアーキ投資 (E10でGATを即起票しなかった規律を維持)",
+    "market_separation": "Fundamental→Calibration→Market Evaluation→Betting Decisionの分離を絶対維持。まくり筋補正が較正採用されても「市場Edgeがある」とは扱わない。市場側は締切前オッズ蓄積後に別途検証 (E19SG常時継続)",
+    "w2_candidates": "A=Motor Current State / B=Maintenance・Parts / C=Player Adjustment Skill / D=Propeller・Setup Confidence latent / E=Nonlinear Wind・Stabilizer Regime / F=Local×Difficult Conditions / G=Dynamic Player Skill Trajectory / H=Market Evaluation・Recognition Lag — 各候補を期待予測価値/未利用情報量/データ品質/as-of化/leakage/実装コスト/n/B2重複/市場織り込み/EIGで評価して順位提案 (監査実行中)",
+    "new_concepts_hypothesis_only": "Daily Race Regime (当日1R〜現在Rの逐次推定) / Player×Motor Compatibility / Attack×Resistance (受け側の抵抗) / Tactical Predictability / Value of Information — 真実として実装せず、適合性とEIGで順位付けして必要なら研究候補化",
+    "segment_eval": "Dynamic Player State系は全国平均NLLだけでなく若手/急成長/急低下/特定コース/特定Stageのsegment valueも確認 (I1の教訓: 現象説明できても全国NLLに効かない可能性)"
+  },
+  "w2_audit_20260904": {
+    "source": "lane-reports/w2_data_audit_20260904.md + artifacts/research/nextgen/w2audit/w2_data_audit.json (beforeinfo 356,476ファイル・フルスキャン実測)",
+    "ready_now": [
+      "チルト (24場2020-26・充足94-97%・節内変更追跡可・未利用100%)",
+      "安定板 (true率4.5-9.8%/年・場別分布が物理と整合・2026年openapi欠測caveat)",
+      "展示の未利用粒度 (節内日次推移・スタ展進入変化13.06%=スタブ疑い検証済みシロ)",
+      "モーター識別 (場,motor_no,交換年度キー成立・物理11,669機・中央値202走/機)",
+      "節マスタ/standing_panel (356,580行/2,059,541行)",
+      "気象 ERA5 1,403,136行"
+    ],
+    "repair_needed": [
+      "部品交換: パーサ修正+前向き収集=小(≈0.5日・fetch_beforeinfo_ext.pyの正解実装を移植)。過去分バックフィル=大(再スクレイプ35万ページ≒12日・Owner GO必須)"
+    ],
+    "acquisition_needed": [
+      "新ペラフラグ (beforeinfoページに列は実在→部品交換修理に相乗り可)",
+      "選手・調整コメント (手元に無し・前向きのみ・fetched_at付きingest guard設計)"
+    ],
+    "leakage_top3": [
+      "features.parquetの展示/進入/ST/気象はK(レース後)由来 — 新規Motor研究が素で読むと即事故。beforeinfo由来へ張替え必須",
+      "national buildの同日ソート順欠陥 — 節内Motor State等の同日集計の前に研究ビルドのソートキー修正が前提",
+      "2026年のソース断層 (openapi: 部品/安定板欠測) — 年×ソース交絡につき_sourceフラグ伝搬必須"
+    ],
+    "w2_priority_proposal": [
+      {
+        "rank": 1,
+        "id": "NG-N1C",
+        "why": "登録済・実装ゼロに近い・唯一のOOS確定歪みの回収。即実行可",
+        "eig": "高/コスト極小"
+      },
+      {
+        "rank": 2,
+        "id": "W2-A Motor Current State PoC",
+        "why": "未利用100%のチルト+展示節内推移+安定板+モーター識別が全部「今すぐ使える」。as-ofはbeforeinfo由来で清潔。B2重複は成績3本+展示z9本のみ",
+        "eig": "高"
+      },
+      {
+        "rank": 3,
+        "id": "W2-B 部品交換パーサ修理+前向き収集開始",
+        "why": "≈0.5日で資産が毎日積み上がり始める (待つほど損)。分析自体は蓄積後orバックフィルGO後",
+        "eig": "高(遅延回収)/コスト極小"
+      },
+      {
+        "rank": 4,
+        "id": "NG-E5NR Phase A",
+        "why": "登録済・統計PoCのみでコスト小。安定板データ準備完了",
+        "eig": "中〜高"
+      },
+      {
+        "rank": 5,
+        "id": "W2-C Player Adjustment Skill",
+        "why": "W2-Aの産物 (motor state panel) に依存するため後続。partial pooling前提",
+        "eig": "中〜高"
+      }
+    ],
+    "deferred_candidates": {
+      "D": "Setup Confidence — コメント前向き収集の蓄積待ち (チルト変更・展示volatility部分は W2-A に内包)",
+      "F": "Local×難水面 — E8SWAP着手条件のまま",
+      "G": "Dynamic Player Trajectory — I1教訓によりsegment評価設計を先に固めてから",
+      "H": "Market Recognition Lag — 締切前オッズ蓄積+holdout解封 (11/1) 後"
+    }
+  },
+  "w2_directives_owner_20260905": {
+    "status": "W2正式GO + 次期研究思想の統合 (Owner全文指示 2026-09-05)。全テーマは 観察→一般仮説→最小統計PoC→OOS再現→予測価値→市場価値→必要ならArchitecture投資 の順で扱う",
+    "confirmed_order": [
+      "並行: NG-N1C (まくり筋較正最終検証・旧N1のFAIL判定は不変)",
+      "並行: 部品交換パーサ修理+前向き収集 (分析でなくデータ資産・即実施。誤パース列の再利用は絶対禁止。取得=部品交換/新ペラ/交換種類/fetched_at/source/race_id/racer_id/motor identity/as-of保証metadata)",
+      "次: Current Motor State PoC (「元々強いモーターか」でなく「この選手がこの節で調整した結果、今この時点でどういう状態か」のas-of推定。features.parquetのK由来列は直接流用禁止=beforeinfo由来as-ofへ張替え必須)",
+      "その後: NG-E5NR Phase A (強風regime)",
+      "その後: Player Adjustment Skill"
+    ],
+    "backfill_decision": "35万ページ全バックフィルは未承認。まず Stratified Maintenance Backfill PoC (場・年度・季節・グレードで層化した小規模取得) で 正常取得率/部品交換発生率/新ペラ発生率/部品種類分布/前後レース接続率/展示接続率/モーター個体追跡率/交換後追跡走数/仮説検証に必要な標本充足/polite実測速度 を確認 → 全量のEIG/コストを再推定してOwner再判断",
+    "pressure_resistance": {
+      "scope_now": "事前研究設計+データ可用性監査まで (既定W2は止めない。EIGが極めて高いと判断したら理由付きで順位変更案を出す)",
+      "hypothesis": "Course-conditioned Pressure × Course-conditioned Resistance × Relative Position → 相手艇の期待着順変化 → 周囲艇への展開波及 (圧力を作る側×受ける側の対応力)。個人ルール(峰・毒島・茅原等)としては実装しない — 現場観察は仮説形成の例であり統計的事実ではない",
+      "profile_axes_hypothetical": "Pressure側: Inside/Attack/Sashi/Makuri/Makuri-sashi Pressure・Outside Compression・Neighbor Disruption・Opportunity Creation / Resistance側: Strong-In Resistance・Attack Resistance・C2 Preservation・C3/C4 Survival・Defensive Turn・Second-place Preservation・Collapse Avoidance・Pressure Absorption — 名称付き能力を真実扱いせず、まず観測可能な残差構造を確認",
+      "poc_protocol": "Step1: 艇Aの在席が艇BのB2残差に与える影響をas-ofで測定 → Step2: 影響量がB側でも系統的に変わるか → Step3: Bの圧力耐性をshrinkage付きで推定 → Step4: A単独/B単独/A+B/A×B比較 → Step5: interactionのOOS追加価値 → Step6: Bの崩れの波及 (内隣/外隣/5-6号艇のTop2/Top3変化)",
+      "pair_order": "全ペア巨大モデル禁止。サンプル多く意味の強い関係から: 1→2 / 2↔3 / 3→4 / 4→5 / 攻撃艇→外側追走艇 / 前づけ艇→周囲艇",
+      "gat_condition": "GAT即実装不支持は維持。pair interactionがOOS再現し単独Profileで表現できない追加価値が確認された場合のみGAT/pairwise/message passingを再評価。再現しなければGAT導入理由に使わない"
+    },
+    "market_philosophy_update": "「誰も知らない秘密情報」でなく Known-but-underweighted Information / Conditional Interaction Mispricing / Second-order・Beneficiary Mispricing を主戦場に。一次(攻める本人)だけでなく二次(直接影響を受ける艇)・三次(崩れから利益を受ける艇)まで市場価格とのズレを調べる。重点確認=「攻める本人は売られるが展開受益者は十分売られていない」現象。締切前オッズ蓄積後にInteraction Patternごとの model prob/market implied/pre-close movement/EV/beneficiary ticket EV/反応速度/最終反映量を評価",
+    "edge_separation_gates": "現象が存在する→AI予測に追加価値→市場が十分価格化していない→実際に購入EVがある は全部別ゲート。混同禁止。Market LayerはFundamental Predictionと完全分離を継続",
+    "scenario_portfolio": {
+      "principle": "最終購入を「予測確率の高い3連単を上から買う」設計にしない (Owner方針)。レースを複数シナリオ (例: 1逃げ/3攻め1凌ぎ/3攻めで2-3崩れ5浮上/3攻め完全成功/波乱) として扱い、Ticket×Scenario exposure を評価。1-2-3/1-2-4/1-2-5は3点でも「1逃げ+2残り」への集中投資",
+      "optimizer_metrics_candidates": "Expected Return / Robust EV (確率が多少ズレても残るEV) / Scenario Coverage / Concentration (同一シナリオ依存度) / Probability of Total Loss / Downside Risk (CVaR等・必要なら) / Epistemic Uncertainty",
+      "anti_pattern": "的中率のためだけの低EV舟券大量追加は禁止。追加舟券には十分なRobust EV OR 有意なScenario diversification benefit を要求。目的=EVを維持したまま主要シナリオ耐性を高め下側リスクを抑える"
+    },
+    "target_architecture_concept": "Fundamental Race Model → Current State → Interaction/Scenario Model → 120通りFundamental Probability → Calibration/Uncertainty → Market Evaluation → Scenario×Ticket Payoff Matrix → Portfolio Optimization → BET/NO BET。現時点では概念のみ・一気に実装しない",
+    "new_themes_registered_as_hypotheses": [
+      "1. Generalized Pressure×Resistance (展開圧力×対応力)",
+      "2. Course-conditioned Matchup Skill (コース条件付き相性)",
+      "3. Interaction propagation / beneficiary effect (波及と受益艇)",
+      "4. Known-but-underweighted market information",
+      "5. Conditional interaction mispricing",
+      "6. Second-order beneficiary mispricing",
+      "7. Scenario-aware betting portfolio (シナリオ分散買い)",
+      "8. Robust EV + downside-aware optimization"
+    ],
+    "console_rule": "Research Mirror/Artifactは内部IDだけで説明しない。各研究に日本語一言名+何を調べる/なぜ重要/今何が分かった/次に何を/市場エッジとの関係 をスマホで読める形で。内部IDは括弧内の補助",
+    "discipline": "post-hoc閾値変更禁止 / holdout汚染禁止 / leakage禁止 / small-n断定禁止 / closing oddsをreal EV扱いしない / fundamental predictionにオッズ非入力 / FAIL書き換え禁止 / PoC前の巨大Architecture禁止 / Model improvementとMarket edgeの混同禁止 / NO BET=first-class decision"
+  },
+  "w2_directives_owner_20260906": {
+    "vision": "読めるレースを識別し、複数の展開世界を条件付きで理解し、市場価格に対して価値のある世界線だけを少数点で買うAI (Current State → Interaction → Scenario → Market → Portfolio)",
+    "priorities": [
+      "P1: 現在モーター状態の最小特徴化+OOS実モデル試験 (NG-MS2。巨大Motor Expert禁止。K由来展示列の誤使用禁止)",
+      "P2: 展開圧力×対応力ミニPoC (NG-PXR1。固有選手ルール禁止・受益艇まで3段追跡)",
+      "P3: 部品交換 層化5万ページバックフィル (Maintenance仮説の増分確認後のみ全量再判断)",
+      "P4: リアルタイム風取得基盤+展示→締切の風変化PoC設計 (展示時/締切15/10/5/3/1分前のtimestamp付き収集設計)",
+      "P5: 調整能力×現在モーター状態の統合設計 (Initial State×Adjustment Skill×Interventions×Meet Progression→Current State。「調整能力が高いから強い」の単純特徴は禁止)",
+      "side: rolling λ (NG-N1R・優先度はP1より下)"
+    ],
+    "no_big_build": [
+      "Scenario Generator大型モデル",
+      "GAT",
+      "Learned Race Simulator",
+      "Environment Expert",
+      "Portfolio Optimizer本番化 — いずれも研究設計・データ準備・最小PoCまで"
+    ],
+    "wind_state": "風は「強さ」でなく「変動」も: 平均/風向/成分/展示時からの差/直近trend/SD/max-min/gust/風向変化量/regime transition/安定性。核仮説=展示時と本番直前の風が異なるほど展示ST・展示性能の本番予測力が低下する。平均5m安定日と2-9m往復日を同一扱いしない。Player Wind Adaptation (風変化への適応の選手差) は仮説保存→ST誤差・分散の再現可能な選手差をas-of+shrinkageで確認してから",
+    "environment_x_motor": "気温/気圧/湿度/空気密度/水温/気温−水温差/前日差/節初日差/展示時差。主眼は絶対値でなく「環境が変化した時にどのモーター状態がどう反応するか」(Environment×Motor交互作用)。素値の単純投入は再試行しない (棄却済み)。季節・場proxyとの混同に厳重注意 (季節クリマトロジープラセボ標準)",
+    "scenario_structure": "将来的にP(Scenario)×P(Trifecta|Scenario)の2段構造を研究 (例: 1逃げ安定55%/3攻め1凌ぎ22%/3攻め2抵抗内崩れ12%/3攻め完全成功7%)。全体では数%の舟券でも特定Scenario内では中心舟券という情報を捨てない。120通りsoftmaxは捨てない — 当面は併存 (decomposition/explanation)。Scenario ModelがOOSで予測改善を示した場合のみRace Simulator/mixture検討",
+    "meaningful_vs_diffuse_tail": "Meaningful Tail=レアScenario内で少数舟券に確率集中 / Diffuse Tail=Scenario内でも分散。区別の表現候補=Scenario Probability/Conditional Concentration/Scenario Entropy/contingent events数",
+    "readability": "Race Readability/Compressibility を研究: 1着確率集中度/Head entropy/Conditional 2nd・3rd entropy/Scenario entropy/Epistemic uncertainty/Required ticket count から「少数世界線に圧縮できるレース」を識別",
+    "new_metrics": "NLL/Hit@1に追加: Head Accuracy by Confidence Bucket (50-60/60-70/70-80/80%+) / Conditional 2nd Coverage (頭固定で上位1-2艇の2着カバー率) / Conditional 3rd Coverage / Minimum Ticket Set (確率質量50/70/80/90%に要る点数) / Realized Hit Rate of Minimum Set",
+    "hit_rate_policy": "「読めるレース限定で3連単ポートフォリオを3回に1回」はOwnerの作業仮説であってハード目標ではない。33%達成のためにモデルを歪めることは禁止。研究するのは「確信度の高いサブセット+3-6点で的中率がどこまで上がるか」のconfidence bucket別評価。当てることと儲かることは必ず分離 (Predictability→Compressibility→Market Price→Robust EV→Portfolioの順)",
+    "portfolio_principles": "Sparse必須 (同等のEV/リスクなら9点より3点)。追加舟券には十分なRobust EV or 有意なScenario Diversification Benefitを要求。「万が一のため100円追加」の常態化禁止。全Scenario保険買い禁止。目標=Value-weighted Scenario Coverage (買う価値のある世界線だけカバー・価値が無ければNO COVER)",
+    "tail_scenario_gate_7": "穴世界線をPortfolioへ追加する事前Gate候補: ①Scenario Probabilityが極端に小さくない ②Scenario内で少数舟券に集中 ③市場に対するEdge ④Robust EVでも成立 ⑤既存Portfolioと異なるScenario exposure ⑥追加資金に対するDownside改善 ⑦Portfolio全体のEVを壊さない — バックテスト前に定義を凍結",
+    "market_focus": "Known-but-underweighted / Conditional interaction mispricing / Beneficiary mispricing / **Rare Scenario mispricing** (市場も「3が攻める」は知っているが、その場合に5が浮上する条件付き確率まで正確に価格化していない歪み)。締切前オッズholdoutの封印は絶対に破らない",
+    "architecture_vision_20260906": "Historical Player/Motor → Current Motor State → Current Environment State → Player Adjustment/Environmental Adaptation → 6艇Current State → Pressure×Resistance → Scenario Generator → P(Scenario)+P(Order|Scenario) → 120通りFundamental Probability → Calibration/Uncertainty → Market Evaluation → Scenario×Ticket Payoff → Sparse Value-weighted Portfolio → BET/NO BET。概念であり一括実装禁止",
+    "human_facing": "日本語名称を主表示 (現在モーター状態/選手の調整能力/直前風変化/展開圧力×対応力/穴シナリオ/読めるレース/シナリオ分散買い)。内部IDは括弧の補助"
+  },
+  "next_actions": [
+    "Q-035 の Owner 裁定 (最優先)",
+    "Q-036 の Owner 裁定",
+    "Q-035 が GO なら RES-2026-09-I: prior 集計の train/serve 是正 + golden の revision 更新 + preflight 再通過",
+    "Race Logic 研究 (Venue × Racer × Course × Formation × Scenario) の再開は Q-035 の裁定後",
+    "11/1 holdout 開封手順の整理 (read-only・自走可)"
+  ],
+  "model_identity_rule": "『同じモデル』と呼ぶには Model Weights + Feature Contract + Source Contract + Preprocessing Revision + Runtime Revision の 5 点が一致すること。weights が同じだけでは同じモデルと扱わない。『Raw B2』という呼称だけでモデルを参照することを禁ずる",
+  "canonical_raw_b2": {
+    "identity": "Q034_CLEAN_REPLICA",
+    "bundle": "artifacts/research/nextgen/q034/q034_replica_clean_bundle.pt",
+    "bundle_sha256": "7c7e455185a82e9a",
+    "dump": "artifacts/research/nextgen/q034/q034_p120_replica_clean.parquet",
+    "manifest": "artifacts/research/nextgen/q034/REPLICA_IDENTITY_MANIFEST.json",
+    "n_races": 59923,
+    "window": [
+      "2025-07-01",
+      "2026-08-31"
+    ],
+    "superseded": {
+      "identity": "LEGACY_REPLICA_K_WEATHER",
+      "sha256": "cdb2b233f07f258b",
+      "note": "K 気象で学習された重み。削除も上書きもしていない。新しい残差研究では読まない"
+    },
+    "prod3_reference": "artifacts/research/nextgen/ref1/ref1_p120_prod3_clean.parquet (8,997R)"
+  },
+  "production_runtime_identity": {
+    "bundle": "b2f41_prod2026_prod3",
+    "bundle_sha256": "5f7bc1f2f7a8bc0a11323c58a02072a60e5d2417c121f11ca31754c23c1a9758",
+    "runtime_revision": "r3-2026-09-12-winddir-train-consistent",
+    "commit": "9e39b83",
+    "feature_contract_revision": "fc-v1-2026-09-12",
+    "source_contract_revision": "sc-v1-2026-09-12-beforeinfo-only",
+    "preprocessing_revision": "pp-v1-2026-09-12-winddir-train-constant"
   }
- },
- "data_status": {
-  "official_bk": "2020〜全国・ほぼ完全 (K結果はレース後公開=ラベル専用)",
-  "beforeinfo": "2020〜 (2023-01〜04欠落=素データ自体なし)。全356,476ファイルのフルスキャン実測 (2026-09-04 W2監査・エラー0): チルト充足94-97% (F41未収載=未利用100%)・安定板true率4.5-9.8%/年 (場別分布は物理と整合・2026はopenapi由来で構造的欠測0.6%)・気温98.7%/水温95%。**部品交換列は6.5年間パーサ取り違えで前走成績(同日前走のレース番号)を保存していた=部品交換データは実質未収集** (選手ID照合119/119で確定。正解実装は fetch_beforeinfo_ext.py に既在。前向き修理≈0.5日・過去分は生HTML未保存のため再スクレイプ35万ページ≒12日=Owner GO必須・openapiでは取れない)",
-  "era5": "2020〜2026-09 毎時24場 140万行 (気圧/湿度/突風/空気密度)。事後再解析=本番は予報アーカイブ要",
-  "odds_preclose": "全国 3連単 2026-07-10〜 (national_v2)・単勝 2026-07-16〜 (national_tan) 蓄積中 (real EV評価はこれのみ)。**2026-09-10 15:45〜 forward collector close_window (24 場・5 券種・D-3:00〜D+10:00・NG-FC1 試験運用) 稼働** = 3連複/2連単/2連複の全国締切前オッズの自前収集開始 (値は 11/1 まで封印)",
-  "setsu_master": "全期間5,311節 (artifacts/research/nextgen/setsu_master.parquet)",
-  "static_assets": "venue_course_azimuth.json (high19/mid5) / venue_branch_map / motor_exchange_months / venue_latlon / venue_date_grade.parquet (E1副産物・29,715行)",
-  "research_assets_w1": "i1_features.parquet (選手×コースas-of行動プロファイル206万行・leak test PASS) / e1_stage_decision_table.csv (8カテゴリ・一致率99.2%) / e5w_features.parquet (風コース成分) / e23 utility.parquet",
-  "missing_wishlist": [
-   "選手コメント時系列(HIGH)",
-   "プロペラ形状(HIGH・困難)",
-   "1M映像展開(MED・打ち切り済)",
-   "人間関係(MED)",
-   "ピット常時(LOW-MED)"
-  ],
-  "external_gift_20260906": "知人(競艇AI研究者)の研究全量バンドル (data/external/gift_20260906/・gitignore)。2026-09-09 突合済み: G1/G2/G4/G5 一致率 100%・G3 単勝 0.0%/3連単 0.30% (先方 7/23-24 回転バグ補正後) = 突合前ラベル解除。直前板 parquet = _parsed/live_board_odds.parquet (live 6,657R・単勝ページ皆無)。secret 様 8 本未開封。統合報告 lane-reports/gift_investigation_20260909.md",
-  "features_v2_research": "2026-09-10 復旧済み: 2026-07-22 以降の as-of 17 列欠損は 08-03 build が 07-21 止まりの extras を left-join したのが原因。rc2 延長 extras + beforeinfo 再スキャンで leakage-safe 復旧 (学習窓バイト同一)。窓 2020-01-01〜2026-08-31 (09-01〜 は封印・11/1 以降に再構築)。旧 = *.gap0722_20260803build.bak",
-  "market_panels_ts": "artifacts/research/nextgen/ts/panels/ (2025-07-01〜2026-08-31)。5 券種 A/B/C 分類済み・D なし。3連複/2連単/2連複の全国締切前は先方直前板 T-1 + checkpoint (7/25〜8/1) のみ (自前ゼロ)",
-  "close_window_forward_collector": {
-   "path": "data/odds_snapshots/close_window/",
-   "since": "2026-09-10 15:45 JST",
-   "launchd": "com.kyotei-ai.collect-close-window (60 s・KYOTEI_FC_LIVE=1)",
-   "pages": "oddstf + odds3t (全 checkpoint) / odds3f + odds2tf (D-3:00, D-1:00, D+3:00, D+6:00 条件付き)",
-   "load": "≈3,100 req/日 max (既存比 +11%)",
-   "trial": "NG-FC1 2026-09-11〜09-24 メタデータのみ",
-   "sealed": "オッズ値は 2026-11-01 まで集計・閲覧禁止",
-   "watch": "応答 8〜10 秒/ページ (初回 fire 実測)"
-  },
-  "shadow_tan_method_A": {
-   "script": "scripts/shadow_report_national_tan.py",
-   "since": "2026-09-10 (nightly 23:30)",
-   "judge": "方式 A: EV_A = AI × 0.75/p3t ≥ 1.15 (監視 ≥1.05)。旧判定 (乖離 ≥0.20) は比較列として維持",
-   "log": "data/processed/national/shadow_log_tan.parquet (+7 列)"
-  }
- },
- "overfitting_status": {
-  "fold_contamination": "fold1/fold2は開発汚染済み=採否の最終根拠にしない",
-  "gates": "G0事前登録→G1 2fold一貫+bootstrap CI95→G2 3seed→G3 prod2026窓→G4 ECE→G5 市場(diag/real分離)→G6 8segment",
-  "danger_zones": [
-   "Player×Course×Stage×Wind等の細分サンプル枯渇 (積項でなく共有表現)",
-   "万舟数本集中の利益 (検知をハーネスに組込予定)"
-  ],
-  "w1_note": "第1波5実験は全て事前登録→凍結→機械判定を完走。バグは全件addendum開示+初回数値破棄で再実行 (I1×1件・N1×2件・E1×1件)。判定ルールの事後変更ゼロ"
- },
- "leakage_status": {
-  "defense": "5層 (列名ガード/日付split/集計方向shift(1)/入力由来許可リスト/replay時刻)。本番経路に既知の直接リークなし",
-  "known_risks": [
-   "同日クロス会場ソート (パッチ済・本番見送り中・新研究は新ソート必須)",
-   "Stage/節内集計の同日後レース混入 (day-start規約。E23はT1-T5機械検証で違反ゼロを確認)",
-   "気象の確定観測vs締切前 (§51)",
-   "選手コメントのレース後混入 (前向き収集のみ可)",
-   "**R1気象の終値上書き疑い (2026-09-06 P4設計レーン発見・n=1観察)**: beforeinfoのR1気象だけ「HH:MM現在」=当日終値で上書きされる挙動を実測 — 事実ならR1行の気象特徴は6.5年分look-ahead汚染。R1 vs R2系統差検定で要確認・確認まで新研究のR1気象は要注意扱い",
-   "beforeinfoの風はレース単位スタンプで前レース発走時点 (展示より約15分古い) — 「直前風」の実観測はアメダス10分値が上限 (T-1分ラベルは実観測でない)",
-   "**[2026-09-12 Q-029 監査で決着 = WEATHER_SAFE]** K ファイル由来の気象 4 列 (wind_speed / wave / weather_code / wind_dir_code) が src/model.py の LEAKAGE_COLS に未登録で FEATURE_COLS に入っているのは事実。ただし **現 production b2f41_prod2026_prod3 は beforeinfo 気象で学習されている** (バンドルの mu/sd 指紋が学習行 2,017,260 行で beforeinfo と 8 桁一致・K と不一致 / 学習が読むのは artifacts/research/v2/features_v2.parquet で data/processed/national/features.parquet ではない / 行レベルで beforeinfo 100.0000% 一致・K 46.7% 一致)。本番推論も beforeinfo。→ **本番は clean**。起票元 FINDINGS P17 の「本番学習側は未対応」は誤りで訂正済み。src/model.py の LEAKAGE_COLS 未登録は LightGBM 経路を将来再利用するときの罠として残る",
-   "beforeinfo 気象の R1 (race_no==1) は当日終値汚染が確定判定 (w2_r1_contamination.py)。解析では R1 を除外する",
-   "**[新規 2026-09-12・Q-030]** wind_dir_code の train/serve skew: 学習は全行 -1 固定 (bundle mu=-1 / sd=1 = 完全な定数) だが、src/predict.py:137 が実値 1〜16 を返し predict_b2_live も同じ関数を呼ぶ。2026-09-05 commit c260f3c (16 方位対応 + openapi 補完) 以降・露出 95.25% (2026-08)。**本番バンドル・同一 9,607R の実測で 3 連単 NLL 3.75257 → 3.79704 = ΔNLL +0.04447 = 採用線の約 15 倍の劣化・TVD 0.091・1 着予測の入替 14.84%**。対処は推論側で -1 を強制する 1 行 (再学習不要・可逆) だが本番推論経路の変更 = 承認必須 → Q-030 裁定待ち。未確認 = live スクレイパの end-to-end 1 回確認",
-   "**[新規 2026-09-12・Q-031]** 研究用 p120 dump の as-of 不適合: dump_b2_probs.py:65 と t3d2_dump_p120.py:63 が data/processed/national/features.parquet (= K 気象 100% 一致 / beforeinfo とは 46.8%・wind_dir_code 実値) を読む。p2 replica バンドル (e10/b2f41_fold2_replica_bundle.pt) は **K 気象で学習されている** (mu 指紋 2.74832964 = national 2.74832966 ≠ features_v2 2.74553556)。影響 = NG-SOB1F / NG-PDS1 / NG-U2 / VENUE-V0 L3 / NG-VA1・t3d2 / t3d3 / t3d4 / ts1 の p120。ref 窓 9,607R の実測では VA1 の結論は不変 (国別残差 −0.829±0.478 vs −1.029±0.478・γ は両構成 null) だが気象 4 列の寄与 ΔNLL≈0.004 は VA1 の venue 増分上限 0.0009 より大きい → NG-REF1 (Q-031)"
-  ],
-  "unusable_scripts": [
-   "real_backtest.py / walk_forward_eval.py (未来漏れ未修正・新研究で流用禁止)"
-  ]
- },
- "pending_owner_decisions": [
-  {
-   "n": 1,
-   "item": "live気象修復パッチ (P0)",
-   "recommend": "適用",
-   "status_20260909": "未裁定のまま持ち越し (Owner 指令 2026-09-09 では言及なし)"
-  },
-  {
-   "n": 2,
-   "item": "7/27劣化153件修復",
-   "recommend": "適用",
-   "status_20260909": "未裁定のまま持ち越し (Owner 指令 2026-09-09 では言及なし)"
-  },
-  {
-   "n": 3,
-   "item": "風向16方位パーサ",
-   "recommend": "適用",
-   "status_20260909": "未裁定のまま持ち越し (Owner 指令 2026-09-09 では言及なし)"
-  },
-  {
-   "n": 4,
-   "item": "openapi日次取り込みを夜間ジョブへ",
-   "recommend": "追加",
-   "status_20260909": "未裁定のまま持ち越し (Owner 指令 2026-09-09 では言及なし)"
-  },
-  {
-   "n": 5,
-   "item": "同日ソートキー修正の本番適用",
-   "recommend": "見送り (研究ビルドのみ)",
-   "status_20260909": "未裁定のまま持ち越し (Owner 指令 2026-09-09 では言及なし)"
-  },
-  {
-   "n": 6,
-   "item": "N1 まくり筋較正層の扱い",
-   "decision": "GO (Owner 2026-09-04)。Calibration-specific Gate を NG-N1C として新規事前登録済み (①対象セル|z|<2+CI 0跨ぎ ②全体NLL非劣性 ③非対象セル非悪化 ④walk-forward 3期再現 ⑤場別致命的過補正ゼロ ⑥福岡・唐津の主因診断)。NG-N1 の旧判定は変更しない (旧ゲートではFAILのまま保持)。場別λは診断のみ・本番採用せず過学習リスク評価"
-  },
-  {
-   "n": 7,
-   "item": "E5W 風の再挑戦方向",
-   "decision": "GO (Owner 2026-09-04)。線形2パラメータ形はFAIL固定・同一形再提案禁止。NG-E5NR (Nonlinear Environmental Regime) を事前登録済み — まず「強風でレース生成過程が変わるか」の最小統計PoC (逃げ率/ST/決まり手/まくり率/外艇Top3/展示→本番の分布変化)。巨大interactionモデルの一括実装は禁止。安定板はn小逸話を真実扱いせず新規仮説として扱う"
-  },
-  {
-   "n": 8,
-   "item": "E1 格特徴のB2入力側追加+再学習",
-   "decision": "DEFER (Owner 2026-09-04)。「レース格は無意味」とは扱わない — 現象 (ST・逃げ率変化) はSUPPORTED・追加予測価値は現B2では薄い (F41から65%再構成可・新情報量薄・再学習コスト大・モデル改造12連敗)。他の新規入力とまとめて再学習するタイミング / architecture revision / Stage Expert の明確な追加証拠が出た場合に再検討"
-  },
-  {
-   "n": 9,
-   "item": "rolling/as-of λ によるまくり筋較正の再挑戦",
-   "decision": "GO (Owner 2026-09-06・side lane)。NG-N1R として事前登録済み。興味の核=まくり筋歪みそのものの時間変化。旧N1/N1CのFAILは不変。優先度はNG-MS2より下"
-  },
-  {
-   "n": 10,
-   "item": "P×R (展開圧力×対応力) Step1-2 ミニPoC",
-   "decision": "GO (Owner 2026-09-06)。NG-PXR1 として事前登録済み。固有選手ルール禁止・巨大GAT禁止。受益艇 (Attacker→Affected→Beneficiary) まで3段追跡に拡張。A×B interactionがOOSで残った場合のみpairwise/GAT再評価"
-  },
-  {
-   "n": 11,
-   "item": "現在モーター状態の最小特徴化+OOSゲート",
-   "decision": "GO (Owner 2026-09-06・Priority 1)。NG-MS2 として事前登録済み。巨大Motor Expertは作らない。特徴候補=節初日状態/当日状態/trend/improvement/volatility/convergence/tilt change/exhibition progression のas-of構成。K由来展示列の誤使用禁止"
-  },
-  {
-   "n": 12,
-   "item": "強風regime Phase B (最小regimeモデル・生存16セル対象) の起票可否 — Phase A PASS (逃げ率−10pp/まくり+3.8pp/展示予言力低下が7m/s+で確定)。重要制約: K風=事後観測のため予測特徴化にはT1時点の風ソースが必要 (biは2026のみ)",
-   "recommend": "T1風の可用性を先に固めてから起票 (風向パーサ適用済み日次取り込み #4 の蓄積 or bi 2026+のみで小規模検証)。焦って事後風でモデル化しない",
-   "status_20260909": "未裁定のまま持ち越し (Owner 指令 2026-09-09 では言及なし)"
-  },
-  {
-   "n": 13,
-   "item": "部品交換バックフィルの実施形態",
-   "decision": "B案 GO (Owner 2026-09-06)。層化5万ページ (≈7日・節単位サンプリングで交換前後の接続を保証)。目的=部品交換/新ペラ/交換種類/交換前状態/交換後展示・本番/Current Motor State接続の標本確保。Maintenance仮説に実際の増分が確認できた場合のみ全量 (A案48日) を再判断。日次前向き収集のcrontab設置はshin手動のまま"
-  },
-  {
-   "n": 14,
-   "item": "単勝 T-3 蓄積の強化 (national_tan の収集窓を締切 4〜2 分へ寄せる launchd 変更)",
-   "recommend": "適用 (T3D2 の将来窓・11/1 判定の母数を増やす。boatrace.jp への追加リクエストは同数で窓移動のみ)"
-  },
-  {
-   "n": 15,
-   "item": "2023-01-01〜04-24 全場欠落の再取得 (公式 LZH からの可否確認→取得)",
-   "recommend": "可否確認まで GO 推奨・取得は別途"
-  },
-  {
-   "n": 16,
-   "item": "公開 mirror の git 履歴 / gist 版履歴に残る先方実名の扱い (force push + gist 作り直し)",
-   "recommend": "Owner 判断 (危険操作)"
-  },
-  {
-   "n": 17,
-   "item": "crontab 3 行 (風コレクタ 2 + 部品日次 1)",
-   "recommend": "設置"
-  },
-  {
-   "n": 18,
-   "item": "NG-T3D3 起票 (gap 条件付きブレンド・design_t3d3_20260910.md)",
-   "recommend": "GO (事前登録→実行。新 NN なし・本番不変)"
-  },
-  {
-   "n": 19,
-   "item": "forward collector 実装・launchd 登録 (design v2 + draft + plist draft 完成)",
-   "recommend": "GO (2 週間試験。3連複/2連単/2連複ページの追加有無を同時裁定)",
-   "status": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済",
-   "decision": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済"
-  },
-  {
-   "n": 20,
-   "item": "shadow EV 判定を方式 A (3連単含意単勝) へ差し替え (daily_signal_notify.py・本番隣接)",
-   "recommend": "GO (持ち越し)",
-   "status": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済",
-   "decision": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済"
-  },
-  {
-   "n": 21,
-   "item": "研究成果の commit + research mirror push (Q-007 e の扱い)",
-   "recommend": "GO",
-   "status": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済",
-   "decision": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済"
-  },
-  {
-   "n": 22,
-   "item": "NG-T3D4 起票 = オッズ帯条件付き λ + 判定を『確定配当ベースの実現値 CI 下端 > 1』に置く (実現値が 1 を超えなければケース3 確定・Market Gate 閉鎖)",
-   "recommend": "GO (Q-022)",
-   "status": "裁定済 GO (Owner 研究指令 2026-09-10 第 3 弾) → 実施済: 4 券種 FAIL・route B・Market Gate 閉鎖",
-   "decision": "裁定済 GO (Owner 研究指令 2026-09-10 第 3 弾) → 実施済: 4 券種 FAIL・route B・Market Gate 閉鎖"
-  },
-  {
-   "n": 23,
-   "item": "forward collector 試験後 (9/24) の checkpoint 確定 (D-0:30/D-0:10 存廃・3f/2tf 継続) と raw HTML gz の削除",
-   "recommend": "試験結果を見て裁定 (メタデータのみ)"
-  },
-  {
-   "n": 24,
-   "item": "Prediction Edge Discovery 第 1 弾の事前登録 GO (a NG-SOB1F / b NG-PDS1)",
-   "recommend": "a GO / b GO",
-   "status": "CLOSED 2026-09-11 (Owner 研究指令: 両方 GO・実行順 a→b・独立)",
-   "decision": "CLOSED 2026-09-11 (Owner 研究指令: 両方 GO・実行順 a→b・独立)"
-  },
-  {
-   "n": 25,
-   "item": "次の主研究 1 本 = NG-U2「場 × 難条件 × 習熟」の 2×2 residual 表 (Gap Audit 次点 E・学習なし・<1 日・オッズ不使用)",
-   "recommend": "GO (指令 §21 の分岐 D。A/B/C は SOB1F PARTIAL・PDS1 NULL により不成立)",
-   "status": "未裁定 (Q-025)",
-   "decision": "裁定済 GO (2026-09-11・Owner 研究指令 第 2 弾) → NG-U2 = U2_NULL / VENUE-V0 = VENUE_PARTIAL"
-  },
-  {
-   "n": 26,
-   "item": "wind_dir_code の train/serve skew 是正 (本番推論を -1 固定へ戻す・再学習なし)",
-   "recommend": "GO (推論側 1 行。実測 ΔNLL +0.04447 = 採用線の約 15 倍の劣化・1 着予測の入替 14.84%・可逆・情報損失ほぼ皆無)",
-   "status": "裁定済み GO (2026-09-12) → 実装・検証完了。runtime revision r3 で推論側を学習時定数へ固定。8,997R で 6 指標すべて改善 (NLL 3.78427→3.74452 / Hit@1 9.79→10.06% / change rate 14.84% / TVD 0.0912)。INC-2026-0905-WINDDIR 起票。**未 commit = commit+push の GO が残件**",
-   "source": "FINDINGS P20 / lane-reports/q029_weather_provenance_audit_20260912.md §5-A / lane-reports/q030_wind_dir_hotfix_20260912.md / research/INCIDENTS.md"
-  },
-  {
-   "n": 27,
-   "item": "研究 p120 dump の K 気象 provenance 是正と Raw-B2 参照の再構築 (NG-REF1・production 不変)",
-   "recommend": "GO (次の主研究 1 本。SOB1F / PDS1 / U2 / VENUE-V0 L3 / VA1 の土台)",
-   "status": "裁定済み GO (2026-09-12) → 前半完了。D1 (prod3 dump の K 気象) を解消し canonical reference ref1_p120_prod3_clean.parquet (8,997R) を作成。汚染は気象 4 列のみと実測。5 問すべて結論維持 (AI と市場の距離だけ 41% 縮む)。D2 (replica の重みが K 気象で学習) は「model weights は変更しない」条件により据え置き → Q-034",
-   "source": "FINDINGS P21 / lane-reports/q029_weather_provenance_audit_20260912.md §5-B / lane-reports/ref1_clean_reference_20260912.md / research/REF1_DEPENDENCY_AUDIT.md"
-  },
-  {
-   "n": 28,
-   "item": "研究用 p2 replica バンドルを beforeinfo 構成で再学習してよいか (研究 artifact のみ・production 不変)",
-   "recommend": "GO。D2 は入力差し替えでは直らず再学習が唯一の解消手段。未裁定の間、E10 系 (P1 / P5)・SOB1F の乖離帯境界・U2 / PDS1 の存在アーム・VA1 の fit 窓・VENUE-V0 L3・ts1 / t3d3 / t3d4 の replica アームが PROVISIONAL_PENDING_REF1 のまま",
-   "status": "未裁定 (Q-034・urgency medium)",
-   "source": "research/REF1_DEPENDENCY_AUDIT.md §0 / §3-(d) / §6"
-  }
- ],
- "w2_directives_owner_20260904": {
-  "design_shift": "B2出力への後付け薄層は枯渇 → ①真に新しい入力情報 ②条件付き/regime-specific情報 ③Calibration ④Market Evaluation ⑤Current State推定へ重心移動。「公開静的情報をもう1個足す」より「レース当日のCurrent State推定」を優先",
-  "motor_current_state": "W2最重要候補の1つ。単一スカラー化しない (Stretch/Acceleration/Turn Exit/Turning/Handling/起こし/Stability/Setup Confidence 等の複数軸latent候補)。人間が正解ラベルを固定しすぎない — 観測可能proxyは明示・不明部はlatent表現",
-  "maintenance": "部品名フラグで終わらせない。Latent Problem → Intervention → Observed Response の構造 (交換前の不調・交換後の展示/ST/着順残差/コメント変化・翌日以降の改善・選手差)",
-  "player_adjustment_skill": "同じ悪モーターからの改善能力の選手差。partial pooling / shrinkage / as-of更新前提。小標本選手を固定評価しない",
-  "setup_confidence": "ペラ形状が直接取れなくても調整発言/頻度/チルト変更/展示推移/本番結果から Setup Confidence / Adjustment Volatility / Convergence を推定できないか",
-  "discipline": "Expert群/GAT/Master Integratorを一気に実装しない。存在確認→最小PoC→OOS再現→単純特徴で表現できない場合のみアーキ投資 (E10でGATを即起票しなかった規律を維持)",
-  "market_separation": "Fundamental→Calibration→Market Evaluation→Betting Decisionの分離を絶対維持。まくり筋補正が較正採用されても「市場Edgeがある」とは扱わない。市場側は締切前オッズ蓄積後に別途検証 (E19SG常時継続)",
-  "w2_candidates": "A=Motor Current State / B=Maintenance・Parts / C=Player Adjustment Skill / D=Propeller・Setup Confidence latent / E=Nonlinear Wind・Stabilizer Regime / F=Local×Difficult Conditions / G=Dynamic Player Skill Trajectory / H=Market Evaluation・Recognition Lag — 各候補を期待予測価値/未利用情報量/データ品質/as-of化/leakage/実装コスト/n/B2重複/市場織り込み/EIGで評価して順位提案 (監査実行中)",
-  "new_concepts_hypothesis_only": "Daily Race Regime (当日1R〜現在Rの逐次推定) / Player×Motor Compatibility / Attack×Resistance (受け側の抵抗) / Tactical Predictability / Value of Information — 真実として実装せず、適合性とEIGで順位付けして必要なら研究候補化",
-  "segment_eval": "Dynamic Player State系は全国平均NLLだけでなく若手/急成長/急低下/特定コース/特定Stageのsegment valueも確認 (I1の教訓: 現象説明できても全国NLLに効かない可能性)"
- },
- "w2_audit_20260904": {
-  "source": "lane-reports/w2_data_audit_20260904.md + artifacts/research/nextgen/w2audit/w2_data_audit.json (beforeinfo 356,476ファイル・フルスキャン実測)",
-  "ready_now": [
-   "チルト (24場2020-26・充足94-97%・節内変更追跡可・未利用100%)",
-   "安定板 (true率4.5-9.8%/年・場別分布が物理と整合・2026年openapi欠測caveat)",
-   "展示の未利用粒度 (節内日次推移・スタ展進入変化13.06%=スタブ疑い検証済みシロ)",
-   "モーター識別 (場,motor_no,交換年度キー成立・物理11,669機・中央値202走/機)",
-   "節マスタ/standing_panel (356,580行/2,059,541行)",
-   "気象 ERA5 1,403,136行"
-  ],
-  "repair_needed": [
-   "部品交換: パーサ修正+前向き収集=小(≈0.5日・fetch_beforeinfo_ext.pyの正解実装を移植)。過去分バックフィル=大(再スクレイプ35万ページ≒12日・Owner GO必須)"
-  ],
-  "acquisition_needed": [
-   "新ペラフラグ (beforeinfoページに列は実在→部品交換修理に相乗り可)",
-   "選手・調整コメント (手元に無し・前向きのみ・fetched_at付きingest guard設計)"
-  ],
-  "leakage_top3": [
-   "features.parquetの展示/進入/ST/気象はK(レース後)由来 — 新規Motor研究が素で読むと即事故。beforeinfo由来へ張替え必須",
-   "national buildの同日ソート順欠陥 — 節内Motor State等の同日集計の前に研究ビルドのソートキー修正が前提",
-   "2026年のソース断層 (openapi: 部品/安定板欠測) — 年×ソース交絡につき_sourceフラグ伝搬必須"
-  ],
-  "w2_priority_proposal": [
-   {
-    "rank": 1,
-    "id": "NG-N1C",
-    "why": "登録済・実装ゼロに近い・唯一のOOS確定歪みの回収。即実行可",
-    "eig": "高/コスト極小"
-   },
-   {
-    "rank": 2,
-    "id": "W2-A Motor Current State PoC",
-    "why": "未利用100%のチルト+展示節内推移+安定板+モーター識別が全部「今すぐ使える」。as-ofはbeforeinfo由来で清潔。B2重複は成績3本+展示z9本のみ",
-    "eig": "高"
-   },
-   {
-    "rank": 3,
-    "id": "W2-B 部品交換パーサ修理+前向き収集開始",
-    "why": "≈0.5日で資産が毎日積み上がり始める (待つほど損)。分析自体は蓄積後orバックフィルGO後",
-    "eig": "高(遅延回収)/コスト極小"
-   },
-   {
-    "rank": 4,
-    "id": "NG-E5NR Phase A",
-    "why": "登録済・統計PoCのみでコスト小。安定板データ準備完了",
-    "eig": "中〜高"
-   },
-   {
-    "rank": 5,
-    "id": "W2-C Player Adjustment Skill",
-    "why": "W2-Aの産物 (motor state panel) に依存するため後続。partial pooling前提",
-    "eig": "中〜高"
-   }
-  ],
-  "deferred_candidates": {
-   "D": "Setup Confidence — コメント前向き収集の蓄積待ち (チルト変更・展示volatility部分は W2-A に内包)",
-   "F": "Local×難水面 — E8SWAP着手条件のまま",
-   "G": "Dynamic Player Trajectory — I1教訓によりsegment評価設計を先に固めてから",
-   "H": "Market Recognition Lag — 締切前オッズ蓄積+holdout解封 (11/1) 後"
-  }
- },
- "w2_directives_owner_20260905": {
-  "status": "W2正式GO + 次期研究思想の統合 (Owner全文指示 2026-09-05)。全テーマは 観察→一般仮説→最小統計PoC→OOS再現→予測価値→市場価値→必要ならArchitecture投資 の順で扱う",
-  "confirmed_order": [
-   "並行: NG-N1C (まくり筋較正最終検証・旧N1のFAIL判定は不変)",
-   "並行: 部品交換パーサ修理+前向き収集 (分析でなくデータ資産・即実施。誤パース列の再利用は絶対禁止。取得=部品交換/新ペラ/交換種類/fetched_at/source/race_id/racer_id/motor identity/as-of保証metadata)",
-   "次: Current Motor State PoC (「元々強いモーターか」でなく「この選手がこの節で調整した結果、今この時点でどういう状態か」のas-of推定。features.parquetのK由来列は直接流用禁止=beforeinfo由来as-ofへ張替え必須)",
-   "その後: NG-E5NR Phase A (強風regime)",
-   "その後: Player Adjustment Skill"
-  ],
-  "backfill_decision": "35万ページ全バックフィルは未承認。まず Stratified Maintenance Backfill PoC (場・年度・季節・グレードで層化した小規模取得) で 正常取得率/部品交換発生率/新ペラ発生率/部品種類分布/前後レース接続率/展示接続率/モーター個体追跡率/交換後追跡走数/仮説検証に必要な標本充足/polite実測速度 を確認 → 全量のEIG/コストを再推定してOwner再判断",
-  "pressure_resistance": {
-   "scope_now": "事前研究設計+データ可用性監査まで (既定W2は止めない。EIGが極めて高いと判断したら理由付きで順位変更案を出す)",
-   "hypothesis": "Course-conditioned Pressure × Course-conditioned Resistance × Relative Position → 相手艇の期待着順変化 → 周囲艇への展開波及 (圧力を作る側×受ける側の対応力)。個人ルール(峰・毒島・茅原等)としては実装しない — 現場観察は仮説形成の例であり統計的事実ではない",
-   "profile_axes_hypothetical": "Pressure側: Inside/Attack/Sashi/Makuri/Makuri-sashi Pressure・Outside Compression・Neighbor Disruption・Opportunity Creation / Resistance側: Strong-In Resistance・Attack Resistance・C2 Preservation・C3/C4 Survival・Defensive Turn・Second-place Preservation・Collapse Avoidance・Pressure Absorption — 名称付き能力を真実扱いせず、まず観測可能な残差構造を確認",
-   "poc_protocol": "Step1: 艇Aの在席が艇BのB2残差に与える影響をas-ofで測定 → Step2: 影響量がB側でも系統的に変わるか → Step3: Bの圧力耐性をshrinkage付きで推定 → Step4: A単独/B単独/A+B/A×B比較 → Step5: interactionのOOS追加価値 → Step6: Bの崩れの波及 (内隣/外隣/5-6号艇のTop2/Top3変化)",
-   "pair_order": "全ペア巨大モデル禁止。サンプル多く意味の強い関係から: 1→2 / 2↔3 / 3→4 / 4→5 / 攻撃艇→外側追走艇 / 前づけ艇→周囲艇",
-   "gat_condition": "GAT即実装不支持は維持。pair interactionがOOS再現し単独Profileで表現できない追加価値が確認された場合のみGAT/pairwise/message passingを再評価。再現しなければGAT導入理由に使わない"
-  },
-  "market_philosophy_update": "「誰も知らない秘密情報」でなく Known-but-underweighted Information / Conditional Interaction Mispricing / Second-order・Beneficiary Mispricing を主戦場に。一次(攻める本人)だけでなく二次(直接影響を受ける艇)・三次(崩れから利益を受ける艇)まで市場価格とのズレを調べる。重点確認=「攻める本人は売られるが展開受益者は十分売られていない」現象。締切前オッズ蓄積後にInteraction Patternごとの model prob/market implied/pre-close movement/EV/beneficiary ticket EV/反応速度/最終反映量を評価",
-  "edge_separation_gates": "現象が存在する→AI予測に追加価値→市場が十分価格化していない→実際に購入EVがある は全部別ゲート。混同禁止。Market LayerはFundamental Predictionと完全分離を継続",
-  "scenario_portfolio": {
-   "principle": "最終購入を「予測確率の高い3連単を上から買う」設計にしない (Owner方針)。レースを複数シナリオ (例: 1逃げ/3攻め1凌ぎ/3攻めで2-3崩れ5浮上/3攻め完全成功/波乱) として扱い、Ticket×Scenario exposure を評価。1-2-3/1-2-4/1-2-5は3点でも「1逃げ+2残り」への集中投資",
-   "optimizer_metrics_candidates": "Expected Return / Robust EV (確率が多少ズレても残るEV) / Scenario Coverage / Concentration (同一シナリオ依存度) / Probability of Total Loss / Downside Risk (CVaR等・必要なら) / Epistemic Uncertainty",
-   "anti_pattern": "的中率のためだけの低EV舟券大量追加は禁止。追加舟券には十分なRobust EV OR 有意なScenario diversification benefit を要求。目的=EVを維持したまま主要シナリオ耐性を高め下側リスクを抑える"
-  },
-  "target_architecture_concept": "Fundamental Race Model → Current State → Interaction/Scenario Model → 120通りFundamental Probability → Calibration/Uncertainty → Market Evaluation → Scenario×Ticket Payoff Matrix → Portfolio Optimization → BET/NO BET。現時点では概念のみ・一気に実装しない",
-  "new_themes_registered_as_hypotheses": [
-   "1. Generalized Pressure×Resistance (展開圧力×対応力)",
-   "2. Course-conditioned Matchup Skill (コース条件付き相性)",
-   "3. Interaction propagation / beneficiary effect (波及と受益艇)",
-   "4. Known-but-underweighted market information",
-   "5. Conditional interaction mispricing",
-   "6. Second-order beneficiary mispricing",
-   "7. Scenario-aware betting portfolio (シナリオ分散買い)",
-   "8. Robust EV + downside-aware optimization"
-  ],
-  "console_rule": "Research Mirror/Artifactは内部IDだけで説明しない。各研究に日本語一言名+何を調べる/なぜ重要/今何が分かった/次に何を/市場エッジとの関係 をスマホで読める形で。内部IDは括弧内の補助",
-  "discipline": "post-hoc閾値変更禁止 / holdout汚染禁止 / leakage禁止 / small-n断定禁止 / closing oddsをreal EV扱いしない / fundamental predictionにオッズ非入力 / FAIL書き換え禁止 / PoC前の巨大Architecture禁止 / Model improvementとMarket edgeの混同禁止 / NO BET=first-class decision"
- },
- "w2_directives_owner_20260906": {
-  "vision": "読めるレースを識別し、複数の展開世界を条件付きで理解し、市場価格に対して価値のある世界線だけを少数点で買うAI (Current State → Interaction → Scenario → Market → Portfolio)",
-  "priorities": [
-   "P1: 現在モーター状態の最小特徴化+OOS実モデル試験 (NG-MS2。巨大Motor Expert禁止。K由来展示列の誤使用禁止)",
-   "P2: 展開圧力×対応力ミニPoC (NG-PXR1。固有選手ルール禁止・受益艇まで3段追跡)",
-   "P3: 部品交換 層化5万ページバックフィル (Maintenance仮説の増分確認後のみ全量再判断)",
-   "P4: リアルタイム風取得基盤+展示→締切の風変化PoC設計 (展示時/締切15/10/5/3/1分前のtimestamp付き収集設計)",
-   "P5: 調整能力×現在モーター状態の統合設計 (Initial State×Adjustment Skill×Interventions×Meet Progression→Current State。「調整能力が高いから強い」の単純特徴は禁止)",
-   "side: rolling λ (NG-N1R・優先度はP1より下)"
-  ],
-  "no_big_build": [
-   "Scenario Generator大型モデル",
-   "GAT",
-   "Learned Race Simulator",
-   "Environment Expert",
-   "Portfolio Optimizer本番化 — いずれも研究設計・データ準備・最小PoCまで"
-  ],
-  "wind_state": "風は「強さ」でなく「変動」も: 平均/風向/成分/展示時からの差/直近trend/SD/max-min/gust/風向変化量/regime transition/安定性。核仮説=展示時と本番直前の風が異なるほど展示ST・展示性能の本番予測力が低下する。平均5m安定日と2-9m往復日を同一扱いしない。Player Wind Adaptation (風変化への適応の選手差) は仮説保存→ST誤差・分散の再現可能な選手差をas-of+shrinkageで確認してから",
-  "environment_x_motor": "気温/気圧/湿度/空気密度/水温/気温−水温差/前日差/節初日差/展示時差。主眼は絶対値でなく「環境が変化した時にどのモーター状態がどう反応するか」(Environment×Motor交互作用)。素値の単純投入は再試行しない (棄却済み)。季節・場proxyとの混同に厳重注意 (季節クリマトロジープラセボ標準)",
-  "scenario_structure": "将来的にP(Scenario)×P(Trifecta|Scenario)の2段構造を研究 (例: 1逃げ安定55%/3攻め1凌ぎ22%/3攻め2抵抗内崩れ12%/3攻め完全成功7%)。全体では数%の舟券でも特定Scenario内では中心舟券という情報を捨てない。120通りsoftmaxは捨てない — 当面は併存 (decomposition/explanation)。Scenario ModelがOOSで予測改善を示した場合のみRace Simulator/mixture検討",
-  "meaningful_vs_diffuse_tail": "Meaningful Tail=レアScenario内で少数舟券に確率集中 / Diffuse Tail=Scenario内でも分散。区別の表現候補=Scenario Probability/Conditional Concentration/Scenario Entropy/contingent events数",
-  "readability": "Race Readability/Compressibility を研究: 1着確率集中度/Head entropy/Conditional 2nd・3rd entropy/Scenario entropy/Epistemic uncertainty/Required ticket count から「少数世界線に圧縮できるレース」を識別",
-  "new_metrics": "NLL/Hit@1に追加: Head Accuracy by Confidence Bucket (50-60/60-70/70-80/80%+) / Conditional 2nd Coverage (頭固定で上位1-2艇の2着カバー率) / Conditional 3rd Coverage / Minimum Ticket Set (確率質量50/70/80/90%に要る点数) / Realized Hit Rate of Minimum Set",
-  "hit_rate_policy": "「読めるレース限定で3連単ポートフォリオを3回に1回」はOwnerの作業仮説であってハード目標ではない。33%達成のためにモデルを歪めることは禁止。研究するのは「確信度の高いサブセット+3-6点で的中率がどこまで上がるか」のconfidence bucket別評価。当てることと儲かることは必ず分離 (Predictability→Compressibility→Market Price→Robust EV→Portfolioの順)",
-  "portfolio_principles": "Sparse必須 (同等のEV/リスクなら9点より3点)。追加舟券には十分なRobust EV or 有意なScenario Diversification Benefitを要求。「万が一のため100円追加」の常態化禁止。全Scenario保険買い禁止。目標=Value-weighted Scenario Coverage (買う価値のある世界線だけカバー・価値が無ければNO COVER)",
-  "tail_scenario_gate_7": "穴世界線をPortfolioへ追加する事前Gate候補: ①Scenario Probabilityが極端に小さくない ②Scenario内で少数舟券に集中 ③市場に対するEdge ④Robust EVでも成立 ⑤既存Portfolioと異なるScenario exposure ⑥追加資金に対するDownside改善 ⑦Portfolio全体のEVを壊さない — バックテスト前に定義を凍結",
-  "market_focus": "Known-but-underweighted / Conditional interaction mispricing / Beneficiary mispricing / **Rare Scenario mispricing** (市場も「3が攻める」は知っているが、その場合に5が浮上する条件付き確率まで正確に価格化していない歪み)。締切前オッズholdoutの封印は絶対に破らない",
-  "architecture_vision_20260906": "Historical Player/Motor → Current Motor State → Current Environment State → Player Adjustment/Environmental Adaptation → 6艇Current State → Pressure×Resistance → Scenario Generator → P(Scenario)+P(Order|Scenario) → 120通りFundamental Probability → Calibration/Uncertainty → Market Evaluation → Scenario×Ticket Payoff → Sparse Value-weighted Portfolio → BET/NO BET。概念であり一括実装禁止",
-  "human_facing": "日本語名称を主表示 (現在モーター状態/選手の調整能力/直前風変化/展開圧力×対応力/穴シナリオ/読めるレース/シナリオ分散買い)。内部IDは括弧の補助"
- },
- "next_actions": [
-  "Q-030 裁定待ち (最優先・本番推論の wind_dir_code を -1 固定へ戻す)",
-  "Q-031 裁定待ち = NG-REF1 (研究 Raw-B2 参照の本番整合化と残差ベースライン再確立) — 次の主研究 1 本の推奨",
-  "自律: forward collector 試験のメタデータ評価 (9/24 まで) / 部品バックフィル完走 (9/16) 後の Maintenance 最小イベントスタディ設計 / 11/1 holdout 開封手順の整理",
-  "NG-BM1 (B2 Raw vs production(exh120) vs market の 3 者ベンチマーク) — 設計済み。実装前提の展示 ST 再抽出は VA1 で解決済み (va1_prep_exh.py)。実測は 11/1 以降",
-  "閉鎖: U-36a (R-17) / 指令 §14 の Venue PoC / 24 場別 NN・Venue 埋め込み"
- ]
 }
-
 ```
 
 
