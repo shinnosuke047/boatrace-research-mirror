@@ -4,13 +4,89 @@
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
 
-- 更新: **2026-09-12 05:40**(Owner 指令「**Q-035 = STAGED GO**」の実行後 = **INTEGRITY_GREEN**)
+- 更新: **2026-09-12 09:00**(Owner 指令「**Q-037 = GO。最初の 1 本は MOTOR FEATURE SEMANTICS AUDIT**」の実行後 = **MOTOR_BUG_MATERIAL**)
+- 前回更新: 2026-09-12 05:40(Owner 指令「Q-035 = STAGED GO」の実行後 = INTEGRITY_GREEN)
 - 前回更新: 2026-09-12 04:30(Owner 指令「Q-030 = COMMIT + PUSH GO」「Q-034 = GO」「SYSTEM INTEGRITY AUDIT = GO」の実行後)
 - 前々回更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
 - 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/q035_prior_parity_20260912.md`(今回)と `lane-reports/sia_v1_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
 - 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
 
-## 0. 今回(2026-09-12 明け方)— 「教えたとおりの情報」を本番でも見せるようにした
+## 0. 今回(2026-09-12 朝)— **AI が見ていた「モーターの成績」は、別のモーターの成績だった**
+
+用語: **モーター** = 各会場が持つエンジン。番号(1〜90 番くらい)が振ってあり、**毎年 1 回まとめて新品に入れ替える**。
+番号は**会場ごとに独立**していて、住之江の 22 号機と戸田の 22 号機は**まったくの別物**。
+
+### 結論から: **`MOTOR_BUG_MATERIAL`**(壊れていた。予測への実害は小さいが、予想順位は揺れていた)
+
+AI に渡していた「このモーターの直近 20 走の成績」という情報は、実際には
+
+> **全国で「22 番」を付けていた艇の、直近 3 日ぶんの成績**
+
+でした。**20 件のうち、本当にそのモーターの成績は平均 2 件だけ。残り 18 件は別の会場の別のモーター。**
+13.5% のレースでは、**そのモーター自身の成績が 1 件も入っていません**でした。
+
+原因はコードのコメントがそのまま語っています:
+「モーターの直近成績(**住之江なので**モーター番号 = 場のモーター)」
+= **住之江だけを扱っていた頃の作りが、全国 24 場に広げた後もそのまま残っていた**。2020 年からずっとです。
+
+### 壊れていなかったもの(ここは大事)
+
+**出走表に載っている公式の「モーター2連率」は正しい値でした。**
+毎年の入れ替え日にちゃんと 0 近くにリセットされることを、24 場 161 回分すべてで確認しました。
+→ **「モーターの情報が全部ダメだった」ではありません。** 公式の数字は生きていて、
+**自前で計算していた履歴 2 個だけ**が別物を見ていました。
+
+### で、予測はどれくらい悪くなっていたのか → **ほとんど悪くなっていなかった**
+
+これを確かめるために、**同じ条件で 4 通りのモデルを学習し直して**比べました。
+
+| やったこと | 予測のズレ(小さいほど良い) | 現行との差 |
+|---|---|---|
+| **現行のまま** | 3.752954 | — |
+| **正しく直す**(会場×番号×交換周期) | **3.751335** | **少し良くなる** |
+| **モーター履歴を全部消す** | 3.753002 | **ほぼ変わらない** |
+| **会場だけ直す**(交換周期は無視) | 3.756395 | **はっきり悪くなる** |
+
+読み方:
+
+1. **壊れた情報は「役に立っていなかった」** — 丸ごと消しても予測はほぼ同じでした。
+   つまり AI はこの情報からほとんど何も学べていなかった。
+2. **でも「無視されていた」わけでもない** — 消すだけで「1 番手に推す買い目」が **6.3%** 入れ替わります。
+   **精度は上げないのに、予想の順位だけを揺らすノイズ**として働いていました。
+3. **正しく直すと、小さいけれど本物の情報が出てきます** — ただし改善幅は
+   **採用ラインの半分**しかありません。**「直したから当たるようになる」とは言えません。**
+4. **中途半端に直すと、何もしないより悪くなります** — 会場だけ直して入れ替え時期を無視すると、
+   **前の年の別のモーターの成績**を「同じ会場の成績」として信じ込んでしまうためです。
+
+### いちばん大事な数字
+
+**正しく直すと、3 連単の 1 番手予想が 13.25% 入れ替わります。**
+精度はほとんど変わらないのに、**8 レースに 1 回以上「推す買い目」が変わる**。
+これが、AI の予測を使った過去の研究を点検すべき理由です。
+
+### 「青信号(INTEGRITY_GREEN)」の意味を直しました
+
+先日出した青信号は **「学習したときと本番で、同じ情報を見ている」**という保証でした。
+**「その情報が意図した意味を持っている」保証ではありません。**
+今回は学習も本番も**同じ間違い方**をしていたので、検査は正しく通ってしまいます。
+→ これからは **①同じ情報を見ているか(青信号のまま)②その情報の意味は正しいか(今回 黄信号)**
+の **2 本立て**で見ます。
+
+### 本番はどうするか → **今すぐ変えません**
+
+今回の作業は**研究だけ**。本番のコードもモデルも **1 行も変えていません**。
+直すには**モデルの学習からやり直す**必要があるので、**Owner の別の GO が要ります(Q-038)**。
+急ぐ理由は無い(精度の実害が無い)一方、放置すると motor まわりの研究が
+ずっと「壊れた土台の上」になります。
+
+### 次に 1 つだけやるなら
+
+**「モーターの調子は展示タイムで分かるから、モーター履歴は要らない」という去年の結論の測り直し**(Q-039)。
+その結論は**壊れた土台の上で出したもの**なので、正しい土台で測り直す価値があります。
+
+---
+
+## 0-前. 前回(2026-09-12 明け方)— 「教えたとおりの情報」を本番でも見せるようにした
 
 用語: **train/serve skew** = 「学習したときの形」と「予測するときの形」がズレている状態。
 
@@ -249,21 +325,21 @@ commit `9e39b83`。**本番の動きは 9/12 01:16 の時点ですでに直っ�
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: NG-Q035 (Prior Aggregate Train/Serve Parity) — done_primary(primary = parity (PARITY_RESOLVED: UNEXPECTED_DIFFERENCE 24 → 0)。secondary = prediction impact (固定 OOS 8,997R: NLL 3.74…)
-- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・20533/49968 ページ・残り目安 4.0 日)
+- 実行中の実験: NG-MSA1 (Motor Feature Semantics Audit) — done_primary(primary = semantics 事実認定 (CASE 1 confirmed・RECOMPUTE_PARITY PASS)。secondary = 3(+1) アームの counterfactual retrain。ARM A 現…)
+- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・21533/49968 ページ・残り目安 3.87 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-VA1**(2026-09-12・done_primary・—): 機械判定 (凍結 va1_frozen.json 2026-09-11T23:56:09・sha256 2fb01f38…6ace23・結果 y に依存する統計を 1 つも計算する前 → 実行 207.6 秒・fit 46,648R / ref 8,236R・R1 除外・beforeinfo 条件・Raw B2 = p2 replica 2025-07〜2026-06): **VA1_PARTIAL / PARTIAL_UNDERPOWERED**。G1…
 - **NG-REF1**(2026-09-12・done_primary・—): Owner 指令 2026-09-12「Q-031 = GO」。研究用 Raw-B2 参照を production-training-consistent / as-of-safe に再構築した (再学習ゼロ・production バンドル読み取りのみ・sha256 5f7bc1f2f7a8bc0a… 実行前後一致)。**欠陥は 2 種類あることが判明**: D1 = clean 学習の prod3 に K 気象を食わせていた (入力差し替えで直る) /…
 - **NG-Q034**(2026-09-12・done_primary・—): 学習の 1 step 前に REPLICA_IDENTITY_MANIFEST.json を凍結 (sha256 6e5b4377…) → Q034_CLEAN_REPLICA を再学習 (bundle sha256 7c7e4551…・features_v2 beforeinfo + extra3_ext・wind_dir_code=-1・fold2・seed 42/43/44・b2・30epoch)。dump 59,923 レース (2025-07-…
 - **SIA-V1**(2026-09-12・done_primary・—): ①production training の正規化統計 41/41 列が beforeinfo 入力だけから相対 1e-6 以内で再現 (学習窓 2,017,260 行) = Q-029 WEATHER_SAFE の独立再現 ②41 列の lineage を全数解決 (UNKNOWN は B ファイル公表時刻 1 点のみ) ③train/serve parity = EXACT 17 / UNEXPECTED_DIFFERENCE 24 (差は全部 pr…
 - **NG-Q035**(2026-09-12・done_primary・—): parity (GOLDEN_RACE_SET 369R / 2214 艇行): strict 分類 (same-day carve-out なし) で UNEXPECTED_DIFFERENCE **24 → 23 → 0** / EXACT 17 → 18 → 20。carve-out 適用後は残り 21 列が INTENTIONAL_DIFFERENCE。残差はすべて same-day 境界で、同日先行行が無い艇に絞ると 24/24 列が差分率 0…
+- **NG-MSA1**(2026-09-12・done_primary・—): 学習 src/features.py:102/104 も推論 predict_b2_live.py:340/342 も motor_no 単独 group (会場・交換周期なし)。物理個体キー (jcd,motor_no,cycle_id) は 11,643 個体に対し現行 group は 90 = 129 倍粗い。窓 20 件のうち自機は平均 1.95 件 (9.78%)・他会場混入 99.69%・自機ゼロの行 13.54%。影響 2,128,338 …
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-12 05:40(**Owner 指令 2026-09-12「Q-035 = STAGED GO」完走 = RES-2026-09-I**) ## 今サイクルで確定したこと(RES-2026-09-I / Q-035) - **Q-035 = Stage A / Stage B とも完了(ADOPT)**。commit `390281c`(runtime **r4**)/ `bfcfcce`(runtime **r5**)。 **コード変更前に `research/Q035_FROZEN_PLAN.md` を凍結**し、結果を見て対象列を増減していない - **prior 集計 24 列の UNEXPECTED_DIFFERENCE = 24 → 0**。残る 21 列は **same-day 境界**による INTENTIONAL_DIFFERENCE で、**同日先行行が無い艇に絞ると 24/24 列で差分率 0.0000**(機械検査) - **`INC-2026-0912-PRI…
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-12 09:00(**Owner 指令 2026-09-12「Q-037 = GO・最初の 1 本は MOTOR FEATURE SEMANTICS AUDIT」完走 = RES-2026-09-J**) ## 今サイクルで確定したこと(RES-2026-09-J / NG-MSA1) - **最終判定 `MOTOR_BUG_MATERIAL`**(CASE 1 = semantics bug confirmed / M2-minor)。 **コード変更・再学習の前に `research/MOTOR_SEMANTICS_FROZEN_PLAN.md` を凍結**し、 **判定 script(`msa1_verdict.py`)も学習が終わる前に書いた** = 閾値の事後変更を構造的に封じた - **production B2 の motor 履歴 2 列は物理モーターを識別していなかった**(FINDINGS **P27**)。 学習も推論も `motor_no` 単独 group。物理…
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -341,16 +417,16 @@ commit `9e39b83`。**本番の動きは 9/12 01:16 の時点ですでに直っ�
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-12 | モデル同一性の定義 | **制定** — 『同じモデル』と呼ぶには `Model Weights + Feature Contract + Source Contract + Preprocessing Revision…
-- 2026-09-12 | 監査ゲートの設計規律 | **制定** — **いつも PASS するだけのゲートは、何も守っていないゲートと区別できない。** preflight には必ず負のコントロール(故障を注入して検出されることの確認)を併設する…
-- 2026-09-12 | `_fetched_at` の解釈 | **確定(方法論)** — beforeinfo アーカイブの `_fetched_at` は**ダウンロード時刻であって情報時点ではない**。バックフィルのため比較可能 37,526 件すべてが「締切後取…
-- 2026-09-12 | Q-035(prior 集計 24 列の train/serve 不一致) | **STAGED GO → Stage A / B とも完了(ADOPT)** — Owner「Q-035 = STAGED GO。24 列を一括修正しない。原因ごとに 修正 → parity → prediction impact → 次段階」。**コード変更…
-- 2026-09-12 | 残る train/serve 差の扱い | **INTENTIONAL_DIFFERENCE として契約化** — 21 列に差が残るが **すべて same-day 境界**。学習は同日の早い出走を含む(`shift(1)` / `cumcount`)が production は `buil…
-- 2026-09-12 | 同日先行の数え方 | **確定(方法論)** — 「同日先行」は**学習と同じ行順(date, race_id, lane)で数える**。`(dt, race_no)` 順で数えると会場をまたぐキー(`motor_no` / `…
-- 2026-09-12 | golden set の構造的な穴 | **確定 → C6 で閉塞** — `GOLDEN_RACE_SET` の raw は `features_v2`(= TRAIN 側)由来なので **serve 経路を 1 mm も守っていない**。実際 Q-0…
-- 2026-09-12 | `merge(how="left")` + `.last()` の as-of リーク | **発見 → 同時に解消** — `build_context(asof=<過去日>)` が `venue_lane` を EXT2 との left merge で持ってきていたため、cutoff 以降の行が `…
 - 2026-09-12 | INC-2026-0912-PRIORSTALE | **CLOSED** — Owner 指令 §20 の 8 条件すべて成立(root cause 確定 / Stage A / Stage B / 24-24 parity explained / Gol…
 - 2026-09-12 | System Integrity Audit v1 Completion Gate 再実行 | **INTEGRITY_GREEN** — Completion Gate **8/8**(unresolved S3 = 0 / S4 = 0)。preflight **16/16 PASS**(C6 追加後)/ 負のコ…
+- 2026-09-12 | Q-037(研究再開の可否と戦線) | **GO(Owner)— ただし最初の 1 本は MOTOR FEATURE SEMANTICS AUDIT** — 新 Race Logic 仮説ではなく、production B2 の motor 履歴特徴が物理モーターを識別していたかの意味論監査を最優先に指定
+- 2026-09-12 | NG-MSA1 凍結計画 | **凍結(コード変更・再学習の前)** — 判定基準 E1〜E4 / physical identity key の確定手順 / 汚染指標 / arm 定義 / 評価窓・指標・閾値 M0〜M4 / 最終判定を固定。**判定…
+- 2026-09-12 | NG-MSA1 事実認定 | **CASE 1 = SEMANTICS BUG CONFIRMED** — 学習 `src/features.py:102/104` / 推論 `predict_b2_live.py:340/342` とも `motor_no` 単独 group。物理個…
+- 2026-09-12 | NG-MSA1 判定 | **MOTOR_BUG_MATERIAL(M2-minor)** — 固定 OOS 8,997R: ARM A 3.752954 / B(修正)3.751335(ΔNLL −0.00162・3seed 同符号)/ C(無効化)3.753002(+0…
+- 2026-09-12 | NG-MSA1 ARM B′(事前登録した条件付きアーム) | **NO-GO(部分修正は不可)** — 会場だけ直し交換周期を無視すると ΔNLL **+0.00344** = 採用線を悪い方向に超えた唯一のアーム。窓が 3 日 → 30 日に伸び前周期の別個体が 9.43% の行…
+- 2026-09-12 | Integrity の定義 | **2 軸へ訂正** — `INTEGRITY_GREEN` は train/serve parity の保証であって semantics の保証ではない。Parity Integrity = GREEN…
+- 2026-09-12 | NG-MSA1 dependency 再計算 | **FLIPPED 0** — corrected B2(ARM B)で既存 frozen gate をそのまま適用。NG-U2 = `U2_NULL` でゲート合否完全一致 / NG-PDS1 = `PDS1…
+- 2026-09-12 | INC-2026-0912-MOTORSEMANTICS | **起票(OPEN)** — FEATURE_SEMANTICS_INCIDENT・Medium。research finding は確定・production 是正は Owner 裁定待ち(Q-038)。*…
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -488,6 +564,62 @@ pandas の `sort_values` は NaT を末尾に置き、`.last()` は列ごとに�
 ②`.last()` は「最後の行」ではなく「列ごとの最後の非 NaN」。**NaN を挟む集計で使わない**
 ③as-of フィルタの直後に `assert frame[時刻列].max() < cutoff` を置く(Q-035 で `build_context` に追加済)
 
+### P27. production B2 の motor 履歴は「その艇の物理モーター」ではなく「全国で同じ背番号を付けた艇の直近 3 日」だった【**確定(feature semantics)**(2026-09-12・NG-MSA1)】
+
+`motor_recent20_top2` / `motor_race_count_prior` は、学習(`src/features.py:102/104`)も
+推論(`predict_b2_live.py:340/342`)も **`motor_no` 単独**で group していた。
+`motor_no` は **(会場 × 交換周期) の中でしか一意でない**。24 場が番号レンジ 1〜90 を共有しているため、
+背番号 22 の機体は事実上全 24 場に存在する。
+
+- 物理個体キー `(jcd, motor_no, cycle_id)` = **11,643 個体**。現行の group は **90** = **129 倍粗い**
+- 窓 20 件のうち**自機は平均 1.95 件(9.78%)**。**13.54% の行は自機が 1 件も入っていない**
+- 影響 **2,128,338 行(99.72%)・356,096 レース・2020-01-01 以降ずっと**(新しい退行ではない)
+- `motor_race_count_prior` は全国合算で窓 9999 の天井に張り付き、**63.2% の行が同じ値(9999)**。
+  正しい周期内消化数の中央値は **97**(76 倍の乖離)。AUC は **0.5006 = 信号ゼロ**
+- 原因は `src/features.py:101` のコメントが明示している:
+  「モーターの直近成績(**住之江なので**モーター番号 = 場のモーター)」= **単一会場時代の前提の残存**
+
+**公式値は壊れていない**: `motor_2rate` は出走表の公式値で、交換日に平均 −33.7pt リセットされることを
+161 本の境界で実測(交換後の水準 1.5%)。**「motor 情報が全部壊れていた」ではない。**
+
+### P28. 意味を間違えた特徴は、train と serve が同じ間違いをしていれば Integrity parity を PASS する【**方法論**(2026-09-12・NG-MSA1)】
+
+`INTEGRITY_GREEN` は **「train と serve が同じ情報を見ている」**保証であって、
+**「その情報が意図した意味を持つ」**保証ではない。P27 は parity を 1 件も壊さない。
+
+**列名検査で捕まらない事故の 4 例目になった**(P23 の表を拡張):
+
+| 事故 | 何が違ったか | 列名検査 | **parity 検査** |
+|---|---|---|---|
+| P20 `wind_dir_code` | 学習は定数・推論は実値 | 捕まらない | **捕まる** |
+| P21 研究 Raw-B2 | 同名 `wind_speed` の供給元が K(post-race) | 捕まらない | 捕まらない(研究側) |
+| P22 prior 集計 | 同名だが定義と鮮度が違う | 捕まらない | **捕まる** |
+| **P27 motor 履歴** | **train も serve も同じ誤った group key** | 捕まらない | **捕まらない** |
+
+→ **feature contract に「その特徴が使う ID」と「その ID が一意になる namespace」と「実際の group key」を
+書く欄を持たせ、3 者が一致するかを機械検査する**のが最小の再発防止装置。
+現行の `FEATURE_CONTRACT.json` には `semantic_meaning` はあるが **grouping key の欄が無い**。
+
+### P29. 壊れた特徴を「半分だけ」直すと、何もしないより悪くなることがある【**確定**(2026-09-12・NG-MSA1 ARM B′)】
+
+motor 履歴の group key を **会場だけ**直し(`jcd × motor_no`)交換周期を無視したアーム(B′)は、
+固定 OOS で **ΔNLL +0.00344 = 採用線 0.003 を悪い方向に超えた唯一のアーム**
+(正しく直した B は −0.00162、完全に無効化した C は +0.00005)。
+
+原因は **窓が張る時間幅が変わること**:
+
+| group | 窓 20 件が張る期間(中央値) | 前周期の別個体の混入 |
+|---|---|---|
+| 全国 `motor_no`(現行) | **約 3 日** | 0.056%(短すぎて周期を跨げない) |
+| `jcd × motor_no`(B′) | **30 日** | **行の 9.43%**・**4.72% の行は窓の過半が前周期** |
+| `+ cycle_id`(B) | 周期内に閉じる | 0%(定義上) |
+
+全国集計の旧特徴は**ただのノイズ**だったが、会場のみ補正は
+**「同じ会場の信号に見える、自信を持って間違った特徴」**になる。
+
+→ **scope-key を直すときは「キーを細かくする」だけでなく「窓が張る時間幅がどう変わるか」を必ず見る。**
+部分的な修正は無修正より悪くなりうる。
+
 ---
 
 
@@ -495,7 +627,8 @@ pandas の `sort_values` は NaT を末尾に置き、`.last()` は列ごとに�
 
 # RESEARCH_STATUS — 研究状態の正本
 
-- 最新更新: **2026-09-12 05:40**(更新者: Claude / Owner 指令 2026-09-12「**Q-035 = STAGED GO**」完走 = **RES-2026-09-I / DoD 8-8**。**① Stage A**(commit `390281c`・runtime **r4**)= `extra3_for_racer` の節ブロック走査から **3 日 pre-filter を外した**。`setsu_day` が **EXACT** 化・残り 3 列の max|Δ| は 13/3/5 → **すべて 1**(同日 1 走ぶん)。**変化した列は対象 4 列のみ・他 37 列は bit 一致**。**② Stage B**(commit `bfcfcce`・runtime **r5**)= `build_context` の `groupby(...).last()` スナップショット(常に 1 レース古い)を、生の行から学習と同じ式で **as-of 再計算**する方式へ。**③ prior 集計 24 列の UNEXPECTED_DIFFERENCE = 24 → 0**。残る 21 列は **same-day 境界**による INTENTIONAL_DIFFERENCE で、**同日先行行が無い艇に絞ると 24/24 列で差分率 0.0000**(機械検査)。**④ INC-2026-0912-PRIORSTALE = CLOSED**(Owner 指令 §20 の 8 条件すべて成立)。**⑤ Completion Gate 8/8 → 最終判定 `INTEGRITY_GREEN`**。**⑥ 再発防止**: serve 経路を実際に組み立てて train と突合する preflight **C6** を新設(既存 golden は raw を TRAIN 側から取っており serve 経路を守っていなかった = **P25**)。負のコントロール = r3 モジュールで **5 件 FAIL**。**⑦ 副産物**: 過去日付 replay 専用の as-of リークを 1 件解消(**P26**)。**性能は採否条件ではない**: 固定 OOS 8,997R で NLL 3.74741 → **3.74665**(TRAIN 3.74452)/ 1着 Hit@1 21.64% → **21.73%**(TRAIN 21.79%)= **採用線(ΔNLL 0.003)の 1/4**。**「直したから当たるようになる」とは言えない**。人間向け = research/OWNER_VIEW.md)
+- 最新更新: **2026-09-12 09:00**(更新者: Claude / Owner 指令 2026-09-12「**Q-037 = GO。ただし研究再開の最初の 1 本は 新 Race Logic 仮説ではなく MOTOR FEATURE SEMANTICS AUDIT**」完走 = **RES-2026-09-J / NG-MSA1**。**最終判定 `MOTOR_BUG_MATERIAL`**(CASE 1 = semantics bug confirmed / M2-minor)。**① 事実認定**: 学習 `src/features.py:102/104`・推論 `predict_b2_live.py:340/342` とも **`motor_no` 単独 group** (会場も交換周期も入っていない)。原因は単一会場時代のコメント「住之江なのでモーター番号 = 場のモーター」の残存。物理個体キー `(jcd, motor_no, cycle_id)` は **11,643 個体**・現行 group は **90** = **129 倍粗い**。**窓 20 件のうち自機は平均 1.95 件(9.78%)**・他会場混入 **99.69%**・自機ゼロの行 **13.54%**。影響 **2,128,338 行(99.72%)/ 356,096 レース / 2020-01-01 以降ずっと**(新しい退行ではない)。**RECOMPUTE_PARITY gate PASS**(現行定義の再計算が保存値を max abs diff **0.0** で再現)。**② 壊れていないもの**: `motor_2rate` は出走表の公式値で正しい(161 本の交換境界で平均 **−33.7pt** リセットを実測)。展示層 exh120 は入力 9 列に motor 集計を含まない = 別レイヤー。**③ 影響量**(固定 OOS 8,997R・4 アームを同一条件で再学習): ARM A 現行 **3.752954** / ARM B 修正 **3.751335**(ΔNLL **−0.00162**・3 seed 同符号・採用線 0.003 の約半分)/ ARM C 無効化 **3.753002**(**+0.00005** = 旧特徴の精度寄与は実質ゼロ)/ **ARM B′ 会場のみ 3.756395(+0.00344 = 悪化)**。p120 TVD(B,A)**0.0426**・**3連単 argmax 入替 13.25%**。ARM A は Q-034 clean replica を差 **2.4e-07** で再現(determinism check)。**④ 解釈**: 旧特徴は精度を上げないが argmax を 6.26% 揺らす**ノイズ**だった。正しい履歴には小さいが本物の情報がある。**半分だけ直すと悪化する**(窓が 3 日 → 30 日に伸び前周期の別個体が 9.43% の行に混入 = **P29**)。**⑤ Integrity は 2 軸**: `INTEGRITY_GREEN` は parity の保証であって semantics の保証ではない (**Parity = GREEN 維持 / Semantics = YELLOW 新設**・**P28**)。**⑥ dependency 再計算 = FLIPPED 0**(NG-U2 / NG-PDS1 とも SAME・既存 frozen gate をそのまま適用)。**⑦ `INC-2026-0912-MOTORSEMANTICS` 起票(OPEN)**。**production コードは 1 行も変更していない**・holdout 非接触。Owner 裁定待ち = **Q-038**(production 是正)/ **Q-039**(再検証戦線)。人間向け = research/OWNER_VIEW.md)
+- 前回更新: **2026-09-12 05:40**(更新者: Claude / Owner 指令 2026-09-12「**Q-035 = STAGED GO**」完走 = **RES-2026-09-I / DoD 8-8**。**① Stage A**(commit `390281c`・runtime **r4**)= `extra3_for_racer` の節ブロック走査から **3 日 pre-filter を外した**。`setsu_day` が **EXACT** 化・残り 3 列の max|Δ| は 13/3/5 → **すべて 1**(同日 1 走ぶん)。**変化した列は対象 4 列のみ・他 37 列は bit 一致**。**② Stage B**(commit `bfcfcce`・runtime **r5**)= `build_context` の `groupby(...).last()` スナップショット(常に 1 レース古い)を、生の行から学習と同じ式で **as-of 再計算**する方式へ。**③ prior 集計 24 列の UNEXPECTED_DIFFERENCE = 24 → 0**。残る 21 列は **same-day 境界**による INTENTIONAL_DIFFERENCE で、**同日先行行が無い艇に絞ると 24/24 列で差分率 0.0000**(機械検査)。**④ INC-2026-0912-PRIORSTALE = CLOSED**(Owner 指令 §20 の 8 条件すべて成立)。**⑤ Completion Gate 8/8 → 最終判定 `INTEGRITY_GREEN`**。**⑥ 再発防止**: serve 経路を実際に組み立てて train と突合する preflight **C6** を新設(既存 golden は raw を TRAIN 側から取っており serve 経路を守っていなかった = **P25**)。負のコントロール = r3 モジュールで **5 件 FAIL**。**⑦ 副産物**: 過去日付 replay 専用の as-of リークを 1 件解消(**P26**)。**性能は採否条件ではない**: 固定 OOS 8,997R で NLL 3.74741 → **3.74665**(TRAIN 3.74452)/ 1着 Hit@1 21.64% → **21.73%**(TRAIN 21.79%)= **採用線(ΔNLL 0.003)の 1/4**。**「直したから当たるようになる」とは言えない**。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-12 04:30**(更新者: Claude / Owner 指令 2026-09-12「**Q-030 = COMMIT + PUSH GO**」「**Q-034 = GO**」「**SYSTEM INTEGRITY AUDIT = GO**」完走 = **RES-2026-09-H / DoD 13-14**。**① Q-030 を git に確定**: commit `9e39b83`(`scripts/predict_b2_live.py` のみ +53 行)→ push。commit 後の再確認 全 PASS(bundle sha256 不変 / runtime revision **r3** / expected `wind_dir_code` = −1 / **golden 369R の train-serve 差分率 0.000%** / p120 **max Δ 0.000e+00**)。**② Q-034 = clean replica 完成**: `Q034_CLEAN_REPLICA`(bundle sha256 `7c7e4551…`・dump **59,923R**)。**学習の 1 step 前に REPLICA_IDENTITY_MANIFEST を凍結**。production は読み取りのみ・不変。holdout 未使用(max 2026-08-31)。旧 replica との差 = ΔNLL **+0.000793**(採用線の約 1/4)だが **3連単 argmax 9.17% 入替** → **dataset difference** と切り分け。Dependency Audit 再計算 = **NG-U2 SAME**(7 ゲート合否完全一致)/ **NG-PDS1 SAME**(6 特徴 × 4 ゲート完全一致)= **FLIPPED 0 件**。**③ System Integrity Audit v1 で新しい S3 を発見**: **INC-2026-0912-PRIORSTALE** = prior 集計 **24 列**の train/serve 不一致(p120 TVD **0.0388** / 3連単 argmax 入替 **10.30%** = Q-030 の 4 割強)。原因 = `build_context` snapshot の **1 レース遅れ** + 節 4 列の **3 日打ち切り**。同日出走なし 1,409 艇行で **TRAIN vs IDEAL = 0.00%** → **as-of の制約ではなく実装の off-by-one**。ablation で節 4+2 列が単独最大(TVD 0.0388→**0.0203** / 入替 10.30%→**5.69%**)。**leakage ではない(S3 であって S4)**。Owner 指令 §22 に従い**未修復** → **Q-035** 起票。**④ 再発防止の装置**: `FEATURE_LINEAGE_AUDIT.md`(41/41 解決)/ `FEATURE_CONTRACT.json`(rev `fc-v1-2026-09-12`)/ `GOLDEN_RACE_SET`(**371R・24 会場・四季**)/ preflight ゲート **10/10 PASS** / **負のコントロール 6/6 DETECTED**。**as-of 違反 0 件**(beforeinfo 357,808 file 全走査)。ただし **`_fetched_at` は取得時刻であって情報時点ではない**と判明(P24)。**S4 = 0 件**。**最終判定 = `INTEGRITY_YELLOW`**(Completion Gate 7/8・未達は unresolved S3 = 0 のみ)。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-12 01:45**(更新者: Claude / Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」完走 = **RES-2026-09-G / DoD 14-14**。**① 本番の train/serve skew を是正**: prod3 は `wind_dir_code` を全行 −1 の定数として学習しているのに、commit `c260f3c`(2026-09-05)以降**推論側だけ実値 1〜16** が入っていた。live 実走で混入を確定(`南南東`→12・正規化後 **13.0**・供給元は boatrace.jp ではなく **openapi 補完**)→ 推論側を学習時定数へ固定(**runtime revision r3**・再学習なし・重み不変・可逆)。8,997R で **6 指標すべて改善**(3連単 NLL **3.78427→3.74452** = ΔNLL −0.03975 = 採用線の約 13 倍 / Brier120 −0.00224 / Hit@1 +0.27pp / 1着 Hit@1 +0.19pp / **prediction change rate 14.84%** / p120 TVD 平均 **0.0912**)・pipeline integrity 全 PASS。**INC-2026-0905-WINDDIR** を起票(9/5 04:43:31〜9/12 01:16:02)。**窓内に本番予測成果物の書き出し 0 件・bet_log 系 4 本 md5 不変 = 実弾への波及なし**。**② NG-REF1 で研究の土台を作り直した**: 欠陥は **2 種類**(D1 = clean 学習の prod3 に K 気象 → 入力差し替えで直る / D2 = **replica の重みそのものが K 気象で学習** → 再学習が要る)。Owner 必須条件「model weights は変更しない」を字義どおり守り **D1 を完全解消・D2 は据え置き → Q-034 起票**。canonical reference = `ref1_p120_prod3_clean.parquet`(8,997R)・**p120 生成前に manifest を凍結**。**汚染の広がりは気象 4 列のみ**と実測(残り 37 列は K と 100.0000% 一致)。最小再計算(既存 gate を import・式は無改変)で **Owner の 5 問すべて「結論は維持」**(SOB1F Race Formation = PARTIAL 不変 / market disagreement 維持 / PDS_NULL 維持 / **U2_NULL は 7 ゲートの合否が完全同一** / VA1 ref アーム維持)。ただし **AI と市場の距離が約 41% 縮む**新事実(勝者上 log 比 −0.02592→**−0.01524**・CI は依然 0 非跨ぎ。P11 極端帯 CR_ai 0.575→**0.668**)。FINDINGS に **PROVISIONAL_PENDING_REF1 / REF1 再検証済 を 17 件付与**(本文削除ゼロ)。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-12 00:15**(更新者: Claude / Owner 研究指令 2026-09-11 **第 3 弾**「Q-028 = GO / Q-029 = AUDIT ONLY GO」完走。**NG-VA1 = VA1_PARTIAL / PARTIAL_UNDERPOWERED**(機械)= **実質 Case A 寄り + 統合価値なし → 指令 §24 の分岐 C**。会場差は B2 win 残差で **τ が厳密に 0 へ縮約**(Q p=0.744・I²=0.000・生の会場 SD 0.898 < ノイズ 1.004・frozen 順位との ρ=−0.143)。判定を支える well-powered な 2 本 = **oracle 上限の venue 増分 0.000225〜0.000861(cross-fit 0.000144)= 採用線の 1/13〜1/21** と **結果非依存の model-side λ=1.072±0.270 = B2 の予測が会場差をほぼ丸ごと再現済み**。→ **U-36a を R-17 で否定・§14 の Venue PoC は起票しない・Venue Logic は説明層として保持し Prediction Edge から降格**。国全体の攻撃→イン被害は残差に生きている(−0.934±0.204・**exh120 後も −0.904 でほぼ不変 = 展示層は吸収しない**)が national 単独の oracle 上限も 0.000381 = 採用線の 1/8。**Q-029 = WEATHER_SAFE → CLOSE**(本番バンドルの mu/sd 指紋が beforeinfo と 8 桁一致・K と不一致。独立 5 線で確認)。監査中に別件 2 件を検出 = **Q-030 `wind_dir_code` の train/serve skew(実測 ΔNLL +0.04447 = 採用線の約 15 倍の劣化・1 着予測の入替 14.84%・2026-09-05 以降)**/ **Q-031 研究 p120 dump が K 気象を読んでいた(NG-REF1)**。FINDINGS P17 を訂正。人間向け = research/OWNER_VIEW.md)
@@ -567,9 +700,39 @@ pandas の `sort_values` は NaT を末尾に置き、`.last()` は列ごとに�
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-12 05:40(**Owner 指令 2026-09-12「Q-035 = STAGED GO」完走 = RES-2026-09-I**)
+最新更新: 2026-09-12 09:00(**Owner 指令 2026-09-12「Q-037 = GO・最初の 1 本は MOTOR FEATURE SEMANTICS AUDIT」完走 = RES-2026-09-J**)
 
-## 今サイクルで確定したこと(RES-2026-09-I / Q-035)
+## 今サイクルで確定したこと(RES-2026-09-J / NG-MSA1)
+
+- **最終判定 `MOTOR_BUG_MATERIAL`**(CASE 1 = semantics bug confirmed / M2-minor)。
+  **コード変更・再学習の前に `research/MOTOR_SEMANTICS_FROZEN_PLAN.md` を凍結**し、
+  **判定 script(`msa1_verdict.py`)も学習が終わる前に書いた** = 閾値の事後変更を構造的に封じた
+- **production B2 の motor 履歴 2 列は物理モーターを識別していなかった**(FINDINGS **P27**)。
+  学習も推論も `motor_no` 単独 group。物理個体キー `(jcd, motor_no, cycle_id)` は **11,643 個体**、
+  現行 group は **90** = 129 倍粗い。**窓 20 件のうち自機は平均 1.95 件(9.78%)**・
+  **13.54% の行は自機ゼロ**・影響 **2,128,338 行(99.72%)/ 356,096 レース / 2020-01-01 以降**
+- **`motor_2rate`(公式値)は正しい**。161 本の交換境界で平均 −33.7pt リセットを実測。
+  **「motor 情報が全部壊れていた」ではない**
+- **旧特徴の精度寄与は実質ゼロ**: motor 履歴を完全無効化した ARM C は現行と同一(ΔNLL **+0.00005**)。
+  **ただしノイズとしては効いており**、無効化するだけで 3連単 argmax が **6.26%** 入れ替わる
+- **直すと小さいが本物の信号**: ARM B(corrected)は ΔNLL **−0.00162**(3 seed 同符号)・
+  3連単 Hit@1 **+0.17pp**。**採用線 0.003 の約半分**。p120 TVD **0.0426**・**3連単 argmax 入替 13.25%**
+- **半分だけ直すと悪化する**(FINDINGS **P29**)。会場だけ直す ARM B′ は ΔNLL **+0.00344** =
+  採用線を悪い方向に超えた唯一のアーム。窓が 3 日 → 30 日に伸びて前周期の別個体が混入するため
+- **Integrity は 2 軸**(FINDINGS **P28** / `SYSTEM_INTEGRITY_AUDIT_V1` §16)。
+  **Parity Integrity = GREEN のまま**、**Semantics Integrity = YELLOW**(新規)。
+  parity 検査は本件を 1 件も捕まえない
+- **dependency 再計算 = FLIPPED 0**(NG-U2 / NG-PDS1 とも SAME・既存 frozen gate をそのまま適用)
+- `INC-2026-0912-MOTORSEMANTICS` 起票(**OPEN**・production 是正は Owner 裁定待ち)
+
+## 最優先 — Owner 裁定待ち(新規 2 件)
+
+- **Q-038 = motor semantics を production に反映するか**(= B2 を正しいキーで再学習して差し替えるか)。
+  **推奨 = GO だが急がない。Q-039 と束ねて 1 回で**。**会場だけ直すのは厳禁**(悪化する)
+- **Q-039 = 再検証をどこまでやるか**。**推奨 = NG-MS3 の 1 本だけ**
+  (「motor state は当日展示に吸収される」を corrected baseline で測り直す)
+
+## 前サイクルで確定したこと(RES-2026-09-I / Q-035)
 
 - **Q-035 = Stage A / Stage B とも完了(ADOPT)**。commit `390281c`(runtime **r4**)/ `bfcfcce`(runtime **r5**)。
   **コード変更前に `research/Q035_FROZEN_PLAN.md` を凍結**し、結果を見て対象列を増減していない
@@ -586,11 +749,14 @@ pandas の `sort_values` は NaT を末尾に置き、`.last()` は列ごとに�
 - **過去日付 replay 専用の as-of リークを 1 件解消**(FINDINGS **P26**)。`merge(how="left")` の NaT が
   `.last()` に残って未来値を拾っていた
 
-## 最優先 — Owner 裁定待ち
+## (前サイクル時点の)Owner 裁定待ち — 現状
 
-- **Q-037(新規)= Race Logic / Prediction Edge 研究を再開するか、するならどの戦線から**。
-  Integrity が GREEN になったので技術的な障害は無い。**再開の可否と順番は Owner 判断**(指令 §23)
-- **Q-036 = 監査で出た S1/S2 の整備 4 件**(silent fallback のログ化 / `odds_pre` の契約 / exh120 劣化経路の golden / manifest 無し artifact)
+- **Q-037 = 裁定済み(2026-09-12)**: **GO。ただし最初の 1 本は新 Race Logic 仮説ではなく
+  MOTOR FEATURE SEMANTICS AUDIT**(= 本サイクル NG-MSA1)。**完走済み**
+- **Q-036 = 未裁定のまま持ち越し**(監査で出た S1/S2 の整備 4 件: silent fallback のログ化 /
+  `odds_pre` の契約 / exh120 劣化経路の golden / manifest 無し artifact)。
+  **NG-MSA1 で 5 件目の候補が増えた**: feature contract に「使う ID / ID の namespace / 実際の group key」の
+  3 欄を足して preflight で一致検査する(FINDINGS P28)
 
 ## 前サイクルで確定したこと(RES-2026-09-H)
 
@@ -803,6 +969,14 @@ NG-T3D4(4 券種 FAIL → route B・Market Gate 閉鎖)/ tail 可視化 / 乖離
 | 2026-09-12 | `merge(how="left")` + `.last()` の as-of リーク | **発見 → 同時に解消** | `build_context(asof=<過去日>)` が `venue_lane` を EXT2 との left merge で持ってきていたため、cutoff 以降の行が `dt`=NaT のまま `.last()`(= 列ごとの最後の**非 NaN**)に拾われ、**未来レースの値が採用されていた**(asof=2026-07-01 で 144 キー全部・max 0.00118)。live(asof=当日)では未来行が無いので発火しない = **過去日付 replay 専用のリーク**。Stage B で生列から組み直して解消 | FINDINGS P26 |
 | 2026-09-12 | INC-2026-0912-PRIORSTALE | **CLOSED** | Owner 指令 §20 の 8 条件すべて成立(root cause 確定 / Stage A / Stage B / 24-24 parity explained / Golden PASS / production smoke PASS / rollback documented / runtime revision recorded) | research/INCIDENTS.md |
 | 2026-09-12 | System Integrity Audit v1 Completion Gate 再実行 | **INTEGRITY_GREEN** | Completion Gate **8/8**(unresolved S3 = 0 / S4 = 0)。preflight **16/16 PASS**(C6 追加後)/ 負のコントロール 2 系統。→ **Race Logic / Prediction Edge 研究の再開が可能**(実際に再開するかは Owner 判断)。ただし GREEN は「train と serve が同じ情報を見ている」保証であって**「当たる」保証ではない** | research/SYSTEM_INTEGRITY_AUDIT_V1.md §15 |
+| 2026-09-12 | Q-037(研究再開の可否と戦線) | **GO(Owner)— ただし最初の 1 本は MOTOR FEATURE SEMANTICS AUDIT** | 新 Race Logic 仮説ではなく、production B2 の motor 履歴特徴が物理モーターを識別していたかの意味論監査を最優先に指定 | Owner 指令 2026-09-12 / HANDOFF §0 |
+| 2026-09-12 | NG-MSA1 凍結計画 | **凍結(コード変更・再学習の前)** | 判定基準 E1〜E4 / physical identity key の確定手順 / 汚染指標 / arm 定義 / 評価窓・指標・閾値 M0〜M4 / 最終判定を固定。**判定 script も学習前に作成**し閾値の事後変更を構造的に封じた | research/MOTOR_SEMANTICS_FROZEN_PLAN.md / scripts/research/nextgen/msa1_verdict.py |
+| 2026-09-12 | NG-MSA1 事実認定 | **CASE 1 = SEMANTICS BUG CONFIRMED** | 学習 `src/features.py:102/104` / 推論 `predict_b2_live.py:340/342` とも `motor_no` 単独 group。物理個体キーは 11,643・現行 group は 90(129 倍粗い)。窓 20 件中 自機 平均 1.95 件・他会場混入 99.69%・影響 2,128,338 行 / 356,096 レース / 2020-01-01 以降。RECOMPUTE_PARITY gate PASS(max abs diff 0.0) | artifacts/research/nextgen/msa1/MSA1_FACTS.json |
+| 2026-09-12 | NG-MSA1 判定 | **MOTOR_BUG_MATERIAL(M2-minor)** | 固定 OOS 8,997R: ARM A 3.752954 / B(修正)3.751335(ΔNLL −0.00162・3seed 同符号)/ C(無効化)3.753002(+0.00005)。p120 TVD 0.0426・3連単 argmax 入替 13.25%。**M4 の 2 軸に近い(線の 85% / 88%)が閾値は動かさず**。旧特徴の精度寄与は実質ゼロ、修正版には小さいが本物の情報 | artifacts/research/nextgen/msa1/MSA1_VERDICT.json |
+| 2026-09-12 | NG-MSA1 ARM B′(事前登録した条件付きアーム) | **NO-GO(部分修正は不可)** | 会場だけ直し交換周期を無視すると ΔNLL **+0.00344** = 採用線を悪い方向に超えた唯一のアーム。窓が 3 日 → 30 日に伸び前周期の別個体が 9.43% の行に混入。**直すなら周期込みが必須** | FINDINGS P29 / MSA1_BV_CONTAMINATION.json |
+| 2026-09-12 | Integrity の定義 | **2 軸へ訂正** | `INTEGRITY_GREEN` は train/serve parity の保証であって semantics の保証ではない。Parity Integrity = GREEN 維持 / Semantics Integrity = YELLOW を新設。**§13-3 / §15 の GREEN 判定は取り消していない** | SYSTEM_INTEGRITY_AUDIT_V1 §16 / FINDINGS P28 |
+| 2026-09-12 | NG-MSA1 dependency 再計算 | **FLIPPED 0** | corrected B2(ARM B)で既存 frozen gate をそのまま適用。NG-U2 = `U2_NULL` でゲート合否完全一致 / NG-PDS1 = `PDS1_NULL` 不変。**統計の式は 1 行も書き直していない**。限界 = replica アームのみ差し替え(production 窓は未学習) | artifacts/research/nextgen/msa1/recheck/msa1_recheck_verdicts.json |
+| 2026-09-12 | INC-2026-0912-MOTORSEMANTICS | **起票(OPEN)** | FEATURE_SEMANTICS_INCIDENT・Medium。research finding は確定・production 是正は Owner 裁定待ち(Q-038)。**production コードは 1 行も変更していない** | research/INCIDENTS.md |
 
 
 
@@ -2414,18 +2588,74 @@ pandas の `sort_values` は NaT を末尾に置き、`.last()` は列ごとに�
 ②`.last()` は「最後の行」ではなく「列ごとの最後の非 NaN」。**NaN を挟む集計で使わない**
 ③as-of フィルタの直後に `assert frame[時刻列].max() < cutoff` を置く(Q-035 で `build_context` に追加済)
 
+### P27. production B2 の motor 履歴は「その艇の物理モーター」ではなく「全国で同じ背番号を付けた艇の直近 3 日」だった【**確定(feature semantics)**(2026-09-12・NG-MSA1)】
+
+`motor_recent20_top2` / `motor_race_count_prior` は、学習(`src/features.py:102/104`)も
+推論(`predict_b2_live.py:340/342`)も **`motor_no` 単独**で group していた。
+`motor_no` は **(会場 × 交換周期) の中でしか一意でない**。24 場が番号レンジ 1〜90 を共有しているため、
+背番号 22 の機体は事実上全 24 場に存在する。
+
+- 物理個体キー `(jcd, motor_no, cycle_id)` = **11,643 個体**。現行の group は **90** = **129 倍粗い**
+- 窓 20 件のうち**自機は平均 1.95 件(9.78%)**。**13.54% の行は自機が 1 件も入っていない**
+- 影響 **2,128,338 行(99.72%)・356,096 レース・2020-01-01 以降ずっと**(新しい退行ではない)
+- `motor_race_count_prior` は全国合算で窓 9999 の天井に張り付き、**63.2% の行が同じ値(9999)**。
+  正しい周期内消化数の中央値は **97**(76 倍の乖離)。AUC は **0.5006 = 信号ゼロ**
+- 原因は `src/features.py:101` のコメントが明示している:
+  「モーターの直近成績(**住之江なので**モーター番号 = 場のモーター)」= **単一会場時代の前提の残存**
+
+**公式値は壊れていない**: `motor_2rate` は出走表の公式値で、交換日に平均 −33.7pt リセットされることを
+161 本の境界で実測(交換後の水準 1.5%)。**「motor 情報が全部壊れていた」ではない。**
+
+### P28. 意味を間違えた特徴は、train と serve が同じ間違いをしていれば Integrity parity を PASS する【**方法論**(2026-09-12・NG-MSA1)】
+
+`INTEGRITY_GREEN` は **「train と serve が同じ情報を見ている」**保証であって、
+**「その情報が意図した意味を持つ」**保証ではない。P27 は parity を 1 件も壊さない。
+
+**列名検査で捕まらない事故の 4 例目になった**(P23 の表を拡張):
+
+| 事故 | 何が違ったか | 列名検査 | **parity 検査** |
+|---|---|---|---|
+| P20 `wind_dir_code` | 学習は定数・推論は実値 | 捕まらない | **捕まる** |
+| P21 研究 Raw-B2 | 同名 `wind_speed` の供給元が K(post-race) | 捕まらない | 捕まらない(研究側) |
+| P22 prior 集計 | 同名だが定義と鮮度が違う | 捕まらない | **捕まる** |
+| **P27 motor 履歴** | **train も serve も同じ誤った group key** | 捕まらない | **捕まらない** |
+
+→ **feature contract に「その特徴が使う ID」と「その ID が一意になる namespace」と「実際の group key」を
+書く欄を持たせ、3 者が一致するかを機械検査する**のが最小の再発防止装置。
+現行の `FEATURE_CONTRACT.json` には `semantic_meaning` はあるが **grouping key の欄が無い**。
+
+### P29. 壊れた特徴を「半分だけ」直すと、何もしないより悪くなることがある【**確定**(2026-09-12・NG-MSA1 ARM B′)】
+
+motor 履歴の group key を **会場だけ**直し(`jcd × motor_no`)交換周期を無視したアーム(B′)は、
+固定 OOS で **ΔNLL +0.00344 = 採用線 0.003 を悪い方向に超えた唯一のアーム**
+(正しく直した B は −0.00162、完全に無効化した C は +0.00005)。
+
+原因は **窓が張る時間幅が変わること**:
+
+| group | 窓 20 件が張る期間(中央値) | 前周期の別個体の混入 |
+|---|---|---|
+| 全国 `motor_no`(現行) | **約 3 日** | 0.056%(短すぎて周期を跨げない) |
+| `jcd × motor_no`(B′) | **30 日** | **行の 9.43%**・**4.72% の行は窓の過半が前周期** |
+| `+ cycle_id`(B) | 周期内に閉じる | 0%(定義上) |
+
+全国集計の旧特徴は**ただのノイズ**だったが、会場のみ補正は
+**「同じ会場の信号に見える、自信を持って間違った特徴」**になる。
+
+→ **scope-key を直すときは「キーを細かくする」だけでなく「窓が張る時間幅がどう変わるか」を必ず見る。**
+部分的な修正は無修正より悪くなりうる。
+
 
 
 # ===== research_state.json =====
 
 ```json
 {
-  "updated_at": "2026-09-12T05:40:00",
-  "updated_by": "Claude (Owner 指令 2026-09-12: Q-035 = STAGED GO)",
+  "updated_at": "2026-09-12T09:00:00",
+  "updated_by": "Claude (Owner 指令 2026-09-12: Q-037 = GO・最初の 1 本 = MOTOR FEATURE SEMANTICS AUDIT)",
   "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
   "architecture_version": "v2.1",
   "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
-  "current_phase": "RES-2026-09-I 完走 (DoD 8/8)。Q-035 = STAGED GO を Stage A (commit 390281c・runtime r4) / Stage B (commit bfcfcce・runtime r5) の 2 段で実施。prior 集計 24 列の UNEXPECTED_DIFFERENCE 24 → 0 (残る 21 列は same-day 境界による INTENTIONAL_DIFFERENCE。同日先行行が無い艇に絞ると 24/24 列で差分率 0.0000)。INC-2026-0912-PRIORSTALE = CLOSED。Completion Gate 8/8 → 最終判定 INTEGRITY_GREEN。Race Logic / Prediction Edge 研究の再開は技術的には可能 (再開の可否と戦線は Q-037 で Owner 裁定待ち)",
+  "current_phase": "RES-2026-09-J 完走。NG-MSA1 = MOTOR FEATURE SEMANTICS AUDIT。判定 CASE_1_SEMANTICS_BUG_CONFIRMED / M2-minor / 最終判定 MOTOR_BUG_MATERIAL。production B2 の motor 履歴 2 列 (motor_recent20_top2 / motor_race_count_prior) は motor_no 単独 group で物理モーターを識別していなかった (窓 20 件のうち自機 平均 1.95 件・他会場混入 99.69%・影響 2,128,338 行 / 356,096 レース / 2020-01-01 以降)。motor_2rate (公式値) は正しい。修正版 B2 は ΔNLL −0.00162 (採用線 0.003 の約半分)・3連単 argmax 入替 13.25%。motor 履歴を完全無効化しても ΔNLL +0.00005 = 旧特徴の精度寄与は実質ゼロ。会場だけ直すと悪化する (ΔNLL +0.00344)。production 変更は Q-038、再検証戦線は Q-039 で Owner 裁定待ち",
   "baseline_model": {
     "id": "b2f41_prod2026_prod3",
     "description": "B2構造化着順NN (41特徴・6艇self-attention・120通り直接softmax・3seed平均) + exh120展示補正層(θ9) + 市場ブレンド(w=0.85・推論後段)",
@@ -2436,8 +2666,8 @@ pandas の `sort_values` は NaT を末尾に置き、`.last()` は列ごとに�
     "id": "b2f41_prod2026_prod3",
     "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
   },
-  "current_experiment": "NG-Q035 (Prior Aggregate Train/Serve Parity) — done_primary",
-  "current_experiment_note": "primary = parity (PARITY_RESOLVED: UNEXPECTED_DIFFERENCE 24 → 0)。secondary = prediction impact (固定 OOS 8,997R: NLL 3.74741 → 3.74665 / Brier 0.95760 → 0.95752 / 1着 Hit@1 21.64% → 21.73% / 3連単 Hit@1 10.21% → 10.18%。TRAIN は NLL 3.74452 / 1着 Hit@1 21.79%)。性能は採否条件ではない。ΔNLL −0.00076 は採用線 0.003 の約 1/4 で、回収率への効果は測っていない",
+  "current_experiment": "NG-MSA1 (Motor Feature Semantics Audit) — done_primary",
+  "current_experiment_note": "primary = semantics 事実認定 (CASE 1 confirmed・RECOMPUTE_PARITY PASS)。secondary = 3(+1) アームの counterfactual retrain。ARM A 現行 3.752954 / ARM B 修正 3.751335 / ARM C 無効化 3.753002 / ARM B′ 会場のみ 3.756395 (固定 OOS 8,997R の 3連単 NLL)。ARM A は Q-034 clean replica を差 2.4e-07 で再現 (determinism check)。dependency 再計算 = NG-U2 / NG-PDS1 とも SAME・FLIPPED 0",
   "experiments": {
     "registry_path": "artifacts/research/experiment_registry.jsonl",
     "adopted": [
@@ -3532,8 +3762,13 @@ pandas の `sort_values` は NaT を末尾に置き、`.last()` は列ごとに�
     "runtime_revision": "r5-2026-09-12-prior-train-consistent",
     "feature_contract_revision": "fc-v3-2026-09-12",
     "preflight": "16/16 PASS (C6 = serve 経路の prior parity)",
-    "note": "GREEN は『train と serve が同じ情報を見ている』保証であって『当たる』保証ではない。same-day 境界による差は 21 列に残る = アーキテクチャ上の下限"
-  }
+    "note": "INTEGRITY_GREEN は『train と serve が同じ情報を見ている』保証であって『その情報が意図した意味を持つ』保証ではない。SYSTEM_INTEGRITY_AUDIT_V1 §16",
+    "parity_integrity": "GREEN (RES-2026-09-I・unresolved S3 = 0 / S4 = 0)",
+    "semantics_integrity": "YELLOW (2026-09-12・NG-MSA1)。motor 履歴 2 列で確定した意味の誤り 1 件。是正は Owner 裁定待ち (Q-038)。parity 検査では捕まらない事故クラス = FINDINGS P28"
+  },
+  "open_incidents": [
+    "INC-2026-0912-MOTORSEMANTICS (FEATURE_SEMANTICS_INCIDENT・Medium・OPEN・research finding は確定・production 是正は Q-038 待ち)"
+  ]
 }
 ```
 
