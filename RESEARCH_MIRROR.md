@@ -1,71 +1,88 @@
 # KYOTEI-AI RESEARCH MIRROR(外部AI共有用・読み取り専用)
-生成日: 2026-09-11 / 正本: kyotei-ai リポジトリ /research/ 配下(本ファイルはその連結コピー)
+生成日: 2026-09-12 / 正本: kyotei-ai リポジトリ /research/ 配下(本ファイルはその連結コピー)
 注意: 数値の正直ルール(小標本=断定禁止・確定オッズ由来=diagnostic)を前提に読むこと。本文書には市場の歪みの所在(研究エッジ)が含まれる — 取り扱いは Owner(shin)の指示に従う。
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
 
-- 更新: 2026-09-11 22:05(Owner 研究指令 2026-09-11 **第 2 弾**「Q-025 = GO + Venue Logic Research v0」の実行後)
-- 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/u2_venue_familiarity_20260911.md` と `lane-reports/venue_logic_v0_20260911.md`、会場ごとの地図は **`research/VENUE_LOGIC_ATLAS.md`** へ
-- 最終ゴール: 未来の未見レースで、締切前に固定したルールだけを使って、実際に取得可能なオッズで BET / NO BET を決め、資金を増やせるかを判定すること
+- 更新: 2026-09-12 00:15(Owner 研究指令 2026-09-11 **第 3 弾**「Q-028 = GO / Q-029 = AUDIT ONLY GO」の実行後)
+- 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/va1_venue_attack_residual_20260912.md` と `lane-reports/q029_weather_provenance_audit_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
+- 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
 
 ## 1. 今何が分かったか(今回)
 
-今回のテーマは「**競艇は 24 会場で同じゲームなのか、会場ごとに違う 24 種類のゲームなのか**」。答えは **「ほとんど同じゲーム。ただし 1 か所だけ、はっきり違う」**。
+今回のテーマは 2 つ。**①「会場ごとに 1 号艇の壊れ方が違う」という前回の発見は、B2 がまだ知らない情報なのか?** **②本番モデルに、締切後にしか分からない天気データが混ざっていないか?**
 
-- **① 難条件 × 当地経験は空振り(NG-U2・判定 NULL)**。「強風・高波の日は、その場に慣れた選手が強いのでは」を 2×2 表で測ったが、交互作用は **+0.09pp**(誤差の範囲)。季節のクセを入れ替えた偽装検定では **85% の確率で同じ数字が出る** = ほぼ完全にノイズ。さらに「理想的に組み込めたとしての上限」でも改善は **採用線の 18 分の 1**。→ **当地経験という情報源は、無条件でも条件付きでも閉じた。**
-- **② 会場差は「1 か所だけ」あった(Venue Logic v0・判定 PARTIAL)**。攻め手と被害・受益の 16 の組み合わせを 24 場別に測り、事前に決めた 6 条件をすべて満たしたのは **1 本だけ** = 「**4 号艇が攻める気配のとき、1 号艇の勝率がどれだけ落ちるか**」。全国平均が −1.15 ポイントなのに対し、**桐生 −2.47 / 芦屋 −0.43 と 5.7 倍の開き**があり、前期と後期で会場の順位がよく一致する(相関 +0.75)。
-- **③ 今回いちばん構造的な発見: 崩れ方には会場差があるが、拾われ方には無い**。「4 号艇が攻めたとき 5 号艇が得をする」効果は **24 場でほぼ完全に同じ**(会場間のバラつきがゼロに縮む)。つまり **「誰がどれだけ崩れるか」は会場で違い、「崩れた後に誰が拾うか」は全国共通**。
-- **④ もう 1 つの発見: 「1 着を落とすが 2 着に残る」現象は会場ではなく攻め手のコースが決める**。3 号艇に攻められた 1 号艇は **24 場すべて**でこの形。2 号艇なら 20/24 場。**4 号艇に攻められた場合は 0/24 場** = 1 着も 2 着も両方落ちる。
-- **⑤ 着手前にリークを 1 つ止めた**。難条件の材料に使うはずだった風速・波高は、**レース結果ページから読んでいた = レース後にしか分からない値**だった。締切前に見られる beforeinfo の値に差し替え、汚染が確定している 1 レース目を全部除いて測り直している。
+### ① 答え = **B2 はもう知っていた。しかも仮に知らなくても、価値が小さすぎる**(NG-VA1)
 
-## 2. それで何が変わったか
+- **残差に会場差はゼロだった。** 24 会場それぞれの「4 号艇の攻めで 1 号艇がどれだけ余計に崩れるか」を B2 の残差で測ると、**会場ごとのばらつきが完全に消える**(統計的にゼロへ収縮)。前回作った会場ランキングとの対応も **ほぼ無相関(−0.14)**。
+- **決め手はもう 1 つある。** 結果を一切使わずに「**B2 の予測そのものが会場差をどれだけ再現しているか**」を測ると、**傾き 1.07(誤差 ±0.27)= ほぼ丸ごと再現していた**。つまり B2 は「桐生では 4 号艇の攻めで 1 号艇が崩れやすい」ことを**すでに予測に織り込んでいる**。
+- **仮に完璧に知れたとしても、改善の上限は採用ラインの 13〜21 分の 1。** 「理想的に組み込めたら予測がどこまで良くなるか」の上限を測ると **0.0002〜0.0009** で、採用ライン **0.003** に遠く届かない。→ **この線は追わない。**
+- **正直な限界**: 「残差にゼロ」の直接測定は**検出力が足りない**(この 1 年分のデータでは、前回見つかった差の 1.8 倍を超える差しか検出できない)。これは**着手前に自分で宣言し、「検出力が足りないときは NULL と言ってはいけない」というルールを凍結時に自分に課した**。だから機械判定は「NULL」ではなく「判定不能寄りの PARTIAL」。**結論を支えているのは上の 2 本(上限の小ささ・B2 の予測が再現済み)であって、残差測定そのものではない。**
+- **桐生は今回は強くなかった。** 観測では 24 場中もっとも崩れやすい会場だが、**残差では逆向き**(有意ではない)。そして B2 の予測側では**桐生をいちばん強く織り込んでいた**。なお指令どおり、**会場名は判定に一切使っていない**。
+- **副産物**: 全国平均としての「4 号艇に攻められると 1 号艇が崩れる」は残差に生きている(−0.93)。しかも**展示タイム補正(exh120)を掛けてもほとんど減らない**(−0.90)。ただしこれ単独の改善上限も 0.00038 = 採用ラインの 1/8。
 
-- **「会場ごとに別ゲーム」は、全域の形では否定された。**必要なのは 24 会場ぶんのモデルでも埋め込みでもなく、「**1 号艇が 4 コースの攻めにどれだけ弱いか**」という**数字 1 本**。
-- **「難条件」という軸が 2 方向から否定された**(U2 の習熟交互作用・旗艦チャネルの難条件層別とも不成立)。風速・波高の閾値で場面を切る筋は、これ以上広げない。
-- 選手個人の情報(静的・動的)、当地経験(無条件・条件付き)、市場較正 — **閉じた路線がまた 2 つ増えた**。残っているのは「攻め・被害・受益という中間過程」の線。
+### ② 答え = **本番は安全だった。ただし別の穴が 2 つ出てきた**(Q-029)
+
+- **判定 = WEATHER_SAFE。** 本番モデルの中に保存されている「学習時の平均値」を、beforeinfo 版と K ファイル版の両方と突き合わせたところ、**小数点以下 8 桁まで beforeinfo と一致し、K とは一致しなかった**。独立した 5 つの確認線すべてで同じ結論。→ **締切後の天気は本番に入っていない。**
+- **前回の指摘(P17)は間違っていたので訂正した。** 「ガード用のリストに列が登録されていない」ことから「本番が汚染されている」と推論してしまっていたが、**その 2 つを結ぶ経路が実在しなかった**。教訓として「ガードの不備と実際のデータ経路は別の事実」を規律に加えた。
+
+## 2. しかし監査が別の問題を 2 つ掘り出した(こちらが今回の実害)
+
+### 🔴 (A) 2026-09-05 以降、本番の予測が実測で悪化している(Q-030)
+
+- 風向の列は、**学習時にはずっと「−1」という固定値**だった(実質、使っていない列)。ところが **9 月 5 日の改修**で風向を 16 方位で読めるようにしたため、**本番の予測時だけ実際の値(1〜16)が入るようになった**。9 月以降のレースの **約 95%** が該当する。
+- モデルからすると「**学習中は一度も動いたことのない列が、急に動き出した**」状態で、これは経験のない入力。
+- **実測した**: 同じ本番モデル・同じ 9,607 レースで、固定値のときと実値のときを比べると **予測の悪さ(NLL)が 3.7526 → 3.7970 に悪化**。これは**採用ラインの約 15 倍の悪化**で、しかも**1 着予測が 14.84% のレースで入れ替わる**。
+- **直し方は推論側に 1 行入れるだけ**(学習と同じ「−1」に戻す)。**再学習は不要・元に戻せる・情報の損失もほぼ無い**(元々使われていない列なので)。
+- ただし**本番の推論経路を変える操作**なので、**AI 単独ではやらない**。→ **Q-030 として裁定待ち**。
+- 未確認が 1 つ: 実際にネットワーク越しに動かしたときの最終確認(1 回の実走)は残っている。上の 95% は保存済みデータの分布から出した数字。
+
+### 🟡 (B) 研究で使ってきた「素の B2」が、実は締切後の天気で作られていた(Q-031)
+
+- 研究用に B2 の確率を吐き出すスクリプト 2 本が、**K ファイル(締切後)由来の天気が入ったファイル**を読んでいた。本番が読むファイルとは別物。
+- そのため、研究の基準モデル(p2 replica)は **締切後の天気で学習された「本番より少し賢いモデル」**だった。
+- **これに乗っている実験**: SOB1F / PDS1 / NG-U2 / Venue Logic の一部 / **今回の VA1** — つまり最近の残差系の結論すべて。
+- **今回の結論が変わるかは実測した**: 本番モデルで条件を切り替えて同じレースを推論したところ、**全国の残差効果は同じ符号で差は誤差の範囲、会場差はどちらの条件でもゼロ** → **VA1 の結論は変わらない**。
+- ただし天気 4 列の寄与(0.004)は VA1 で測った会場効果の上限(0.0009)より大きいので、**「気にしなくていい」とは言えない**。→ **次の 1 本はこの土台の修復を推奨**(Q-031 = NG-REF1)。
+
+## 3. それで何が変わったか
+
+- **「会場ごとに違う Race Logic をモデルに足す」線は閉じた。** 24 会場ぶんのモデルも、埋め込みも、PoC も作らない。`VENUE_LOGIC_ATLAS.md` は**説明の地図・仮説を作る道具としては残す**が、**予測を強くする候補からは降格**。
+- 閉じた路線がまた 1 つ増えた(選手個人の静的・動的情報 / 当地経験 / 難条件 / 市場較正 / **会場差**)。
+- **今いちばん優先度が高いのは研究ではなく運用の直し**(Q-030)。9 月 5 日以降の本番予測が実測で悪化している。
 - 本番モデル・11/1 の holdout 判定ルール・forward collector・shadow・部品バックフィルは**変更なし**。
 
-## 3. 自分で訂正したこと(報告前に気づいた 1 件)
+## 4. 自分で開示したこと(2 件)
 
-会場の平均風速・平均波高で会場差を説明できるか調べたところ **「92% 説明できた」** という数字が出た。**そのまま書くところだった。**
-念のため「まったく無関係なランダムな数字 2 本」で同じことをすると、**平均 95% 説明できてしまう**(24 会場しかないため)。→ **この数字は取り下げ**、Q7 は「判定不能」と答える。同種の分析では必ずこの偽装検定を併記する規律にした(FINDINGS P18)。
+1. **凍結前に 3 つの数字を見てしまった。** 検出力を計算する過程で、結果に依存しない量(B2 の予測側の傾きなど)の点推定が目に入った。**隠さず凍結ファイルに逐語で記録**し、「この数字に合わせて基準を動かしていない」ことを証明できる形にした。
+2. **事前に決めた会場分類ルール(Type 1〜4)が使い物にならなかった。** 残差の会場差がゼロになったため、分類が機械的に全会場同じラベルになってしまう。**基準は変更せず**、「分類は実施不能」と書き、参考表は別ファイルに「これはノイズのラベル付けであって『11 会場で B2 未学習』ではない」と明示して置いた。
 
-## 4. 今動いているもの
+## 5. 今動いているもの
 
-- 部品交換履歴のバックフィル(9/16 完走目安)
-- 締切直前オッズの自動収集と holdout の封印
-- 仮想運用の単勝(方式 A 判定・毎晩 23:30)
+- 部品交換履歴のバックフィル(9/16 完走目安)/ 締切直前オッズの自動収集と holdout 封印 / 仮想運用の単勝(毎晩 23:30)
 - 実行中の実験: なし
 
-## 5. 次の 1 手(Owner GO = Q-028)
+## 6. 次の 1 手(Owner 裁定待ち)
 
-指令 §24 の分岐では **A**(旗艦の Venue interaction が強い)が該当する(B 天候は否定・C は ST が 1 号艇でしか会場差を持たない・D「会場差が弱い」には当たらない)。
-
-- **NG-VA1 = 「会場 × 4 コース攻撃」の 1 本だけ**。今回の会場ランキングは**モデルを使わない実測スケール**で作ったので、次に確かめるのは「**この差が B2 の残差にも残っているか**(= 本番モデルがまだ知らない情報か)」。
-- 会場の数値は **今回凍結した値をそのまま使い、再推定しない**(そうしないと同じデータを二度使うことになる)。
-- 本当に未使用のデータでの確認は **2026-11-01 の holdout 開封後に 1 回だけ**。
-- 学習なし・オッズ不使用・production 不変。
-
-## 6. Backlog に送ったもの(実験はしない)
-
-Venue-specific Race Formation(指令 §13。v0 が PARTIAL 止まりのため今は起票しない)/ B 調整能力 × 現在状態 / D 専門家の観察 / SC2・H-A 本体 / Historical Replay 最小試作 / Venue clustering(会場群としての分離が弱い)
+- **Q-030(最優先)= 風向の列を推論側でも固定値に戻す。** 本番推論の変更なので承認が要る。再学習不要・可逆・1 行。
+- **Q-031 = 研究の基準モデルを本番と同じ条件(beforeinfo 天気)で作り直す(NG-REF1)。** 新しい仮説ではなく**土台の修復**。これを飛ばすと、以後の残差研究すべてに同じ但し書きが付き続ける。
 
 ## 7. 棄却済みで再研究しないもの(同じ形では再提案しない)
 
-- 階級(A1/B1)/ 満潮=まくり有利 / 気温・水温の素値 / **当地・地元(無条件)** / 純粋 externality
+- 階級(A1/B1)/ 満潮=まくり有利 / 気温・水温の素値 / 当地・地元(無条件)/ 純粋 externality
 - モデル改造で強くする(12 連敗)。効くのは情報追加と推論工夫だけ
 - レースの格の後付け / 風の線形 2 パラメータ / 勝負駆けの utility / 行動 proxy 薄層 / まくり筋の固定 λ・rolling λ
 - 受け手側の「圧力への対応力」の個人差 → GAT 棚上げ / モーター状態の入力昇格 / 当日展示の入力側化 / 読める=儲かる
-- 「配当の高さに応じて AI を市場側へ縮める」→ 否定 / 「乖離が大きいほど AI の誤差」→ 券種選択後は逆 / 市場ブレンド・較正のパラメータ追加(T3D5 以降)は禁止
-- 選手の「今の状態のズレ」→ 否定(well-powered null)/ 状態系は当日展示 z の統制を第一関門に(4 例)
-- **今回追加: 「難条件 × 当地習熟」→ 否定(R-14)/ 「特定水面への習熟 × 調整能力 × 難条件 × コース」(U-35 / H-B)→ 閉鎖 / 「24 会場は別ゲーム」→ 全域の形では否定(R-16。生き残りは 1 次元のみ)/ 24 会場ぶんの Venue 埋め込み・会場別モデル群は作らない**
-- Owner 禁止(作らない): 大型 Scenario Generator / Race Simulator / Portfolio Optimizer 本番化 / GAT 再起票 / 個人ペア相互作用 / 券種専用 NN・巨大 calibration network / 拡連複・複勝への拡張 / バックフィルの停止・再起動・35 万拡張 / holdout の閲覧 / **LLM に世界線のストーリーを作らせて確率を付けること**
+- 「配当の高さに応じて AI を市場側へ縮める」→ 否定 / 市場ブレンド・較正のパラメータ追加(T3D5 以降)は禁止
+- 選手の「今の状態のズレ」→ 否定 / 「難条件 × 当地習熟」→ 否定 / 「24 会場は別ゲーム」→ 全域の形では否定
+- **今回追加: 「会場 × 4 コース攻撃は B2 が取り切れていない」→ 否定(R-17)。会場差をモデルへ足す線は閉じた。指令 §14 の Venue PoC は起票しない**
+- Owner 禁止(作らない): 大型 Scenario Generator / Race Simulator / Portfolio Optimizer 本番化 / GAT 再起票 / 個人ペア相互作用 / 券種専用 NN / 拡連複・複勝 / バックフィルの停止・再起動 / holdout の閲覧 / LLM に世界線のストーリーを作らせて確率を付けること
 
-(棄却理由の全文と内部 ID = HYPOTHESES.md §5 / 今回の詳細 = lane-reports/u2_venue_familiarity_20260911.md・venue_logic_v0_20260911.md / 会場ごとの地図 = research/VENUE_LOGIC_ATLAS.md)
+(棄却理由の全文と内部 ID = HYPOTHESES.md §5 / 今回の詳細 = lane-reports/{va1_venue_attack_residual,q029_weather_provenance_audit}_20260912.md / 会場ごとの地図 = research/VENUE_LOGIC_ATLAS.md)
 
 ---
 # §16 サマリ層(機械生成 — 編集しない・正本は下部の連結全文)
-生成日: 2026-09-11 / 生成元: research_state.json + experiment_registry.jsonl + NEXT_ACTIONS.md + DECISION_LOG.md + DATA_STATUS.md + FINDINGS.md
+生成日: 2026-09-12 / 生成元: research_state.json + experiment_registry.jsonl + NEXT_ACTIONS.md + DECISION_LOG.md + DATA_STATUS.md + FINDINGS.md
 
 ## 1. Current Production(現在の本番)
 - Best = Baseline = **`b2f41_prod2026_prod3`**(オッズ入力なし)
@@ -74,21 +91,21 @@ Venue-specific Race Formation(指令 §13。v0 が PARTIAL 止まりのため今
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: なし(Owner 指令「Prediction Edge Discovery 第 1 弾」完走 (2026-09-11 02:10)。実行中の実験なし。自走 = 部品バックフィル PID 12667 + forward collector 試験 …)
-- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・18333/49968 ページ・残り目安 4.31 日)
+- 実行中の実験: なし(Owner 指令 2026-09-11 第 3 弾 完走 (2026-09-12 00:15)。実行中の実験なし。自走 = 部品バックフィル PID 12667 + forward collector 試験 (NG-FC1・9/11〜9/…)
+- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・18913/49968 ページ・残り目安 4.23 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-T3D4**(2026-09-10・done_primary・—): 機械判定 (凍結 t3d4_frozen.json 21:25・test = prod3 2026-07-01〜08-31・T-1・τ1.15 top3・B=2000): 4 券種 FAIL (3連複 FAIL_CALIB / 2連単 FAIL_TAIL / 2連複 FAIL_CALIB / 3連単 FAIL_CALIB) → route B PREDICTION_EDGE_ROUTE。NLL で選ばれた追加項は全セル 0 か負 (3連複 C2_pos …
 - **NG-SOB1F**(2026-09-11・done_primary・—): 機械判定 (凍結 sob1f_frozen.json 00:25・結果計算前 → 実行 01:38・14.3 秒・test = prod3 2026-07-01〜08-31・8,997R・B=2000 seed42・placebo 500 seed777+a): **PARTIAL**。①符号 4/4 ✅ ②Stouffer z=4.82 片側 p=7.3e-07 ✅ ③旗艦 T1 4→1 β=−1.735pp/SD CI[−2.676,−0.783] …
 - **NG-PDS1**(2026-09-11・done_primary・—): 機械判定 (凍結 pds1_frozen.json 01:55・目的変数との関係を 1 つも計算する前 → 実行 312 秒・fit 50,926R / future 8,997R・B=2000 seed42・置換 500 seed777): **PDS_NULL**。G1 存在確認は 6 本すべて不合格 (CI がすべて 0 跨ぎ・BH 通過ゼロ・置換 p 最良 f_perf 0.054 / f_st 0.068)。β は f_st +0.00130 …
 - **NG-U2**(2026-09-11・done_primary・—): 機械判定 (凍結 u2_frozen.json 21:46:25・目的変数との関係を計算する前 → 実行 230 秒・fit 46,648R / future 8,236R・R1 除外後・B=2000 seed42・置換 500 seed777): **U2_NULL**。G1 存在 ❌ (DiD +0.0855pp CI[−0.7199,+0.8532]・効果 floor 0.2pp 未達ではないが CI が 0 跨ぎ) / G2 方向安定 ❌ (前後…
 - **VENUE-V0**(2026-09-11・done_primary・—): 機械判定 (凍結 venue_v0_frozen.json 21:53:27・結果統計を計算する前 → 監査 31 秒 + 補助 4 秒・261,194R / 2021-01-01〜2026-06-30・R1 除外・最小会場 9,891R): **VENUE_PARTIAL**。16 チャネル中 **1 本**が事前登録 6 条件をすべて通過 = 旗艦 T1 4→1 (全国 −1.153pp/SD・τ 0.554・I² 0.605・Q p=7.0e-05…
+- **NG-VA1**(2026-09-12・done_primary・—): 機械判定 (凍結 va1_frozen.json 2026-09-11T23:56:09・sha256 2fb01f38…6ace23・結果 y に依存する統計を 1 つも計算する前 → 実行 207.6 秒・fit 46,648R / ref 8,236R・R1 除外・beforeinfo 条件・Raw B2 = p2 replica 2025-07〜2026-06): **VA1_PARTIAL / PARTIAL_UNDERPOWERED**。G1…
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-11 22:05(**Owner 研究指令 2026-09-11 第 2 弾「Q-025 = GO + Venue Logic Research v0」完走**: **NG-U2 = U2_NULL**(難条件 × 当地習熟は B2 残差に情報なし・oracle 上限は採用線の 1/18 → U-2 を R-14 で否定・U-35 閉鎖 = **当地経験は静的にも条件付きにも閉じた**)/ **VENUE-V0 = VENUE_PARTIAL**(16 チャネル中 1 本のみ異質 = 旗艦「4 攻め → 1 号艇被害」)。**構造的発見 = 崩れ方には会場差があるが拾われ方には無い(P14)/ scale reversal は会場でなく攻め手のコースが決める(P15)/ 難条件はどのスケールでも信号なし(P16)**。着手前に K ファイル由来気象の as-of 不適合を検出・回避(P17)。会場 meta-regression の「天候 92% 説明」はプラセボで取り下げ(P18)。O…
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-12 00:15(**Owner 研究指令 2026-09-11 第 3 弾「Q-028 = GO / Q-029 = AUDIT ONLY GO」完走**) - **NG-VA1 = VA1_PARTIAL / PARTIAL_UNDERPOWERED**(機械)= **実質 Case A 寄り + 統合価値なし → 指令 §24 の分岐 C**。会場差は B2 win 残差で **τ が厳密に 0**(Q p=0.744・I²=0.000・生の会場 SD 0.898 < ノイズ 1.004・frozen 順位との ρ=−0.143)。**oracle 上限の venue 増分 0.000225〜0.000861(cross-fit 0.000144)= 採用線の 1/13〜1/21** / **model-side λ=1.072±0.270 = B2 の予測が会場差をほぼ丸ごと再現済み** - **Q-029 = WEATHER_SAFE → CLOSE**。監査中に別件 2 件を…
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -157,26 +174,22 @@ Venue-specific Race Formation(指令 §13。v0 が PARTIAL 止まりのため今
 - #16 公開 mirror の git 履歴 / gist 版履歴に残る先方実名の扱い (force push + gist 作り直し)(推奨: Owner 判断 (危険操作))
 - #17 crontab 3 行 (風コレクタ 2 + 部品日次 1)(推奨: 設置)
 - #18 NG-T3D3 起票 (gap 条件付きブレンド・design_t3d3_20260910.md)(推奨: GO (事前登録→実行。新 NN なし・本番不変))
-- #19 forward collector 実装・launchd 登録 (design v2 + draft + plist draft 完成)(推奨: GO (2 週間試験。3連複/2連単/2連複ページの追加有無を同時裁定))
-- #20 shadow EV 判定を方式 A (3連単含意単勝) へ差し替え (daily_signal_notify.py・本番隣接)(推奨: GO (持ち越し))
-- #21 研究成果の commit + research mirror push (Q-007 e の扱い)(推奨: GO)
-- #22 NG-T3D4 起票 = オッズ帯条件付き λ + 判定を『確定配当ベースの実現値 CI 下端 > 1』に置く (実現値が 1 を超えなければケース3 確定・Market Gate 閉鎖)(推奨: GO (Q-022))
 - #23 forward collector 試験後 (9/24) の checkpoint 確定 (D-0:30/D-0:10 存廃・3f/2tf 継続) と raw HTML gz の削除(推奨: 試験結果を見て裁定 (メタデータのみ))
-- #24 Prediction Edge Discovery 第 1 弾の事前登録 GO (a NG-SOB1F / b NG-PDS1)(推奨: a GO / b GO)
-- #25 次の主研究 1 本 = NG-U2「場 × 難条件 × 習熟」の 2×2 residual 表 (Gap Audit 次点 E・学習なし・<1 日・オッズ不使用)(推奨: GO (指令 §21 の分岐 D。A/B/C は SOB1F PARTIAL・PDS1 NULL により不成立))
+- #26 wind_dir_code の train/serve skew 是正 (本番推論を -1 固定へ戻す・再学習なし)(推奨: GO (推論側 1 行。実測 ΔNLL +0.04447 = 採用線の約 15 倍の劣化・1 着予測の入替 14.84%・可逆・情報損失ほぼ皆無))
+- #27 研究 p120 dump の K 気象 provenance 是正と Raw-B2 参照の再構築 (NG-REF1・production 不変)(推奨: GO (次の主研究 1 本。SOB1F / PDS1 / U2 / VENUE-V0 L3 / VA1 の土台))
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-10 | Historical Replay Engine | 設計のみ (実装なし・T3D3 の後に最小試作 8 h・Owner GO) — 5 入力の as-of 定義・model-as-of ladder・leakage checklist 21 項目 (旧 Engine で満たされる 6 / 不足 15)・pre…
-- 2026-09-10 | 知人研究 Crosswalk | 整理完了 (判定に不使用・independent reference) — 44 行照合: 一致 28 / 不一致 9 / 未検証 7。知人の生存候補 (2連複 edge002) は市場 vs 市場の歪みで AI ブレンドとは別物。gap ブレンドは知人…
-- 2026-09-10 | Owner 研究指令 (第 3 弾)「高配当側の過信を最後に検証し、その後の主戦線を決める」 | GO(Owner 2026-09-10 21:15)= Q-022 a/b/c GO / Cycle RES-2026-09-C OPEN — NG-T3D4 (rarity 条件付き shrinkage・最大 2 パラメータ・金額 primary) を市場較正レーンの最終ゲートとして起票・実行。FAIL なら T3D5…
-- 2026-09-10 | NG-T3D4 Payout-Tail Calibration / Odds-Conditioned Shrinkage | **機械判定 = 4 券種 FAIL → route B (PREDICTION EDGE ROUTE)。ケース3 確定・Market Gate 閉鎖・T3D5 以降のパラメータ追加禁止** — 凍結 (21:25・結果計算前) → test prod3 07-01〜08-31・T-1・τ1.15 top3。NLL 最適の追加項は全セル 0 か負 (β −0.34〜−0.…
-- 2026-09-10 | 「大きい AI–市場乖離ほど AI 誤差」仮説 (Owner 指令 §9) | **不支持・逆** — EV 選択後に生き残るのは乖離 large / extreme × 10〜50 倍 (2連単 / 2連複で money-CR 0.89〜1.07・実現 0.94〜1.10・CI …
-- 2026-09-10 | Historical Replay 最小試作 (8 h・設計済み) | 今サイクルでは着手しない (保存) — route B の次戦線 (Prediction Edge PoC) は as-of 特徴 × p120 dump × proper scoring で完結しオッズ時点整合は不要…
-- 2026-09-11 | Owner 研究指令「Prediction Edge Discovery 第 1 弾 (NG-SOB1F → NG-PDS1)」 | GO (Owner 2026-09-11) = Q-024 a/b GO / Cycle RES-2026-09-D OPEN — 主目的を「市場と AI が意見を異にする場面で AI 側が本当により正しくなる新しい情報を見つける」に固定。評価基準に **Market Disagreement Subset …
-- 2026-09-11 | NG-SOB1F 攻め手在席シフトの将来窓再現 | **機械判定 = PARTIAL**(①符号 4/4・②Stouffer z=4.82 p=7.3e-07・③旗艦 4→1 CI 非跨ぎ・⑤placebo p=0.002 は成立 / ④規模整合のみ不成立)→ **H-A 本体・SC2 へは進まない**(指令 §7) — test = prod3 2026-07-01〜08-31・8,997R(最小 n 6,000 充足)。凍結 00:25 (結果計算前) → 実行 14.3 秒。④ は T1 4…
-- 2026-09-11 | NG-PDS1 選手の動的状態(Player Dynamic State) | **機械判定 = PDS_NULL**(G1 存在確認 6 本すべて不合格)→ **「選手個人の情報」路線は静的・動的の両方で閉じる** — fit = p2 replica 2025-07〜2026-06(50,926R・30.4 万艇行)/ future = prod3 2026-07〜08(8,997R)。凍結 …
-- 2026-09-11 | 次の主研究 1 本の選定(Owner 指令 §21 の分岐) | **分岐 D を適用 → 次点候補 E(場 × 難条件 × 習熟)= NG-U2 を次サイクル候補に**。A(SOB1F 強再現)は PARTIAL のため不可・B(PDS1 強再現)は NULL のため不可・C は両方不成立で不可 — SOB1F は ①②③⑤ 成立だが凍結ルール上 PARTIAL = 「強く再現」とは呼ばない(H-A・SC2 ゲートは閉じたまま)。PDS1 は NULL。よって残るのは D。G…
+- 2026-09-11 | Q-029: 現 production の K 由来気象 provenance | **AUDIT ONLY GO** — 調査のみ。production 変更・再学習・修復は今回行わない
+- 2026-09-11 | NG-VA1 事前登録 | 凍結 — `va1_frozen.json` 23:56:09(sha256 2fb01f38…6ace23)= 結果 y に依存する統計を 1 つも計算する前。**検出力の限界を事前に宣…
+- 2026-09-12 | NG-VA1 | **FAIL(機械判定 VA1_PARTIAL / PARTIAL_UNDERPOWERED)** — G1〜G6 すべて不成立。γ=−0.257±0.475(p=0.589)・Q p=0.744・**I²=0.000・τ=0**・frozen 会場順位との ρ=−0.143。**…
+- 2026-09-12 | U-36a「会場 × 4 コース攻撃は B2 が取り切れていない」 | **REJECT(R-17)** — ①残差 τ=0(生の会場 SD 0.898 < ノイズ 1.004)②**oracle 上限の venue 増分 0.000225 = 採用線の 1/13**(自由会場版 0.0…
+- 2026-09-12 | Venue Logic レーンの位置づけ | **降格(説明層として保持)** — Prediction Edge 候補から降格。`research/VENUE_LOGIC_ATLAS.md` は仮説生成装置として維持。指令 §24 の分岐 **C** 相当
+- 2026-09-12 | Q-029(気象 provenance) | **CLOSE = WEATHER_SAFE** — 現 production `b2f41_prod2026_prod3` は beforeinfo 気象で学習済み。決定的証拠 = バンドルの mu/sd 指紋が beforein…
+- 2026-09-12 | FINDINGS P17 の記述 | **訂正** — 「本番学習側は未対応」は誤り。列名ガードの不備から本番汚染を推論していたが、その経路が実在しない(本番 b2 は `src/model.py:FEATURE_COLS` を使わな…
+- 2026-09-12 | `wind_dir_code` train/serve skew(新規発見) | **起票 = Q-030(未裁定)** — 学習は全行 −1 固定・推論は実値 1〜16(2026-09-05 commit c260f3c 以降・露出 95.25%)。**実測 ΔNLL +0.04447 = 採用線の約…
+- 2026-09-12 | 研究 p120 dump の気象 provenance(新規発見) | **起票 = Q-031(未裁定・NG-REF1)** — dump 2 本が K 気象を読み、p2 replica は K 気象で学習されていた。SOB1F / PDS1 / U2 / VENUE-V0 L3 / VA1 が同じ参照に乗…
+- 2026-09-12 | HYPOTHESES の U-36 ID 衝突 | 是正 — 2026-09-11 に U-36 を 2 つの別仮説へ重複採番していた → **U-36a**(会場 × 4 攻め)/ **U-36b**(レース形成の感度マップ)に分離。判定…
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -221,7 +234,8 @@ Venue-specific Race Formation(指令 §13。v0 が PARTIAL 止まりのため今
 
 # RESEARCH_STATUS — 研究状態の正本
 
-- 最新更新: **2026-09-11 22:05**(更新者: Claude / Owner 研究指令 2026-09-11 **第 2 弾**「Q-025 = GO + Venue Logic Research v0」完走。**NG-U2 = U2_NULL**(難条件 × 当地習熟の 2×2 DiD +0.086pp CI[−0.72,+0.85]・季節クリマトロジー置換 p=0.850・oracle 薄層 ΔNLL 上限 0.000165 = 採用線の 1/18 → U-2 を R-14 で否定・U-35 は閉鎖 = **当地経験は静的にも条件付きにも閉じた**)/ **VENUE-V0 = VENUE_PARTIAL**(16 チャネル中 1 本のみ異質 = 旗艦 `4 攻め → 1 号艇被害`。全国 −1.153pp/SD・桐生 −2.47 〜 芦屋 −0.43・I²=0.60・置換 p=0.005・前後期 rank ρ=+0.75)。**構造的な発見 = 崩れ方には会場差があるが拾われ方には無い(FINDINGS P14)/ scale reversal は会場でなく攻め手のコースが決める(P15)/ 難条件はどのスケールでも信号なし(P16)**。着手前に **K ファイル由来気象の as-of 不適合を検出して回避**(P17・本番学習側は Q-029)。会場 meta-regression の「天候が 92% 説明」は**プラセボで取り下げ**(P18)。次 = NG-VA1「会場 × 4 コース攻撃」1 本(Owner GO = Q-028)。人間向け = research/OWNER_VIEW.md)
+- 最新更新: **2026-09-12 00:15**(更新者: Claude / Owner 研究指令 2026-09-11 **第 3 弾**「Q-028 = GO / Q-029 = AUDIT ONLY GO」完走。**NG-VA1 = VA1_PARTIAL / PARTIAL_UNDERPOWERED**(機械)= **実質 Case A 寄り + 統合価値なし → 指令 §24 の分岐 C**。会場差は B2 win 残差で **τ が厳密に 0 へ縮約**(Q p=0.744・I²=0.000・生の会場 SD 0.898 < ノイズ 1.004・frozen 順位との ρ=−0.143)。判定を支える well-powered な 2 本 = **oracle 上限の venue 増分 0.000225〜0.000861(cross-fit 0.000144)= 採用線の 1/13〜1/21** と **結果非依存の model-side λ=1.072±0.270 = B2 の予測が会場差をほぼ丸ごと再現済み**。→ **U-36a を R-17 で否定・§14 の Venue PoC は起票しない・Venue Logic は説明層として保持し Prediction Edge から降格**。国全体の攻撃→イン被害は残差に生きている(−0.934±0.204・**exh120 後も −0.904 でほぼ不変 = 展示層は吸収しない**)が national 単独の oracle 上限も 0.000381 = 採用線の 1/8。**Q-029 = WEATHER_SAFE → CLOSE**(本番バンドルの mu/sd 指紋が beforeinfo と 8 桁一致・K と不一致。独立 5 線で確認)。監査中に別件 2 件を検出 = **Q-030 `wind_dir_code` の train/serve skew(実測 ΔNLL +0.04447 = 採用線の約 15 倍の劣化・1 着予測の入替 14.84%・2026-09-05 以降)**/ **Q-031 研究 p120 dump が K 気象を読んでいた(NG-REF1)**。FINDINGS P17 を訂正。人間向け = research/OWNER_VIEW.md)
+- 前回更新: **2026-09-11 22:05**(更新者: Claude / Owner 研究指令 2026-09-11 **第 2 弾**「Q-025 = GO + Venue Logic Research v0」完走。**NG-U2 = U2_NULL**(難条件 × 当地習熟の 2×2 DiD +0.086pp CI[−0.72,+0.85]・季節クリマトロジー置換 p=0.850・oracle 薄層 ΔNLL 上限 0.000165 = 採用線の 1/18 → U-2 を R-14 で否定・U-35 は閉鎖 = **当地経験は静的にも条件付きにも閉じた**)/ **VENUE-V0 = VENUE_PARTIAL**(16 チャネル中 1 本のみ異質 = 旗艦 `4 攻め → 1 号艇被害`。全国 −1.153pp/SD・桐生 −2.47 〜 芦屋 −0.43・I²=0.60・置換 p=0.005・前後期 rank ρ=+0.75)。**構造的な発見 = 崩れ方には会場差があるが拾われ方には無い(FINDINGS P14)/ scale reversal は会場でなく攻め手のコースが決める(P15)/ 難条件はどのスケールでも信号なし(P16)**。着手前に **K ファイル由来気象の as-of 不適合を検出して回避**(P17・本番学習側は Q-029)。会場 meta-regression の「天候が 92% 説明」は**プラセボで取り下げ**(P18)。次 = NG-VA1「会場 × 4 コース攻撃」1 本(Owner GO = Q-028)。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-11 02:10**(更新者: Claude / Owner 研究指令「Prediction Edge Discovery 第 1 弾(NG-SOB1F → NG-PDS1)」完走。**NG-SOB1F = PARTIAL**(攻め手在席シフトは将来窓 2026-07〜08 で符号 4/4・Stouffer z=4.82・旗艦 CI 非跨ぎ・placebo 0.002 で再現、規模整合のみ不成立 → H-A / SC2 のゲートは閉じたまま)/ **NG-PDS1 = PDS_NULL**(選手の動的状態 6 本すべて B2 残差を説明せず・well-powered null・増分上限 0.00013 = 採用線の 1/23 → 「選手個人の情報」路線は静的・動的の両方で閉鎖)。**主戦線への答え = 素の単勝確率では「AI と市場が食い違う帯 = AI が外している帯」(FINDINGS P11: AI>市場 極端帯で CR 0.575 / 市場 1.049)**。攻め手シフトは「市場が攻め手を高く買う」帯に集中(P12)= AI に足りないが市場は持っている情報。状態系の共通罠 4 例目(P13)。次 = NG-U2「場 × 難条件 × 習熟」1 本(Owner GO = Q-025)。人間向け = research/OWNER_VIEW.md)
 - 前々回更新: 2026-09-10 22:00(Owner 研究指令 第 3 弾 完走。NG-T3D4 = 4 券種 FAIL → route B・市場較正レーン閉鎖・T3D5 以降禁止。Prediction Information Gap Audit)
 - 前々回更新: 2026-09-10 16:10(Owner 研究指令 第 2 弾「AI と市場の意見差を較正し、本当に買えるエッジが現実的な頻度で残るか決着させる」完走。NG-T3D3 = 凍結判定ケース1(3連複・2連単・2連複 MARKET GATE CANDIDATE・3連単 REJECT)/ 実質ケース3 寄り(hit 較正は回復・表示価格 EV は残る・確定配当ベースの実現値は全券種 <1)/ Edge–Frequency Frontier・Time-to-Evidence(頻度は制約でない)/ 知人 Crosswalk 44 行 / forward collector 登録・稼働 / shadow 方式 A 稼働 / Historical Replay 設計。人間向け 5 分表示 = research/OWNER_VIEW.md。次 = NG-T3D4(オッズ帯条件付き λ + 実現値 CI gate)の Owner GO)
@@ -229,6 +243,10 @@ Venue-specific Race Formation(指令 §13。v0 が PARTIAL 止まりのため今
 - 本ファイルは Canonical Research State の入口。機械可読版 = `research_state.json`。人間向け表示 = 研究コンソール(Artifact 494f0be1… — 本ファイル群から生成される view であり正本ではない)
 
 ## 現在の研究フェーズ
+
+**2026-09-12 00:15: Venue Logic レーンを閉じた(説明層として保持・Prediction Edge から降格)。** NG-VA1 は「会場 × 4 コース攻撃 → 1 号艇被害」の会場差が B2 の残差にも残るかを測り、**残差の会場間 τ は厳密に 0**、frozen 会場順位との対応も無相関(ρ=−0.143)だった。残差スロープ経路そのものは検出力不足(凍結時に宣言・G6 を NULL 阻止ゲートとして定義したため機械判定は PARTIAL)だが、**検出力問題の影響を受けない 2 本が判定を支えた**: ①oracle 上限の venue 増分が採用線の 1/13〜1/21(指令 §11 の停止規則)②結果 y を使わない model-side λ≈1 = **B2 の予測関数が既に会場差を再現している**。**「Race Logic の会場差を予測モデルへ足す」線はこれで閉じた。**
+
+同時に、Q-029 の監査で **現 production は beforeinfo 気象で学習されている(WEATHER_SAFE)**ことが確定し、起票元 FINDINGS P17 の「本番学習側は未対応」は**誤りとして訂正**した(列名ガードの不備から本番汚染を推論していた)。**一方で、監査は production に関わる別の欠陥 2 件を掘り出した**: `wind_dir_code` が学習時は定数 −1 なのに 2026-09-05 以降の本番推論では実値 1〜16 が入っており、**実測で 3 連単 NLL が +0.04447 劣化(採用線の約 15 倍)・1 着予測が 14.84% で入れ替わっている**(Q-030)。および研究用の Raw-B2 参照(p2 replica)が **K 由来 post-race 気象で学習されていた**ため、SOB1F / PDS1 / U2 / VENUE-V0 L3 / VA1 のすべてに同じ留保が付く(Q-031 = NG-REF1)。**次の 1 本はこの土台の修復を推奨する。** 以下は前サイクルの記録:
 
 **2026-09-11 22:05: Venue Logic 研究の第 1 段(v0 診断)完了。上位仮説が「競艇は 24 会場で同じゲームか」に更新され(指令 2026-09-11 第 2 弾 §0)、答えは「**全域では違わない。1 号艇の被攻撃耐性という 1 次元だけが会場で違う**」。同時に難条件という軸が 2 方向(U2 の習熟交互作用・VENUE-V0 の旗艦層別)から否定され、**当地経験と難条件の両方が閉じた**。研究構造は指令 §18 の 6 層へ移行するが、Layer 1 (Venue Logic) は 24 本の埋め込みではなくスカラー 1 本として実装されるべきことが分かった。次 = その 1 本が B2 残差に残っているかを未使用窓で確かめる NG-VA1(Q-028)。** 以下は前サイクルの記録:
 
@@ -278,38 +296,47 @@ Venue-specific Race Formation(指令 §13。v0 が PARTIAL 止まりのため今
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-11 22:05(**Owner 研究指令 2026-09-11 第 2 弾「Q-025 = GO + Venue Logic Research v0」完走**: **NG-U2 = U2_NULL**(難条件 × 当地習熟は B2 残差に情報なし・oracle 上限は採用線の 1/18 → U-2 を R-14 で否定・U-35 閉鎖 = **当地経験は静的にも条件付きにも閉じた**)/ **VENUE-V0 = VENUE_PARTIAL**(16 チャネル中 1 本のみ異質 = 旗艦「4 攻め → 1 号艇被害」)。**構造的発見 = 崩れ方には会場差があるが拾われ方には無い(P14)/ scale reversal は会場でなく攻め手のコースが決める(P15)/ 難条件はどのスケールでも信号なし(P16)**。着手前に K ファイル由来気象の as-of 不適合を検出・回避(P17)。会場 meta-regression の「天候 92% 説明」はプラセボで取り下げ(P18)。Owner 表示 = research/OWNER_VIEW.md / 地図 = research/VENUE_LOGIC_ATLAS.md)。実行中の自走 = 部品バックフィル(PID 12667・ETA 9/16)+ forward collector 試験(NG-FC1・9/11〜9/24)+ shadow 方式 A(nightly 23:30)
-**production 変更ゼロ(b2f41 不変)。11/1 holdout ルール不変。市場較正の実験はこれ以上起票しない(T3D5 以降禁止)。市場は fundamental の入力にしない(診断・subset 定義・benchmark・downstream のみ)。**
+最新更新: 2026-09-12 00:15(**Owner 研究指令 2026-09-11 第 3 弾「Q-028 = GO / Q-029 = AUDIT ONLY GO」完走**)
 
-## 現在の優先順位(主戦線 = Prediction Edge Discovery。研究構造は指令 §18 の 6 層へ)
+- **NG-VA1 = VA1_PARTIAL / PARTIAL_UNDERPOWERED**(機械)= **実質 Case A 寄り + 統合価値なし → 指令 §24 の分岐 C**。会場差は B2 win 残差で **τ が厳密に 0**(Q p=0.744・I²=0.000・生の会場 SD 0.898 < ノイズ 1.004・frozen 順位との ρ=−0.143)。**oracle 上限の venue 増分 0.000225〜0.000861(cross-fit 0.000144)= 採用線の 1/13〜1/21** / **model-side λ=1.072±0.270 = B2 の予測が会場差をほぼ丸ごと再現済み**
+- **Q-029 = WEATHER_SAFE → CLOSE**。監査中に別件 2 件を検出 = **Q-030**(`wind_dir_code` train/serve skew・**実測 ΔNLL +0.04447**)/ **Q-031**(研究 p120 dump が K 気象を読んでいた = NG-REF1)
+- 自走中: 部品バックフィル(PID 12667・ETA 9/16)+ forward collector 試験(NG-FC1・9/11〜9/24)+ shadow 方式 A(nightly 23:30)
 
-1. **NG-VA1 起票(Owner GO = Q-028・次の 1 手)**: VENUE-V0 で唯一生き残った **「会場 × 4 コース攻撃」の交互作用**が、**B2 残差にも残っているか**を確かめる 1 本。指令 §24 の分岐 A に該当(B weather は否定・C ST は 1 号艇のみ・D は「弱い」に当たらない)。設計の核 = ①会場の被攻撃耐性 deviation は **VENUE-V0 の凍結値をそのまま使い、再推定しない** ②目的変数を B2 残差に変える ③未使用窓での確認は **2026-11-01 の holdout 開封後に 1 回だけ**。学習なし・オッズ不使用・production 不変
-2. **停止・閉鎖(今サイクル追加)**: **U-2(難条件 × 当地)= R-14 で否定・同一形の再提案禁止**。**U-35(H-B)= 閉鎖**。**NG-E8SWAP は起票しない**(受け皿の前提が消えた)。**24 会場ぶんの Venue 埋め込み・会場別モデル群は作らない**。難条件を風速・波高の閾値フラグで切る筋はこれ以上起票しない
-3. **規律の追加(FINDINGS P18)**: **会場単位(n=24)の meta-regression で「○○が会場差を説明した」と書くときは、必ずランダム共変量プラセボを併記する**。今回これを置かなければ「天候が 92% 説明した」と誤報告していた
-4. **Owner 裁定待ち(Q-029・新規)**: `src/model.py` の `LEAKAGE_COLS` に **K ファイル由来の気象 4 列**(`wind_speed` / `wave` / `weather_code` / `wind_dir_code`)が入っておらず `FEATURE_COLS` にそのまま入っている(FINDINGS P17)。**production の学習入力に関わるため AI 単独では触らない**
-5. **自律(読み取り・設計のみ)**: forward collector 試験のメタデータ評価(9/24 まで・**応答 8〜10 秒/ページの原因確認**= IPv6 フォールバック疑い) / 部品バックフィル完走(9/16 目安)後の Maintenance 最小イベントスタディ設計 / 11/1 holdout 開封手順の事前整理 / **B2 Raw vs production(exh120 適用)vs market の 3 者ベンチマーク** = 設計完了(`designs/b2raw_vs_production_vs_market_benchmark_20260911.md`・実測は 11/1 以降。実装前提 = 展示 ST の再抽出 1 点)
-6. BACKLOG(実験はしない): B 調整能力 × 現在状態(ADJMS1 は部品完走後に起票可否・共通罠の直撃コース)/ D 専門家の観察(部品交換のイベントスタディは 9/16 以降・選手コメントは権利調査が先 = Owner GO)/ SC2・H-A 本体(SOB1F REPRODUCED が前提)/ Historical Replay 最小試作(Market Gate 再開時)/ **Venue-specific Race Formation(指令 §13)= VENUE-V0 が PARTIAL 止まりのため今は起票しない**
-7. 禁止維持: 大型 Scenario Generator / GAT / 個人ペア相互作用 / Race Simulator / 券種専用 NN・巨大 calibration network / 拡連複・複勝 / 展示入力側化の再提案 / 部品バックフィルの停止・再起動・35 万拡張 / holdout 9/1〜10/31 閲覧 / test 窓を見てからの閾値・候補・窓の変更 / 市場較正のパラメータ追加 / Transformer 拡張・新 NN・mixture model / **24 個の独立 NN・巨大 Race Simulator・LLM による主観的世界線確率・結果を見ての Venue 閾値最適化・Venue 別 ROI の無制限探索**(指令 2026-09-11 第 2 弾 §25)
+**production 変更ゼロ(b2f41 不変)。11/1 holdout ルール不変。市場較正の実験はこれ以上起票しない(T3D5 以降禁止)。市場は fundamental の入力にしない。**
+
+## 現在の優先順位
+
+1. **Owner 裁定待ち(最優先)= Q-030: `wind_dir_code` の train/serve skew 是正**。学習は全行 −1 固定なのに、2026-09-05 の commit `c260f3c`(16 方位対応 + openapi 補完)以降、本番推論は実値 1〜16 を入れている(露出 95.25%)。**本番バンドル・同一 9,607R の実測で 3 連単 NLL 3.75257 → 3.79704 = ΔNLL +0.04447 = 採用線の約 15 倍の劣化・予測分布 TVD 0.091・1 着予測の入替 14.84%**。対処は推論側で `-1` を強制する 1 行のみ(**再学習不要・可逆・情報損失ほぼ皆無**)だが、**本番推論経路の変更 = 承認必須操作**なので AI 単独では触らない。残る未確認は live スクレイパの end-to-end 1 回確認
+2. **次の主研究 1 本(Owner GO = Q-031)= NG-REF1: Raw-B2 参照パネルの再構築と残差ベースラインの再確立**。`dump_b2_probs.py:65` / `t3d2_dump_p120.py:63` が **K 由来(post-race)気象**を読んでおり、p2 replica バンドルは **K 気象で学習されていた**(mu 指紋で確定)。**NG-SOB1F / NG-PDS1 / NG-U2 / VENUE-V0 L3 / NG-VA1 のすべてがこの参照モデルの残差に乗っている**。ref 窓 9,607R の実測では VA1 の結論は不変(国別残差 −0.829 vs −1.029 = 同符号・γ は両構成 null)だが、気象 4 列の寄与 ΔNLL ≈ 0.004 は VA1 の venue 増分上限 0.0009 より大きいため「無視できる」とは言えない。**新しい仮説を足す前に土台を本番整合へ揃える**。production は不変(研究側のみ)
+3. **停止・閉鎖(今サイクル追加)**: **U-36a(会場 × 4 コース攻撃が B2 未学習)= R-17 で否定・同一形の再提案禁止**。**指令 §14 の `Venue-dependent Inside Resistance / Attack Transition PoC` は起票しない**(VA1_STRONG が前提であり不成立)。**24 会場ぶんの Venue 埋め込み・会場別モデル群は作らない**(R-16 と同じ)。Venue Logic は `research/VENUE_LOGIC_ATLAS.md` の**説明層・仮説生成装置として保持**するが Prediction Edge 候補から**降格**
+4. **規律の追加(FINDINGS P20・P21)**: ①**「学習時に定数だった特徴」は推論側でも定数に固定する**。パーサ改善が本番に入るときは、その列が学習時に定数扱いだったかを必ず確認する ②**`assert_no_leakage` は列名しか見ない。値の provenance は別に検査する**(dump スクリプトが読む parquet の気象がどの source 由来かを凍結 JSON に明記する)③**「列名ガードに無い」から「本番が汚染」を推論しない**(P17 の誤りの原因)
+5. **自律(読み取り・設計のみ)**: forward collector 試験のメタデータ評価(9/24 まで・応答 8〜10 秒/ページの原因確認 = IPv6 フォールバック疑い)/ 部品バックフィル完走(9/16 目安)後の Maintenance 最小イベントスタディ設計 / 11/1 holdout 開封手順の事前整理 / **NG-BM1(B2 Raw vs production(exh120) vs market の 3 者ベンチマーク)= 設計済み。実装前提だった「展示 ST のローカル JSON 再抽出」は VA1 で解決済み**(`va1_prep_exh.py`・full 99.7%)。実測は 11/1 以降
+6. BACKLOG(実験はしない): B 調整能力 × 現在状態(ADJMS1 は部品完走後に起票可否)/ D 専門家の観察(部品交換のイベントスタディは 9/16 以降・選手コメントは権利調査が先 = Owner GO)/ SC2・H-A 本体(SOB1F REPRODUCED が前提)/ U-36b レース形成の感度マップ(EXIN1 が前提)/ Historical Replay 最小試作(Market Gate 再開時)/ Venue-specific Race Formation(**VA1 で降格したため起票しない**)
+7. 禁止維持: 大型 Scenario Generator / GAT / 個人ペア相互作用 / Race Simulator / 券種専用 NN・巨大 calibration network / 拡連複・複勝 / 展示入力側化の再提案 / 部品バックフィルの停止・再起動・35 万拡張 / holdout 9/1〜10/31 閲覧 / test 窓を見てからの閾値・候補・窓の変更 / 市場較正のパラメータ追加 / Transformer 拡張・新 NN・mixture model / **24 個の独立 NN・巨大 Race Simulator・LLM による主観的世界線確率・結果を見ての Venue 閾値最適化・Venue 別 ROI の無制限探索**(指令 2026-09-11 第 2 弾 §25 / 第 3 弾 §22)
 8. shin 手作業待ち: crontab 3 行(部品日次・風コレクタ)/ 2023-01〜04 再取得可否 / 公開履歴の先方実名(Q-007)
+
+## 完了(2026-09-11 深夜 → 09-12・Owner 指令 第 3 弾)
+
+NG-VA1(凍結 23:56:09 → 実行 207.6 秒 + 追加監査 15.9 秒・**VA1_PARTIAL / PARTIAL_UNDERPOWERED**・46,648R / ref 8,236R。**凍結時に検出力の限界を宣言し G6 を NULL 阻止ゲートとして定義**・凍結前に見た結果非依存の 3 値を `pre_freeze_disclosure` に逐語記録)/ Q-029 監査(**WEATHER_SAFE**・独立 5 線・P17 訂正)/ **wind_dir_code skew の実害を実測**(A/B/C 3 構成の推論比較)/ exh120 入力の再抽出(`va1_prep_exh.py`・59,732R full = NG-BM1 の前提作業も解消)/ HYPOTHESES の U-36 ID 衝突を U-36a / U-36b へ是正。lane-reports/{va1_venue_attack_residual,q029_weather_provenance_audit}_20260912.md
 
 ## 完了(2026-09-11 夜・Owner 指令 第 2 弾)
 
-NG-U2(前処理 21:45 → 凍結 21:46:25 → 実行 230 秒・**U2_NULL**。7 ゲート中 G4 のみ成立。**着手前に K 由来気象 = post-race のリークを検出し beforeinfo へ差し替え + R1 除外**)/ VENUE-V0(凍結 21:53:27 → 監査 31 秒 + 補助 4 秒・**VENUE_PARTIAL**・261,194R・24 場すべて 9,891R 以上)/ VENUE_LOGIC_ATLAS.md / 3 者ベンチマーク設計 / 図 5 枚。lane-reports/{u2_venue_familiarity,venue_logic_v0}_20260911.md
+NG-U2(**U2_NULL**)/ VENUE-V0(**VENUE_PARTIAL**・261,194R)/ VENUE_LOGIC_ATLAS.md / 3 者ベンチマーク設計 / 図 5 枚。lane-reports/{u2_venue_familiarity,venue_logic_v0}_20260911.md
 
 ## 完了(2026-09-11 未明・Owner 指令 第 1 弾)
 
-NG-SOB1F(PARTIAL。符号 4/4・Stouffer z=4.82・旗艦 T1 4→1 β=−1.735 CI[−2.676,−0.783]・placebo 0.002 成立、規模整合のみ不成立)/ 乖離 secondary diagnostic(P12)/ AI vs 市場ベンチマーク(P11)/ NG-PDS1(PDS_NULL・oracle 上限 0.00013)。lane-reports/{sob1f_future_window,pds1_dynamic_state}_20260911.md
+NG-SOB1F(PARTIAL)/ 乖離 secondary diagnostic(P12)/ AI vs 市場ベンチマーク(P11)/ NG-PDS1(PDS_NULL)。lane-reports/{sob1f_future_window,pds1_dynamic_state}_20260911.md
 
 ## 完了(2026-09-10 夜 / 午後 / 午前)
 
-NG-T3D4(4 券種 FAIL → route B・Market Gate 閉鎖・T3D5 以降禁止)/ tail 可視化 / 乖離 4 帯(P10)/ Gap Audit ‖ NG-T3D3(ケース1・実質ケース3 寄り)/ Frontier・Time-to-Evidence / 知人 Crosswalk / forward collector 稼働 / shadow 方式 A ‖ NG-TS1(ケース D)/ P0 features_v2 復旧 / NG-T3D2(A PASS)/ NG-EXIN1(FAIL_STACKED)。
+NG-T3D4(4 券種 FAIL → route B・Market Gate 閉鎖)/ tail 可視化 / 乖離 4 帯(P10)/ Gap Audit ‖ NG-T3D3 / Frontier・Time-to-Evidence / 知人 Crosswalk / forward collector 稼働 / shadow 方式 A ‖ NG-TS1(ケース D)/ P0 features_v2 復旧 / NG-T3D2(A PASS)/ NG-EXIN1(FAIL_STACKED)。
 
 ## 常時 / 保存のみ
 
 - 部品バックフィル自走中(進捗= `cat ~/kyotei-ai/artifacts/research/nextgen/parts_bf/parts_bf_state.json`)
 - forward collector 稼働中(健全性 = `tail data/odds_snapshots/close_window/<YYYYMMDD>/_health.jsonl`・停止 = `launchctl bootout gui/$(id -u)/com.kyotei-ai.collect-close-window`・一時停止 = `touch data/odds_snapshots/close_window/STOP`)
 - NG-E19SG 蓄積継続 / 市場アノマリー holdout 封印(閲覧 2026-11-01 以降)
-- 保存のみ: シナリオ Generator 大型 / GAT(2 重の否定で棚上げ)/ Race Simulator / Portfolio Optimizer 本番化 / 穴シナリオ Gate 数値化 / Historical Replay 最小試作(Market Gate 再開時)/ Venue clustering(Profile の分離が弱い = silhouette 0.195)
+- 保存のみ: シナリオ Generator 大型 / GAT(2 重の否定で棚上げ)/ Race Simulator / Portfolio Optimizer 本番化 / 穴シナリオ Gate 数値化 / Historical Replay 最小試作(Market Gate 再開時)/ Venue clustering(silhouette 0.195)/ **Venue Logic(説明層としてのみ・VA1 で Prediction Edge から降格)**
 
 
 
@@ -411,6 +438,17 @@ NG-T3D4(4 券種 FAIL → route B・Market Gate 閉鎖・T3D5 以降禁止)/ tai
 | 2026-09-11 | NG-SOB1F 攻め手在席シフトの将来窓再現 | **機械判定 = PARTIAL**(①符号 4/4・②Stouffer z=4.82 p=7.3e-07・③旗艦 4→1 CI 非跨ぎ・⑤placebo p=0.002 は成立 / ④規模整合のみ不成立)→ **H-A 本体・SC2 へは進まない**(指令 §7) | test = prod3 2026-07-01〜08-31・8,997R(最小 n 6,000 充足)。凍結 00:25 (結果計算前) → 実行 14.3 秒。④ は T1 4→5 β=+0.597 が事前バンド [+0.179,+0.511] を上抜け = **想定より強い**方向で、SOB1 との二標本 z=+1.00 = 統計的に区別不能。バンドは n=28 万由来で今窓 (n≈9 千) の SE より狭く「効果同一でも外す確率 4〜5 割」と凍結時に事前記載済み。**凍結ルールは変更せず PARTIAL のまま**。副族 A(本番 B2 の織り込み不足)は prod3 で CI 0 跨ぎ(−0.733 [−1.584,+0.103])= 今窓では確定できず。**追加診断(判定外・指令 §6)= 構造シフトは「市場が攻め手を AI より高く買っている」レースに集中(合成 z 5.48・旗艦 β −3.93)、AI が攻め手を高く見る帯では消失** → AI に足りない情報だが市場は既に持っている。**ベンチマーク(指令 §4・単勝 3,222R・生 B2)= AI が市場より高く見る帯で AI 過信(CR 0.709 / 0.575)・市場は較正(1.015 / 1.049)。レース NLL は AI +0.026 劣位** | 機械判定(sob1f_frozen.json)/ lane-reports/sob1f_future_window_20260911.md / registry 行 58〜59 |
 | 2026-09-11 | NG-PDS1 選手の動的状態(Player Dynamic State) | **機械判定 = PDS_NULL**(G1 存在確認 6 本すべて不合格)→ **「選手個人の情報」路線は静的・動的の両方で閉じる** | fit = p2 replica 2025-07〜2026-06(50,926R・30.4 万艇行)/ future = prod3 2026-07〜08(8,997R)。凍結 01:55(目的変数との関係を計算する前)。CI 半幅 ≈0.0014 = **1SD あたり 0.3pp 超なら検出できた well-powered な null**。置換 p 最良 0.054(f_perf)/ 0.068(f_st)。G2 将来窓は 6 本とも CI 0 跨ぎ・3 本は符号反転。G3 当日展示 z 統制で f_st は保持率 0.21 = **状態系の共通罠の 4 例目**(MS3/G3/EXIN1 に続く独立確認)。**G3b 増分上限診断(oracle)= primary 3 本同時で 0.00013 = 採用線 0.003 の 1/23** → 再学習ゲートは原理的に無意味と事前に確定(N1 教訓の適用)。G5 乖離 subset = AI>Market 帯で 6 本とも CI 0 跨ぎ、ケース A セル表で **CR_AI は動的状態の三分位を通じて 0.74〜0.81 で横並び(市場 0.98〜1.11)** → 指令 §12 ケース A 不成立。B2 統合(G4)は指令 §13 どおり実施せず | 機械判定(pds1_frozen.json)/ lane-reports/pds1_dynamic_state_20260911.md / registry 行 60〜61 |
 | 2026-09-11 | 次の主研究 1 本の選定(Owner 指令 §21 の分岐) | **分岐 D を適用 → 次点候補 E(場 × 難条件 × 習熟)= NG-U2 を次サイクル候補に**。A(SOB1F 強再現)は PARTIAL のため不可・B(PDS1 強再現)は NULL のため不可・C は両方不成立で不可 | SOB1F は ①②③⑤ 成立だが凍結ルール上 PARTIAL = 「強く再現」とは呼ばない(H-A・SC2 ゲートは閉じたまま)。PDS1 は NULL。よって残るのは D。Gap Audit の採点順(E 7 > B 6 = D 6)に従い E = U-2/U-35 の「習熟 × 難条件の 2×2 residual 表」を推奨(<1 日・学習なし・as-of 可能・条件がレース前に定義できる = 指令 §15 の要件を満たす)。**SOB1F の副産物「シフトは市場が攻め手を高く買う帯に集中」は記録のみとし、原因探索の実験は増やさない(指令 §8)**。起票は Owner GO(Q-025) | research/OWNER_DIRECTIVE_20260911.md §21 / designs/prediction_information_gap_audit_20260910.md §4 |
+| 2026-09-11 | Q-028: NG-VA1(会場 × 4 コース攻撃が B2 残差にも残るか) | **GO** | Owner 研究指令 2026-09-11 第 3 弾。指令 §24 の分岐 A。学習なし・オッズ不使用・production 不変・会場 deviation は VENUE-V0 の凍結値を再推定せず使用 | research/OWNER_DIRECTIVE_20260911c.md §1-§14 / DECISION_QUEUE Q-028 |
+| 2026-09-11 | Q-029: 現 production の K 由来気象 provenance | **AUDIT ONLY GO** | 調査のみ。production 変更・再学習・修復は今回行わない | research/OWNER_DIRECTIVE_20260911c.md §15-§18 / DECISION_QUEUE Q-029 |
+| 2026-09-11 | NG-VA1 事前登録 | 凍結 | `va1_frozen.json` 23:56:09(sha256 2fb01f38…6ace23)= 結果 y に依存する統計を 1 つも計算する前。**検出力の限界を事前に宣言**(SE(γ)=0.475 → 検出できる γ は 1.23 / I²≥0.5 に必要な残差 τ は観測 τ の 1.8 倍)し、**G6 を『NULL 主張の阻止ゲート』として定義**。凍結前に見た結果非依存の 3 値を `pre_freeze_disclosure` に逐語記録 | artifacts/research/nextgen/va1/va1_frozen.json |
+| 2026-09-12 | NG-VA1 | **FAIL(機械判定 VA1_PARTIAL / PARTIAL_UNDERPOWERED)** | G1〜G6 すべて不成立。γ=−0.257±0.475(p=0.589)・Q p=0.744・**I²=0.000・τ=0**・frozen 会場順位との ρ=−0.143。**G6 不成立のため VA1_NULL は出さない**(凍結ルール)。実質は Case A + 統合価値なし | artifacts/research/nextgen/va1/va1_results.json / lane-reports/va1_venue_attack_residual_20260912.md |
+| 2026-09-12 | U-36a「会場 × 4 コース攻撃は B2 が取り切れていない」 | **REJECT(R-17)** | ①残差 τ=0(生の会場 SD 0.898 < ノイズ 1.004)②**oracle 上限の venue 増分 0.000225 = 採用線の 1/13**(自由会場版 0.000861 も過学習フロア 0.000804 とほぼ同値・cross-fit 0.000144)→ 指令 §11 の停止規則 ③結果 y 非依存の model-side λ=1.072±0.270 = B2 の予測が会場差をほぼ再現済み。**§14 の Venue PoC は起票しない・24 場別 NN も作らない** | research/HYPOTHESES.md R-17 / FINDINGS P19 |
+| 2026-09-12 | Venue Logic レーンの位置づけ | **降格(説明層として保持)** | Prediction Edge 候補から降格。`research/VENUE_LOGIC_ATLAS.md` は仮説生成装置として維持。指令 §24 の分岐 **C** 相当 | research/NEXT_ACTIONS.md / OWNER_VIEW.md |
+| 2026-09-12 | Q-029(気象 provenance) | **CLOSE = WEATHER_SAFE** | 現 production `b2f41_prod2026_prod3` は beforeinfo 気象で学習済み。決定的証拠 = バンドルの mu/sd 指紋が beforeinfo と 8 桁一致・K と不一致(学習行 2,017,260 行で再計算)。独立 5 線で確認。**K 由来列は研究 artifact のみ** | lane-reports/q029_weather_provenance_audit_20260912.md §1 |
+| 2026-09-12 | FINDINGS P17 の記述 | **訂正** | 「本番学習側は未対応」は誤り。列名ガードの不備から本番汚染を推論していたが、その経路が実在しない(本番 b2 は `src/model.py:FEATURE_COLS` を使わない)。規律化: **ガードの不備と実データ経路は別の事実** | research/FINDINGS.md P17 |
+| 2026-09-12 | `wind_dir_code` train/serve skew(新規発見) | **起票 = Q-030(未裁定)** | 学習は全行 −1 固定・推論は実値 1〜16(2026-09-05 commit c260f3c 以降・露出 95.25%)。**実測 ΔNLL +0.04447 = 採用線の約 15 倍の劣化・1 着予測の入替 14.84%**。対処は推論側 1 行(再学習不要・可逆)だが**本番推論経路の変更 = 承認必須**のため未実行 | FINDINGS P20 / artifacts/research/nextgen/va1/va1_clean_ref.json |
+| 2026-09-12 | 研究 p120 dump の気象 provenance(新規発見) | **起票 = Q-031(未裁定・NG-REF1)** | dump 2 本が K 気象を読み、p2 replica は K 気象で学習されていた。SOB1F / PDS1 / U2 / VENUE-V0 L3 / VA1 が同じ参照に乗る。ref 窓の実測では VA1 の結論は不変だが Primary 窓の clean 再現は未実施 | FINDINGS P21 / lane-reports/q029_weather_provenance_audit_20260912.md §5-B |
+| 2026-09-12 | HYPOTHESES の U-36 ID 衝突 | 是正 | 2026-09-11 に U-36 を 2 つの別仮説へ重複採番していた → **U-36a**(会場 × 4 攻め)/ **U-36b**(レース形成の感度マップ)に分離。判定・本文は不変 | research/HYPOTHESES.md 一覧表・§1 |
 
 
 
@@ -907,7 +945,7 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 
 # HYPOTHESES — 研究仮説台帳(正本)
 
-- 最新更新: **2026-09-05**(更新者: Claude / セッション: W2 正式 GO — Owner 次期研究思想 8 テーマを U-18〜U-25 として追加。既存エントリの判定・本文は不変)
+- 最新更新: **2026-09-12**(更新者: Claude / セッション: RES-2026-09-F — NG-VA1 で U-36a を **R-17 で否定**。**ID 衝突を解消**: 旧「U-36 会場 × 4 コース攻撃」= **U-36a**、旧「U-36 レース形成の感度マップ(H-C)」= **U-36b** に分離した(2026-09-11 の採番ミス)。新規 U-38 = 研究参照モデルの provenance 整合)
 - 位置づけ: Canonical Research State の一部。機械可読の骨格 = `research_state.json` の `hypotheses` 節(矛盾したらそちらが正)。表示用 view = 研究コンソール(Artifact)
 - **目的**: shin(Owner)の現場感覚・人間の定説・データ由来の仮説を全て1つの台帳に載せ、「どの感覚が確認され、どれが否定されたか」を一目で分かるようにする
 - 正直ラベルの規約: 小標本は「逸話」、確定オッズ由来は「diagnostic」、事後発見は「再登録要」と必ず付記。数値は出典ファイルから転記(捏造禁止・無い値は「記録なし」)
@@ -952,8 +990,9 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 | U-25 | 頑健EV+下振れ最適化 | ⬜未検証 | 記録なし | 概念保存・実装しない(U-24とセット) |
 | U-34 | コース構造×攻め手/受け手の戦術特性(H-A) | 🟨部分支持(BACKLOG・**ゲートは閉じたまま**) | **SOB1F(2026-09-11)で将来窓 2026-07〜08 の再現は PARTIAL**(符号 4/4・Stouffer z=4.82・旗艦 4→1 CI 非跨ぎ・placebo 0.002 は成立 / 規模整合のみ不成立)。シフトは「市場が攻め手を高く買う」帯に集中(FINDINGS P12)= 市場は既に織り込み済み | **REPRODUCED でないため H-A も SC2 も起票しない**。窓延長は 2026-11-01 以降に 1 回のみ・別途事前登録 |
 | U-35 | 特定水面への習熟×調整能力×難条件×コース(H-B) | ❌**起票しない**(2026-09-11) | 前提の U-2 が否定・難条件層別は旗艦チャネルでも z=−0.41 で不成立 | 閉鎖(同一形の再提案禁止) |
-| U-36 | 会場 × 4 コース攻撃の交互作用は B2 が取り切れていない | 🟡**部分支持**(2026-09-11・VENUE-V0) | 16 チャネル中 1 本のみ異質(I²=0.60・前後期 ρ=+0.75・置換 p=0.005)。B2 残差スケールでの確認は未実施 | Q-028(次の 1 本) |
-| U-36 | レース形成の感度マップ(H-C) | ⬜未検証(BACKLOG・設計候補) | SC1 分解成立・RC2 top6_mass 確定・WPOC1 副産物(ΔW→ST) | EXIN1 の結果(展示入力側)が前提 |
+| **U-36a** | 会場 × 4 コース攻撃の交互作用は B2 が取り切れていない | ❌**否定 → R-17**(2026-09-12・NG-VA1) | B2 win 残差で **τ=0 に縮約**(Q p=0.744・I²=0.000)・生の会場 SD 0.898 < ノイズ 1.004・frozen 順位との ρ=−0.143。**oracle 上限の venue 増分 0.000225 = 採用線の 1/13**。model-side λ=1.072±0.270 = B2 の予測が会場差をほぼ再現済み | **統合しない**(§14 の PoC は起票しない)。Venue Logic は説明層として保持・Prediction Edge から降格 |
+| **U-36b** | レース形成の感度マップ(H-C) | ⬜未検証(BACKLOG・設計候補) | SC1 分解成立・RC2 top6_mass 確定・WPOC1 副産物(ΔW→ST) | EXIN1 の結果(展示入力側)が前提 |
+| **U-38** | 研究の Raw-B2 参照を本番整合(beforeinfo 気象・wind_dir −1)に直すと既存の残差判定が変わる | ⬜未検証(**次の 1 本候補**) | ref 窓 9,607R の実測では国別残差 −0.829±0.478(K 構成 −1.029±0.478)= 同符号・差はノイズ内・γ は両構成で null。Primary 窓での再現は未実施(FINDINGS P21) | **NG-REF1**(Q-031)。SOB1F / PDS1 / U-2 / VENUE-V0 L3 / VA1 の土台 |
 | U-37 | 専門家の判断材料の逆解析(H-D) | ⬜未検証(BACKLOG) | 記録なし(repo 内に専門家の判断記録は無し) | Expert Feature Gap Matrix を最初の成果物に |
 | R-1 | 階級が予測に効く | ❌否定 | 全棄却(2026-06確定・再投入禁止) | — |
 | R-2 | 高階級は市場で人気過剰 | ❌否定 | 全級±0.7pp=正確に織り込み | — |
@@ -1238,7 +1277,7 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - 進む条件: U-2(E7/E8)の判定が出ていること。存在確認 PASS → 特徴化ゲートは exh120 併用 stacked を第一関門に置く(MORNING_BRIEF 新仮説 2「状態系特徴の共通罠」)
 - 次のアクション: **閉鎖(2026-09-11)**。前提としていた U-2 が否定され、さらに VENUE-V0 で旗艦チャネルの難条件層別も不成立(`T1 4→1` 差の z=−0.41 / `T2 4→5` z=−1.01)。「難度で条件付ける」という層自体が B2 残差のレベルで信号を持たない(FINDINGS P16)。**同一形では再提案しない**
 
-#### U-36. Race Formation Factor Map(H-C: レース形成の感度マップ)
+#### U-36b. Race Formation Factor Map(H-C: レース形成の感度マップ)  ※旧 U-36(2026-09-11 の ID 衝突を 09-12 に解消)
 - 仮説文: 1M のレース形成は 天候 × モーター/現在艇状態 × 選手 × 水面/会場 × コース + 6 艇配置 で決まる。**巨大モデルは作らず**、ST・展示・風 regime・戦術プロファイル配置を現実的な範囲で ± 変化させたときの 120 通り分布の動き(ΔP(120) / own shift / neighbor shift / downstream beneficiary shift / entropy / top6 mass)を測る **Race Formation Sensitivity Map** として設計候補を残す
 - なぜ有望か: SC1 で分解 P(T)=ΣP(S)P(T|S) は成立(ΔH は null の 75 倍・同一 3 連単は複数展開の混合)。RC2 で top6_mass が確実性メーターとして確定。WPOC1 副産物で「風の変化は ST 遅延+分散を通じてレースに入る」(半期完全再現)。つまり「入力の摂動 → 分布の動き」を測る材料は揃いつつある。EXIN1 §5(指令)の「展開が読めるようになったか」の診断そのものが本マップの第 1 版
 - **何と違うか**: ①大型 Scenario Generator / Race Simulator ではない(Owner 禁止維持)— 既存 B2 の推論に摂動を入れて感度を測るだけ・学習なし ②Meaningful Tail(U-31・SC1 で不在)を探す道具ではない ③Readability を利益シグナルにしない(指令 §8・RC2 で「読める≠儲かる」確定)— 用途は展開診断・race selection・点数圧縮に限定 ④明示積項の特徴化はしない
@@ -1407,6 +1446,14 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - 例外的に残った観測: **top1 残差スケール(secondary S1)では fit 窓で +0.741pp CI[+0.125,+1.407] と 0 を跨がなかった**。ただし future 窓は同符号だが有意でなく(+0.852 CI[−0.763,+2.565])、primary と同一データの別スケールで独立な証拠ではなく、プラセボも未適用。**追試は起票しない**(記録のみ)
 - 次のアクション: **同一形の再提案禁止**。風速・波高の閾値フラグで難条件を切る筋はこれ以上起票しない。R-6(無条件当地)と合わせ、**当地経験という情報源は静的にも条件付きにも閉じた**
 
+#### R-17. 会場 × 4 コース攻撃の交互作用は B2 が取り切れていない(U-36a)
+- 仮説文: VENUE-V0 で唯一生き残った「4 号艇の攻撃性 → 1 号艇の勝率低下」の会場差は、実レースには存在するが **B2 の prediction residual にも残る**(= B2 に不足している Venue-specific Race Logic である)
+- 判定: **否定(2026-09-12・NG-VA1 = VA1_PARTIAL / PARTIAL_UNDERPOWERED。実質 Case A + 統合価値なし)**
+- 根拠(3 本): ①B2 win 残差の会場間 τ が**厳密に 0** へ縮約(Q p=0.744・I²=0.000)・生の会場 SD 0.898 pp/SD は会場 SE 中央値 1.004 pp/SD **未満** = ノイズ以下・frozen 会場順位との ρ=**−0.143**(Case B なら正の相関が出るはず)②**oracle 上限の venue 増分 = ΔNLL 0.000225**(会場 24 本自由版 0.000861 でも自身の過学習フロア 0.000804 とほぼ同値・cross-fit 0.000144)= **採用線 0.003 の 1/13〜1/21** → 指令 §11 の停止規則 ③結果 y を使わない **model-side λ = 1.072 ± 0.270**(p=0.00065)= **B2 の予測関数が会場別の被攻撃脆弱性をほぼ丸ごと再現している**(λ=0 は z=3.97 で排除)
+- **正直な限界**: 残差スロープ経路そのものは検出力不足(SE(γ)=0.475・99% CI が +0.97 まで届く)。凍結時にこれを宣言し **G6 を『NULL 主張の阻止ゲート』**として定義したため機械判定は NULL ではなく PARTIAL。「構造が無い」の直接証明ではなく、**「あっても採用線に届かない」+「B2 の予測側が既に再現している」**の 2 本で降格した
+- 生き残っている関連事実: **国全体**の攻撃 → イン被害は B2 残差に生きている(−0.934 ± 0.204 pp/SD・**exh120 適用後も −0.904 ± 0.203 でほぼ不変** = 展示層はこの構造を吸収しない)。ただし national 単独の oracle 上限も 0.000381 = 採用線の 1/8
+- 次のアクション: **指令 §14 の `Venue-dependent Inside Resistance / Attack Transition PoC` は起票しない**(VA1_STRONG が前提)。24 場別 NN / Venue 埋め込みも作らない(R-16 と同じ)。Venue Logic は `research/VENUE_LOGIC_ATLAS.md` の**説明層・仮説生成装置として保持**
+
 #### R-16. 24 会場は「別ゲーム」である(Venue を全域の環境変数として扱う)
 - 仮説文: 競艇は 24 会場で同一のゲームをしているのではなく、会場ごとにレース生成構造が異なる(Owner 上位仮説・指令 2026-09-11 第 2 弾 §0)
 - 判定: **全域の形では否定・限定形で部分支持(2026-09-11・VENUE-V0 = VENUE_PARTIAL)**。16 チャネル中 **1 本だけ**が事前登録 6 条件を通過 = `4 号艇の攻撃性 → 1 号艇の勝率低下`。受益構造 / 2 連対の残り方 / 3 攻めの影響 / 1 号艇以外の ST 感度は**全国共通**(τ が 0 へ縮約されるものを含む)
@@ -1478,7 +1525,7 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 
 # FINDINGS — 研究発見台帳(Canonical Research State)
 
-- 最終更新: 2026-09-10(… → NG-T3D2 / NG-EXIN1 → features_v2 復旧 → NG-TS1 Ticket-Space 反映)
+- 最終更新: 2026-09-12(… → NG-TS1 → NG-U2 / VENUE-V0 → **NG-VA1 + Q-029 気象 provenance 監査** 反映)
 - 位置づけ: `research_state.json` / `RESEARCH_STATUS.md` と同期した人間可読の発見集。矛盾したら json 側が正
 - 主な出典: `docs/ARCHITECTURE_FREEZE_v2.1.md` / `lane-reports/nextgen_audit_20260903.md` / `lane-reports/hansei_sg_kiryu_20260903.md` / `lane-reports/e10_externality_20260904.md` / `docs/experiments/structured_order_model/results_summary.md` / `docs/MODEL_STRATEGY.md` / `artifacts/research/experiment_registry.jsonl` / `docs/ANALYSIS_BACKLOG.md`
 - 書式: 各発見は必ず3問に答える — **【分かったこと】結局何が分かったか /【予測に効くか】未来の予測に効くか /【市場】市場は既に知っているか**
@@ -1797,8 +1844,10 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 ### P17. K ファイル由来の気象は as-of 不適合 — 研究では回避したが本番学習側に残っている【**確定(運用リスク)**(2026-09-11・NG-U2 前処理)】
 
 - `data/processed/national/features.parquet` の `wind_speed` / `wave` / `weather_code` / `wind_dir_code` は **K ファイル(公式競走成績 = 結果ページ)**由来で、公開はレース後 = **レース前には確定していない**(`src/parse.py` RE_RACE_HEADER_K → `src/features.py` の race_conditions merge)。
-- `src/model.py` の `LEAKAGE_COLS` には `exhibition_time` / `approach` / `st` は入っているが、**同じ K 由来の気象 4 列は入っておらず `FEATURE_COLS` にそのまま入っている**。
-- 今回の NG-U2 / VENUE-V0 は beforeinfo (T1_post_exhibition) 由来へ差し替え、R1 は汚染確定のため除外して回避した。**本番学習側は未対応**。production の挙動に関わるため AI 単独では触らない → Owner 裁定案件。
+- `src/model.py` の `LEAKAGE_COLS` には `exhibition_time` / `approach` / `st` は入っているが、**同じ K 由来の気象 4 列は入っておらず `FEATURE_COLS` にそのまま入っている**(この点は事実であり、将来 LightGBM 経路を再利用するときの罠として残る)。
+- 今回の NG-U2 / VENUE-V0 は beforeinfo (T1_post_exhibition) 由来へ差し替え、R1 は汚染確定のため除外して回避した。
+- **【2026-09-12 訂正】当初ここに書いた「本番学習側は未対応」は誤りだった。** Q-029 監査(調査のみ GO)で、現 production `b2f41_prod2026_prod3` は **beforeinfo 気象で学習されている**ことを確定した(バンドルの mu/sd 指紋が beforeinfo と 8 桁一致・K と不一致 / 学習が読むのは `features_v2.parquet` で `data/processed/national/features.parquet` ではない / 行レベルで beforeinfo 100% 一致・K 46.8%)= **WEATHER_SAFE**。
+- **誤りの原因(規律化)**: 「列名ガードに無い」から「本番が汚染」を推論してしまった。**ガードの不備と実際のデータ経路は別の事実であり、経路を 1 本ずつ辿るまでは『リスク』であって『汚染』ではない。**
 - 参考: beforeinfo と K の一致度は fit 窓で 風 r=0.819 / 波 r=0.902(難条件割合 14.47% vs 14.68%)= **値は近いが同じではない**。
 - 出典: `artifacts/research/nextgen/u2/u2_prep_report.json` asof_decision / `lane-reports/nextgen_audit_20260903.md:109` / `scripts/research/laneC_v2/build_weather_v2.py:4-10`
 
@@ -1808,6 +1857,39 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - 24 点に 2 共変量を当てれば τ² は構造的に潰れる。**このプラセボを置かなければ「天候が 92% 説明した」と誤報告していた。**
 - 規律: **会場単位 (n=24) の meta-regression で「○○が会場差を説明した」と書くときは、必ずランダム共変量プラセボを併記する。** 答えが要るならレース単位の交互作用モデルにする。
 - 出典: `artifacts/research/nextgen/venue/venue_v0_supp.json` climatology_metaregression_with_placebo
+
+### P19. 会場差は B2 の残差に残っていない — そして理想的に知れても採用線に届かない【**確定(統合価値)+ 判定不能(構造の有無)**(2026-09-12・NG-VA1)】
+
+- **【分かったこと】** VENUE-V0 で唯一生き残った旗艦「4 攻め → 1 号艇被害」の会場差を B2 の win 残差で測ると、**τ が厳密に 0 へ縮約**(Q p=0.744・I²=0.000)。生の会場間 SD 0.898 pp/SD は**会場 SE 中央値 1.004 pp/SD より小さい** = ノイズ以下。frozen な会場順位との対応も **ρ=−0.143(p=0.504)** で無相関(Case B なら正の相関が出るはず)。
+- **【予測に効くか】効かない。** oracle 上限(理想的に組み込めた場合)の **venue 増分は ΔNLL 0.000225**(会場 24 本自由版でも 0.000861・2-fold cross-fit で 0.000144)= **採用線 0.003 の 1/13〜1/21**。自由版の増分 0.000861 は自身の過学習フロア 0.000804 とほぼ同値 = 実質すべてノイズ。→ **統合研究は止める**(指令 §11 の停止規則)。
+- **【市場】未評価**(市場 secondary は発火条件を満たさず未実施)。
+- **正直な留保**: 残差スロープ経路は**検出力不足**(SE(γ)=0.475 → p<0.01 で検出できる γ は 1.23・99% CI は +0.97 まで届く)。「構造が無い」の直接証明にはなっていない。判定は ①oracle 上限 ②結果 y を使わない model-side λ に依拠している。
+- **model-side λ = 1.072 ± 0.270(p=0.00065)**: 恒等式 `β_resid,v = β_obs,v − β_model,v` を使い、B2 自身の予測側の会場 deviation を frozen 観測 deviation に回帰した傾き。λ≈1 = **B2 の予測関数が会場別の被攻撃脆弱性をほぼ丸ごと再現している**(λ=0 は z=3.97 で排除・予測側 τ=0.785 は観測 τ 0.554 より大きい)。ただし「学習したのか番組編成の反映か」は未分離。
+- **国全体では残差に生きている**: Raw B2 win 残差 −0.934 ± 0.204 pp/SD(CI が 0 を跨がない)。**exh120 適用後も −0.904 ± 0.203 でほぼ不変 = 展示層はこの構造をほとんど吸収しない**(FINDINGS P13「状態系は展示が取り切っている」とは別の層)。ただし national 単独の oracle 上限も 0.000381 = 採用線の 1/8。
+- 桐生は**再度強くなかった**(観測 Axis A では最脆弱 −2.468 だが残差では逆符号 +1.209・有意でない。model-side deviation −1.698 = B2 が予測側で最も強く織り込んでいる会場)。Primary 判定には会場名を一切使っていない。
+- 出典: `artifacts/research/nextgen/va1/{va1_frozen.json,va1_results.json}` / `lane-reports/va1_venue_attack_residual_20260912.md`
+
+### P20. `wind_dir_code` の train/serve skew — 2026-09-05 以降の本番予測が実測 ΔNLL +0.044 劣化【**確定(運用事故)**(2026-09-12・Q-029 監査の副産物)】
+
+- **【分かったこと】** 学習側は `wind_dir_code` を**全行 −1 に固定**している(`gate_f41_v2.py:56`・bundle の mu=−1 / sd=1 = 完全な定数)。一方 `src/predict.py:137` は `WIND_DIR_MAP.get(...)` で**実値 1〜16 を返し**、`predict_b2_live` は同じ関数を呼ぶ。**−1 へ戻す処理は存在しない**。
+- 原因: commit `c260f3c`(**2026-09-05**)が 16 方位対応 + openapi 気象補完を本番投入し、それ以前に成立していた「本番スクレイパは常に −1」という前提を壊した(`build_weather_v2.py:206` / `freshness_test_v2.py:90` がこの前提を明記していた)。
+- 露出: 2026-08 の値分布で **95.25%** のレースが非 −1(2026-07 は 82.06%)。標準化後は学習時常に 0 のところへ **2〜17** が入る = **未学習領域への外挿**。
+- **【予測に効くか】効く(悪い方向)。** 本番バンドル・同一 9,607R(2026-07〜08)の推論実測で **3 連単 NLL 3.75257(学習整合 −1)→ 3.79704(実値)= ΔNLL +0.04447 = 採用線の約 15 倍の劣化**。予測分布の **TVD 平均 0.091 / 1 着予測の入れ替わり 14.84%**。
+- 対処案(未実行・**本番推論経路の変更 = 承認必須** → Q-030): 推論側で `wind_dir_code = -1` を強制する 1 行。**再学習不要・可逆・情報損失ほぼ皆無**(学習寄与は定数のため 0)。`LEAKAGE_COLS` に気象を足すのは**非推奨**(`build_weather_v2.py:198` の正当な assert が壊れる)。
+- **未確認**: live スクレイパがネットワーク経由で返す `wind_dir` 実値の end-to-end 確認(1 回の実走が残っている)。上記露出率は保存済み beforeinfo/openapi の値分布に基づく。
+- 規律: **「学習時に定数だった特徴」は推論側でも定数に固定する。パーサ改善が本番に入るときは、その列が学習時に定数扱いだったかを必ず確認する。**
+- 出典: `lane-reports/q029_weather_provenance_audit_20260912.md` §5-A / `artifacts/research/nextgen/va1/va1_clean_ref.json`
+
+### P21. 研究用の Raw-B2 参照は K 由来(post-race)気象で作られていた — 残差系の全実験に同じ留保が付く【**確定(研究基盤)**(2026-09-12・Q-029 監査の副産物)】
+
+- **【分かったこと】** `dump_b2_probs.py:65` と `t3d2_dump_p120.py:63` はいずれも **`data/processed/national/features.parquet`(= K 気象 100% 一致 / beforeinfo とは 46.8% 一致・`wind_dir_code` 実値)** を読む。本番学習が読む `features_v2.parquet` ではない。
+- **p2 replica バンドル**(`e10/b2f41_fold2_replica_bundle.pt` = E10 / PXR1 / VENUE-V0 L3 / VA1 の「Raw B2」)は **K 気象で学習されている**(mu 指紋: replica 2.74832964 = national 2.74832966 ≠ features_v2 2.74553556 / `wind_dir_code` mu=4.242)。学習と推論は内部整合だが、**本番より多い情報(実際のレース時気象)を持つ別物のモデル**。
+- **prod3 の研究 dump**(`t3d2` / `ts`)は逆に、beforeinfo で学習した本番バンドルに K 気象 + 実 `wind_dir` を食わせている = **研究 dump 内部で train/serve 不整合**。
+- 影響を受ける実験: NG-SOB1F / NG-PDS1 / NG-U2 / VENUE-V0 の L3 / NG-VA1・および t3d2 / t3d3 / t3d4 / ts1 の p120。
+- **実測した影響の大きさ**(本番バンドル・同一 9,607R): 学習整合 NLL 3.75257 / 研究 dump 構成 3.78072。VA1 の国別残差は **−0.829 ± 0.478 → −1.029 ± 0.478(同符号・差はノイズ内)**、**γ は両構成で null** → **VA1 の結論は変わらない**。ただし気象 4 列の寄与 ΔNLL ≈ 0.004 は VA1 の venue 増分上限 0.0009 より大きく、**「無視できる」とは言えない**。
+- 対処案(未実行・Owner GO → **Q-031 / NG-REF1**): ①dump 2 本の読み込み元を `features_v2.parquet` へ差し替え ②`wind_dir_code = -1` 強制 ③p2 replica を beforeinfo 構成で再学習して Raw-B2 参照を作り直す ④SOB1F / PDS1 / U2 / VENUE-V0 L3 / VA1 の主判定が変わらないか再確認。**production は不変**。
+- 規律: **`assert_no_leakage` は列名しか見ない。値の provenance は別に検査する必要がある**(dump スクリプトが読む parquet の気象がどの source 由来かを凍結 JSON に明記する)。
+- 出典: `lane-reports/q029_weather_provenance_audit_20260912.md` §5-B / `lane-reports/va1_venue_attack_residual_20260912.md` §7
 
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
 
@@ -1850,12 +1932,12 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 
 ```json
 {
-  "updated_at": "2026-09-11 22:05",
-  "updated_by": "Claude (kyotei lane / elpsykongroo) — Owner 研究指令 2026-09-11 第 2 弾 (Q-025 GO + Venue Logic Research v0) 完走",
+  "updated_at": "2026-09-12 00:15",
+  "updated_by": "Claude (kyotei lane / elpsykongroo) — Owner 研究指令 2026-09-11 第 3 弾 (Q-028 = GO / Q-029 = AUDIT ONLY GO) 完走",
   "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
   "architecture_version": "v2.1",
   "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
-  "current_phase": "Venue Logic 研究 第 1 段 (v0 診断) 完了。上位仮説『競艇は 24 会場で同じゲームか』への答え = **全域では違わない。1 号艇の被攻撃耐性という 1 次元だけが会場で違う** (VENUE_PARTIAL)。同時に難条件という軸が 2 方向 (U2 の習熟交互作用・旗艦の難条件層別) から否定され、当地経験と難条件の両方が閉じた。研究構造は指令 §18 の 6 層へ移行するが Layer 1 は 24 本の埋め込みではなくスカラー 1 本。次 = NG-VA1「会場 × 4 コース攻撃」を B2 残差で確かめる 1 本 (Owner GO = Q-028)",
+  "current_phase": "Venue Logic レーンを閉じた (説明層として保持・Prediction Edge から降格)。NG-VA1 = VA1_PARTIAL / PARTIAL_UNDERPOWERED (機械) = 実質 Case A 寄り + 統合価値なし → 指令 §24 の分岐 C。会場差は B2 win 残差で τ が厳密に 0 (Q p=0.744・I²=0.000・生の会場 SD 0.898 < ノイズ 1.004・frozen 順位との ρ=−0.143)。判定を支える well-powered な 2 本 = oracle 上限の venue 増分 0.000225〜0.000861 (cross-fit 0.000144) = 採用線 0.003 の 1/13〜1/21、および結果 y 非依存の model-side λ=1.072±0.270 (B2 の予測関数が会場差をほぼ丸ごと再現済み)。→ U-36a を R-17 で否定・指令 §14 の Venue PoC は起票しない。Q-029 = WEATHER_SAFE (本番は beforeinfo 気象で学習・独立 5 線で確認) → CLOSE。FINDINGS P17 を訂正。監査中に別件 2 件を検出 = Q-030 (wind_dir_code の train/serve skew・実測 ΔNLL +0.04447 = 採用線の約 15 倍の劣化・1 着予測の入替 14.84%・2026-09-05 以降) / Q-031 (研究 p120 dump が K 由来 post-race 気象を読んでいた = NG-REF1)。次 = 運用の直し (Q-030) と研究土台の修復 (Q-031)",
   "baseline_model": {
     "id": "b2f41_prod2026_prod3",
     "description": "B2構造化着順NN (41特徴・6艇self-attention・120通り直接softmax・3seed平均) + exh120展示補正層(θ9) + 市場ブレンド(w=0.85・推論後段)",
@@ -1867,7 +1949,7 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
     "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
   },
   "current_experiment": null,
-  "current_experiment_note": "Owner 指令「Prediction Edge Discovery 第 1 弾」完走 (2026-09-11 02:10)。実行中の実験なし。自走 = 部品バックフィル PID 12667 + forward collector 試験 (NG-FC1・9/11〜9/24 メタデータ) + shadow 方式 A (nightly 23:30)",
+  "current_experiment_note": "Owner 指令 2026-09-11 第 3 弾 完走 (2026-09-12 00:15)。実行中の実験なし。自走 = 部品バックフィル PID 12667 + forward collector 試験 (NG-FC1・9/11〜9/24) + shadow 方式 A (nightly 23:30)",
   "experiments": {
     "registry_path": "artifacts/research/experiment_registry.jsonl",
     "adopted": [
@@ -2148,7 +2230,10 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
     "P15 (2026-09-11・VENUE-V0): scale reversal (1 着は落とすが 2 着に残る) の有無は会場ではなく攻め手のコースが決める。3 攻め→1 は 24/24 場・2 攻め→1 は 20/24 場・4 攻め→1 は 0/24 場",
     "P16 (2026-09-11・NG-U2 + VENUE-V0): 『難条件がレース構造を変える』は B2 残差のレベルでは信号を持たない。U2 の DiD は置換 p=0.850、旗艦の難条件層別も差の z = −0.41 / −1.01。E5NR Phase A の 7m/s+ 知見は事後観測の K 風での記述であり別物",
     "P17 (2026-09-11・NG-U2 前処理): K ファイル (結果ページ) 由来の気象 4 列は as-of 不適合。研究では beforeinfo へ差し替えて回避したが src/model.py の LEAKAGE_COLS に未登録で FEATURE_COLS に入っている = Q-029",
-    "P18 (2026-09-11・VENUE-V0 補助診断): n=24 の meta-regression では『天候が会場差を説明したか』に答えられない。旗艦 τ² は 92% 減るがランダム共変量プラセボでも平均 95% 減 (p=0.653)。同種分析にはプラセボ併記を義務化"
+    "P18 (2026-09-11・VENUE-V0 補助診断): n=24 の meta-regression では『天候が会場差を説明したか』に答えられない。旗艦 τ² は 92% 減るがランダム共変量プラセボでも平均 95% 減 (p=0.653)。同種分析にはプラセボ併記を義務化",
+    "P19 会場差は B2 残差に残っていない + 理想的に知れても採用線に届かない (NG-VA1 2026-09-12): 残差 τ=0・Q p=0.744・I²=0.000・frozen 順位との ρ=−0.143。oracle 上限の venue 増分 0.000225 (frozen dev) / 0.000861 (会場自由・過学習フロア 0.000804) / cross-fit 0.000144 = 採用線の 1/13〜1/21。model-side λ=1.072±0.270 (p=0.00065) = B2 の予測が会場差をほぼ再現済み。国全体の攻撃→イン被害は残差に生存 (−0.934±0.204・exh120 後も −0.904±0.203 = 展示層は吸収しない) だが national 単独の上限も 0.000381。**留保: 残差スロープ経路は検出力不足 (SE(γ)=0.475・99% CI が +0.97 まで届く)。凍結時に宣言し G6 を NULL 阻止ゲートとして定義したため機械判定は PARTIAL**",
+    "P20 wind_dir_code の train/serve skew で 2026-09-05 以降の本番予測が実測 ΔNLL +0.04447 劣化 (採用線の約 15 倍)・1 着予測の入替 14.84% (Q-029 監査の副産物 → Q-030)",
+    "P21 研究の Raw-B2 参照 (p2 replica) が K 由来 post-race 気象で学習されていた。残差系の全実験に同じ留保が付く (→ Q-031 / NG-REF1)"
   ],
   "rejected_findings": [
     "選手の動的状態 (直近 k 走 − 自己ベースライン系 6 本) は B2 残差を説明する → 否定 (NG-PDS1・well-powered null・増分上限 0.00013 = 採用線の 1/23)。静的 latent (B2H REJECT) に続き動的も否定 = 選手個人の情報路線は閉鎖",
@@ -2156,7 +2241,8 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
     "気温・水温の素値は予測に効く (実体の8-9割が季節の焼き直し)",
     "『A1は人気しすぎ』(市場は階級を正確に織り込む)",
     "純粋externality (自艇は無傷で隣だけ動く型) は信号ゼロ (NG-E10 自艇残差≈0層: p=0.894)",
-    "rarity 条件付き市場 shrinkage (NG-T3D4): 追加項は全セル 0 か負・実現値 全 48 セル <1。高配当側の過信は AI と市場が共有 (favorite-longshot 型)"
+    "rarity 条件付き市場 shrinkage (NG-T3D4): 追加項は全セル 0 か負・実現値 全 48 セル <1。高配当側の過信は AI と市場が共有 (favorite-longshot 型)",
+    "R-17 会場 × 4 コース攻撃の交互作用は B2 が取り切れていない (U-36a) — 否定 (2026-09-12・NG-VA1)。24 場別 Venue 埋め込み・会場別モデル群・指令 §14 の Venue-dependent Inside Resistance PoC はいずれも起票しない。Venue Logic は説明層として保持"
   ],
   "metrics": {
     "national_fold2_3seed": {
@@ -2601,8 +2687,10 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
       "選手コメントのレース後混入 (前向き収集のみ可)",
       "**R1気象の終値上書き疑い (2026-09-06 P4設計レーン発見・n=1観察)**: beforeinfoのR1気象だけ「HH:MM現在」=当日終値で上書きされる挙動を実測 — 事実ならR1行の気象特徴は6.5年分look-ahead汚染。R1 vs R2系統差検定で要確認・確認まで新研究のR1気象は要注意扱い",
       "beforeinfoの風はレース単位スタンプで前レース発走時点 (展示より約15分古い) — 「直前風」の実観測はアメダス10分値が上限 (T-1分ラベルは実観測でない)",
-      "K ファイル (公式競走成績 = 結果ページ) 由来の気象 4 列 (wind_speed / wave / weather_code / wind_dir_code) が src/model.py の LEAKAGE_COLS に未登録で FEATURE_COLS に入っている。研究側は beforeinfo へ差し替えて回避済み (NG-U2 / VENUE-V0)。本番学習側は未対応 = Q-029",
-      "beforeinfo 気象の R1 (race_no==1) は当日終値汚染が確定判定 (w2_r1_contamination.py)。解析では R1 を除外する"
+      "**[2026-09-12 Q-029 監査で決着 = WEATHER_SAFE]** K ファイル由来の気象 4 列 (wind_speed / wave / weather_code / wind_dir_code) が src/model.py の LEAKAGE_COLS に未登録で FEATURE_COLS に入っているのは事実。ただし **現 production b2f41_prod2026_prod3 は beforeinfo 気象で学習されている** (バンドルの mu/sd 指紋が学習行 2,017,260 行で beforeinfo と 8 桁一致・K と不一致 / 学習が読むのは artifacts/research/v2/features_v2.parquet で data/processed/national/features.parquet ではない / 行レベルで beforeinfo 100.0000% 一致・K 46.7% 一致)。本番推論も beforeinfo。→ **本番は clean**。起票元 FINDINGS P17 の「本番学習側は未対応」は誤りで訂正済み。src/model.py の LEAKAGE_COLS 未登録は LightGBM 経路を将来再利用するときの罠として残る",
+      "beforeinfo 気象の R1 (race_no==1) は当日終値汚染が確定判定 (w2_r1_contamination.py)。解析では R1 を除外する",
+      "**[新規 2026-09-12・Q-030]** wind_dir_code の train/serve skew: 学習は全行 -1 固定 (bundle mu=-1 / sd=1 = 完全な定数) だが、src/predict.py:137 が実値 1〜16 を返し predict_b2_live も同じ関数を呼ぶ。2026-09-05 commit c260f3c (16 方位対応 + openapi 補完) 以降・露出 95.25% (2026-08)。**本番バンドル・同一 9,607R の実測で 3 連単 NLL 3.75257 → 3.79704 = ΔNLL +0.04447 = 採用線の約 15 倍の劣化・TVD 0.091・1 着予測の入替 14.84%**。対処は推論側で -1 を強制する 1 行 (再学習不要・可逆) だが本番推論経路の変更 = 承認必須 → Q-030 裁定待ち。未確認 = live スクレイパの end-to-end 1 回確認",
+      "**[新規 2026-09-12・Q-031]** 研究用 p120 dump の as-of 不適合: dump_b2_probs.py:65 と t3d2_dump_p120.py:63 が data/processed/national/features.parquet (= K 気象 100% 一致 / beforeinfo とは 46.8%・wind_dir_code 実値) を読む。p2 replica バンドル (e10/b2f41_fold2_replica_bundle.pt) は **K 気象で学習されている** (mu 指紋 2.74832964 = national 2.74832966 ≠ features_v2 2.74553556)。影響 = NG-SOB1F / NG-PDS1 / NG-U2 / VENUE-V0 L3 / NG-VA1・t3d2 / t3d3 / t3d4 / ts1 の p120。ref 窓 9,607R の実測では VA1 の結論は不変 (国別残差 −0.829±0.478 vs −1.029±0.478・γ は両構成 null) だが気象 4 列の寄与 ΔNLL≈0.004 は VA1 の venue 増分上限 0.0009 より大きい → NG-REF1 (Q-031)"
     ],
     "unusable_scripts": [
       "real_backtest.py / walk_forward_eval.py (未来漏れ未修正・新研究で流用禁止)"
@@ -2709,25 +2797,29 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
       "n": 19,
       "item": "forward collector 実装・launchd 登録 (design v2 + draft + plist draft 完成)",
       "recommend": "GO (2 週間試験。3連複/2連単/2連複ページの追加有無を同時裁定)",
-      "status": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済"
+      "status": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済",
+      "decision": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済"
     },
     {
       "n": 20,
       "item": "shadow EV 判定を方式 A (3連単含意単勝) へ差し替え (daily_signal_notify.py・本番隣接)",
       "recommend": "GO (持ち越し)",
-      "status": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済"
+      "status": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済",
+      "decision": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済"
     },
     {
       "n": 21,
       "item": "研究成果の commit + research mirror push (Q-007 e の扱い)",
       "recommend": "GO",
-      "status": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済"
+      "status": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済",
+      "decision": "裁定済 GO (Owner 指令 2026-09-10 第 2 弾) → 実施済"
     },
     {
       "n": 22,
       "item": "NG-T3D4 起票 = オッズ帯条件付き λ + 判定を『確定配当ベースの実現値 CI 下端 > 1』に置く (実現値が 1 を超えなければケース3 確定・Market Gate 閉鎖)",
       "recommend": "GO (Q-022)",
-      "status": "裁定済 GO (Owner 研究指令 2026-09-10 第 3 弾) → 実施済: 4 券種 FAIL・route B・Market Gate 閉鎖"
+      "status": "裁定済 GO (Owner 研究指令 2026-09-10 第 3 弾) → 実施済: 4 券種 FAIL・route B・Market Gate 閉鎖",
+      "decision": "裁定済 GO (Owner 研究指令 2026-09-10 第 3 弾) → 実施済: 4 券種 FAIL・route B・Market Gate 閉鎖"
     },
     {
       "n": 23,
@@ -2738,13 +2830,29 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
       "n": 24,
       "item": "Prediction Edge Discovery 第 1 弾の事前登録 GO (a NG-SOB1F / b NG-PDS1)",
       "recommend": "a GO / b GO",
-      "status": "CLOSED 2026-09-11 (Owner 研究指令: 両方 GO・実行順 a→b・独立)"
+      "status": "CLOSED 2026-09-11 (Owner 研究指令: 両方 GO・実行順 a→b・独立)",
+      "decision": "CLOSED 2026-09-11 (Owner 研究指令: 両方 GO・実行順 a→b・独立)"
     },
     {
       "n": 25,
       "item": "次の主研究 1 本 = NG-U2「場 × 難条件 × 習熟」の 2×2 residual 表 (Gap Audit 次点 E・学習なし・<1 日・オッズ不使用)",
       "recommend": "GO (指令 §21 の分岐 D。A/B/C は SOB1F PARTIAL・PDS1 NULL により不成立)",
-      "status": "未裁定 (Q-025)"
+      "status": "未裁定 (Q-025)",
+      "decision": "裁定済 GO (2026-09-11・Owner 研究指令 第 2 弾) → NG-U2 = U2_NULL / VENUE-V0 = VENUE_PARTIAL"
+    },
+    {
+      "n": 26,
+      "item": "wind_dir_code の train/serve skew 是正 (本番推論を -1 固定へ戻す・再学習なし)",
+      "recommend": "GO (推論側 1 行。実測 ΔNLL +0.04447 = 採用線の約 15 倍の劣化・1 着予測の入替 14.84%・可逆・情報損失ほぼ皆無)",
+      "status": "未裁定 (Q-030・urgency high)",
+      "source": "FINDINGS P20 / lane-reports/q029_weather_provenance_audit_20260912.md §5-A"
+    },
+    {
+      "n": 27,
+      "item": "研究 p120 dump の K 気象 provenance 是正と Raw-B2 参照の再構築 (NG-REF1・production 不変)",
+      "recommend": "GO (次の主研究 1 本。SOB1F / PDS1 / U2 / VENUE-V0 L3 / VA1 の土台)",
+      "status": "未裁定 (Q-031)",
+      "source": "FINDINGS P21 / lane-reports/q029_weather_provenance_audit_20260912.md §5-B"
     }
   ],
   "w2_directives_owner_20260904": {
@@ -2890,11 +2998,11 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
     "human_facing": "日本語名称を主表示 (現在モーター状態/選手の調整能力/直前風変化/展開圧力×対応力/穴シナリオ/読めるレース/シナリオ分散買い)。内部IDは括弧の補助"
   },
   "next_actions": [
-    "NG-VA1 起票 (Owner GO = Q-028): 会場 × 4 コース攻撃の交互作用が B2 残差にも残るか。会場 deviation は VENUE-V0 の凍結値を再推定せず使用。未使用窓の確認は 2026-11-01 開封後に 1 回だけ",
-    "Q-029 裁定待ち: src/model.py LEAKAGE_COLS への K 由来気象 4 列の追加 (production 学習入力に関わるため AI 単独で触らない)",
-    "自律 (read-only): forward collector 試験のメタデータ評価 (9/24 まで) / 部品バックフィル完走 (9/16) 後の Maintenance 設計 / 11/1 holdout 開封手順の整理 / NG-BM1 は設計完了・実測は 11/1 以降 (実装前提 = 展示 ST の再抽出)",
-    "閉鎖: U-2 (R-14) / U-35 / NG-E8SWAP は起票しない / 24 会場ぶんの Venue 埋め込み・会場別モデル群は作らない / 難条件を閾値フラグで切る筋",
-    "規律: 会場単位 (n=24) の meta-regression には必ずランダム共変量プラセボを併記 (FINDINGS P18)"
+    "Q-030 裁定待ち (最優先・本番推論の wind_dir_code を -1 固定へ戻す)",
+    "Q-031 裁定待ち = NG-REF1 (研究 Raw-B2 参照の本番整合化と残差ベースライン再確立) — 次の主研究 1 本の推奨",
+    "自律: forward collector 試験のメタデータ評価 (9/24 まで) / 部品バックフィル完走 (9/16) 後の Maintenance 最小イベントスタディ設計 / 11/1 holdout 開封手順の整理",
+    "NG-BM1 (B2 Raw vs production(exh120) vs market の 3 者ベンチマーク) — 設計済み。実装前提の展示 ST 再抽出は VA1 で解決済み (va1_prep_exh.py)。実測は 11/1 以降",
+    "閉鎖: U-36a (R-17) / 指令 §14 の Venue PoC / 24 場別 NN・Venue 埋め込み"
   ]
 }
 ```
