@@ -4,10 +4,74 @@
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
 
-- 更新: **2026-09-12 04:30**(Owner 指令「Q-030 = COMMIT + PUSH GO」「Q-034 = GO」「SYSTEM INTEGRITY AUDIT = GO」の実行後)
-- 前回更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
-- 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/va1_venue_attack_residual_20260912.md` と `lane-reports/q029_weather_provenance_audit_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
+- 更新: **2026-09-12 05:40**(Owner 指令「**Q-035 = STAGED GO**」の実行後 = **INTEGRITY_GREEN**)
+- 前回更新: 2026-09-12 04:30(Owner 指令「Q-030 = COMMIT + PUSH GO」「Q-034 = GO」「SYSTEM INTEGRITY AUDIT = GO」の実行後)
+- 前々回更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
+- 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/q035_prior_parity_20260912.md`(今回)と `lane-reports/sia_v1_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
 - 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
+
+## 0. 今回(2026-09-12 明け方)— 「教えたとおりの情報」を本番でも見せるようにした
+
+用語: **train/serve skew** = 「学習したときの形」と「予測するときの形」がズレている状態。
+
+### 結論から: **`INTEGRITY_GREEN`**(青信号)
+
+前回「黄色信号」の原因だった 1 件を直しきった。
+
+- **本番 AI が見ている過去成績が、学習したときと同じ鮮度になった**
+- 直す前は、本番の AI は**常に「1 レース前の成績表」**を見ていた。最新のレース結果が反映されていなかった
+- さらに「今節ここまで何走したか」の集計が、**4 日目以降の開催で途中から数えられなくなっていた**
+- 両方直した結果、**ズレていた 24 項目が 0 になった**
+
+### 何をしたか(2 段階に分けた)
+
+Owner の指示どおり **一気に直さず、原因ごとに分けて**直した。
+
+**1 段階目**(9/12・commit `390281c`): 「今節の集計」4 項目。
+3 日より前まで続く開催で数えられなくなっていた部分を直した。
+**変えた項目は 4 つだけ・残り 37 項目は 1 ビットも動いていない**ことを機械で確認済。
+
+**2 段階目**(9/12・commit `bfcfcce`): 「直近成績」12 項目。
+本番が「保存済みの値」をそのまま拾っていたのを、**毎回その場で計算し直す**ようにした。
+
+### 残ったズレは「直せないもの」だけ
+
+21 項目には差が残っているが、これは**バグではなく仕組み上の限界**。
+
+学習するときは「同じ日の、その前のレース結果」も使っている。
+一方、本番は安全のため**日付の境界で切っている**(その日のレース結果を混ぜると、
+うっかり「これから走るレースの結果」まで混ぜてしまう危険があるため)。
+
+そこで「**同じ日に前のレースが無い選手だけ**」に絞って調べたら、**24 項目すべてでズレが完全にゼロ**だった。
+= 残っている差は全部「同じ日の前のレース」ぶんだと**機械で証明できた**。
+
+### 正直に言うと
+
+**「直したから当たるようになる」とは言えない。**
+
+固定の 8,997 レースで測った予測の良さ(NLL)は **3.74741 → 3.74665**。
+学習側の値(3.74452)には近づいたが、**採用ラインの 4 分の 1** しか動いていない。
+1着を当てる率は 21.64% → 21.73%(学習側 21.79%)。**回収率への効果は測っていない。**
+
+今回やったのは「**AI に教えたときと同じ条件を、本番でも正しく再現する**」ことであって、
+精度改善の実験ではない。
+
+### 見つかった「検査の穴」も塞いだ
+
+これまでの自動検査(golden)は、**学習側のデータだけを凍結**していた。
+つまり**本番側がどれだけ壊れても検査は合格し続ける**構造だった。
+実際、今回 本番の 16 項目を書き換えても、その検査の数値は **1 ビットも動かなかった**。
+
+→ **本番の手順で実際に特徴量を組み立てて、学習側と突き合わせる検査**を新しく作った(C6)。
+壊れたバージョンでちゃんと落ちることも確認済(5 件 FAIL)。
+
+### 次の判断(Owner 裁定待ち)
+
+**Q-037 = 予想ロジックの研究を再開するか、するならどこから。**
+技術的な障害は無くなった。ただし直近 5 本の研究はすべて「効果なし」で終わっているので、
+**再開するなら 1 本だけ**を推奨。
+
+---
 
 ## 0. 今回(2026-09-12 早朝)— 「研究のAI」「学習したAI」「本番のAI」が同じかを全部調べた
 
@@ -185,21 +249,21 @@ commit `9e39b83`。**本番の動きは 9/12 01:16 の時点ですでに直っ�
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: SIA-V1 (Prediction System Integrity Audit v1) — done_primary(41 列 lineage 全数解決 / train-serve parity = EXACT 17・UNEXPECTED_DIFFERENCE 24 (全部 prior 集計) / GOLDEN_RACE_SET 371R・24 会場 /…)
-- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・20173/49968 ページ・残り目安 4.05 日)
+- 実行中の実験: NG-Q035 (Prior Aggregate Train/Serve Parity) — done_primary(primary = parity (PARITY_RESOLVED: UNEXPECTED_DIFFERENCE 24 → 0)。secondary = prediction impact (固定 OOS 8,997R: NLL 3.74…)
+- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・20533/49968 ページ・残り目安 4.0 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **VENUE-V0**(2026-09-11・done_primary・—): 機械判定 (凍結 venue_v0_frozen.json 21:53:27・結果統計を計算する前 → 監査 31 秒 + 補助 4 秒・261,194R / 2021-01-01〜2026-06-30・R1 除外・最小会場 9,891R): **VENUE_PARTIAL**。16 チャネル中 **1 本**が事前登録 6 条件をすべて通過 = 旗艦 T1 4→1 (全国 −1.153pp/SD・τ 0.554・I² 0.605・Q p=7.0e-05…
 - **NG-VA1**(2026-09-12・done_primary・—): 機械判定 (凍結 va1_frozen.json 2026-09-11T23:56:09・sha256 2fb01f38…6ace23・結果 y に依存する統計を 1 つも計算する前 → 実行 207.6 秒・fit 46,648R / ref 8,236R・R1 除外・beforeinfo 条件・Raw B2 = p2 replica 2025-07〜2026-06): **VA1_PARTIAL / PARTIAL_UNDERPOWERED**。G1…
 - **NG-REF1**(2026-09-12・done_primary・—): Owner 指令 2026-09-12「Q-031 = GO」。研究用 Raw-B2 参照を production-training-consistent / as-of-safe に再構築した (再学習ゼロ・production バンドル読み取りのみ・sha256 5f7bc1f2f7a8bc0a… 実行前後一致)。**欠陥は 2 種類あることが判明**: D1 = clean 学習の prod3 に K 気象を食わせていた (入力差し替えで直る) /…
 - **NG-Q034**(2026-09-12・done_primary・—): 学習の 1 step 前に REPLICA_IDENTITY_MANIFEST.json を凍結 (sha256 6e5b4377…) → Q034_CLEAN_REPLICA を再学習 (bundle sha256 7c7e4551…・features_v2 beforeinfo + extra3_ext・wind_dir_code=-1・fold2・seed 42/43/44・b2・30epoch)。dump 59,923 レース (2025-07-…
 - **SIA-V1**(2026-09-12・done_primary・—): ①production training の正規化統計 41/41 列が beforeinfo 入力だけから相対 1e-6 以内で再現 (学習窓 2,017,260 行) = Q-029 WEATHER_SAFE の独立再現 ②41 列の lineage を全数解決 (UNKNOWN は B ファイル公表時刻 1 点のみ) ③train/serve parity = EXACT 17 / UNEXPECTED_DIFFERENCE 24 (差は全部 pr…
+- **NG-Q035**(2026-09-12・done_primary・—): parity (GOLDEN_RACE_SET 369R / 2214 艇行): strict 分類 (same-day carve-out なし) で UNEXPECTED_DIFFERENCE **24 → 23 → 0** / EXACT 17 → 18 → 20。carve-out 適用後は残り 21 列が INTENTIONAL_DIFFERENCE。残差はすべて same-day 境界で、同日先行行が無い艇に絞ると 24/24 列が差分率 0…
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-12 04:30(**Owner 指令 2026-09-12「Q-030 = COMMIT + PUSH GO」「Q-034 = GO」「SYSTEM INTEGRITY AUDIT = GO」完走 = RES-2026-09-H**) ## 最優先 — Owner 裁定待ち 2 件(これが決まるまで新しい Prediction Edge 仮説を起票しない) - **Q-035 = INC-2026-0912-PRIORSTALE(S3・未修復)をどう扱うか**。prior 集計 **24 列**が本番推論と学習で食い違う (p120 TVD **0.0388** / 3連単 argmax 入替 **10.30%** = Q-030 の **4 割強**)。 原因 2 つ = (A) `build_context` の snapshot が **1 レース古い** (B) 節 4 列が **3 日窓で打ち切られる近似**。 **避けられない差は 0.00%**(同日出走なし 1,409 …
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-12 05:40(**Owner 指令 2026-09-12「Q-035 = STAGED GO」完走 = RES-2026-09-I**) ## 今サイクルで確定したこと(RES-2026-09-I / Q-035) - **Q-035 = Stage A / Stage B とも完了(ADOPT)**。commit `390281c`(runtime **r4**)/ `bfcfcce`(runtime **r5**)。 **コード変更前に `research/Q035_FROZEN_PLAN.md` を凍結**し、結果を見て対象列を増減していない - **prior 集計 24 列の UNEXPECTED_DIFFERENCE = 24 → 0**。残る 21 列は **same-day 境界**による INTENTIONAL_DIFFERENCE で、**同日先行行が無い艇に絞ると 24/24 列で差分率 0.0000**(機械検査) - **`INC-2026-0912-PRI…
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -277,16 +341,16 @@ commit `9e39b83`。**本番の動きは 9/12 01:16 の時点ですでに直っ�
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-12 | Q-030(hotfix の commit + push) | **GO → CLOSE** — Owner「Q-030 = COMMIT + PUSH GO」。commit `9e39b83`(`scripts/predict_b2_live.py` のみ +53 行)→ …
-- 2026-09-12 | Q-034(研究 replica の再学習) | **GO → 完了(ADOPT)** — `Q034_CLEAN_REPLICA`(bundle sha256 `7c7e4551…` / dump 59,923R)。**学習の 1 step 前に REPLICA_ID…
-- 2026-09-12 | clean replica と legacy の差の切り分け | 確定 — fold2 test ΔNLL **+0.000793**(採用線 0.003 の約 1/4)/ dump 窓 ΔNLL +0.000321 / **3連単 argmax 入替 …
-- 2026-09-12 | Dependency Audit の再計算(replica アーム) | **FLIPPED 0 件** — 両アームを clean 化して frozen gate をそのまま再適用 → **NG-U2 SAME**(7 ゲート合否完全一致)/ **NG-PDS1 SAME**(6 特徴…
-- 2026-09-12 | production training の beforeinfo-safe 性 | **独立に再現** — 学習窓 **2,017,260 行**で **41/41 列の mu/sd が features_v2(beforeinfo)から相対 1e-6 以内で一致**。K result…
-- 2026-09-12 | INC-2026-0912-PRIORSTALE(新規発見・S3) | **起票 = Q-035(未裁定・未修復)** — prior 集計 **24 列**が本番推論と学習で食い違う(p120 TVD **0.0388** / 3連単 argmax 入替 **10.30%** = Q-030 の 4…
-- 2026-09-12 | System Integrity Audit v1 | **INTEGRITY_YELLOW** — Completion Gate **7/8**(未達 = unresolved S3 = 0 のみ)。**S4 = 0 件**・S3 = 1 件(未修復)・S2 = 4 件・S1…
 - 2026-09-12 | モデル同一性の定義 | **制定** — 『同じモデル』と呼ぶには `Model Weights + Feature Contract + Source Contract + Preprocessing Revision…
 - 2026-09-12 | 監査ゲートの設計規律 | **制定** — **いつも PASS するだけのゲートは、何も守っていないゲートと区別できない。** preflight には必ず負のコントロール(故障を注入して検出されることの確認)を併設する…
 - 2026-09-12 | `_fetched_at` の解釈 | **確定(方法論)** — beforeinfo アーカイブの `_fetched_at` は**ダウンロード時刻であって情報時点ではない**。バックフィルのため比較可能 37,526 件すべてが「締切後取…
+- 2026-09-12 | Q-035(prior 集計 24 列の train/serve 不一致) | **STAGED GO → Stage A / B とも完了(ADOPT)** — Owner「Q-035 = STAGED GO。24 列を一括修正しない。原因ごとに 修正 → parity → prediction impact → 次段階」。**コード変更…
+- 2026-09-12 | 残る train/serve 差の扱い | **INTENTIONAL_DIFFERENCE として契約化** — 21 列に差が残るが **すべて same-day 境界**。学習は同日の早い出走を含む(`shift(1)` / `cumcount`)が production は `buil…
+- 2026-09-12 | 同日先行の数え方 | **確定(方法論)** — 「同日先行」は**学習と同じ行順(date, race_id, lane)で数える**。`(dt, race_no)` 順で数えると会場をまたぐキー(`motor_no` / `…
+- 2026-09-12 | golden set の構造的な穴 | **確定 → C6 で閉塞** — `GOLDEN_RACE_SET` の raw は `features_v2`(= TRAIN 側)由来なので **serve 経路を 1 mm も守っていない**。実際 Q-0…
+- 2026-09-12 | `merge(how="left")` + `.last()` の as-of リーク | **発見 → 同時に解消** — `build_context(asof=<過去日>)` が `venue_lane` を EXT2 との left merge で持ってきていたため、cutoff 以降の行が `…
+- 2026-09-12 | INC-2026-0912-PRIORSTALE | **CLOSED** — Owner 指令 §20 の 8 条件すべて成立(root cause 確定 / Stage A / Stage B / 24-24 parity explained / Gol…
+- 2026-09-12 | System Integrity Audit v1 Completion Gate 再実行 | **INTEGRITY_GREEN** — Completion Gate **8/8**(unresolved S3 = 0 / S4 = 0)。preflight **16/16 PASS**(C6 追加後)/ 負のコ…
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -389,6 +453,41 @@ TRAIN vs SERVE は 24〜46%。→ **出ている差は as-of の制約ではな�
 ①ページの種類(beforeinfo か K か)②コード側の情報時点宣言(`leakguard_env.py` の T0/T1/T2)
 ③学習統計が beforeinfo から再現できるか、で行う。**fetch 時刻は使えない。**
 
+### P25. golden set を「学習側の値」で凍結すると、推論経路の事故を 1 件も止められない【**方法論**(2026-09-12・Q-035)】
+
+`GOLDEN_RACE_SET.parquet` の raw41 / z41 / p120 は **`features_v2`(= TRAIN 側)から**取っている。
+つまり凍結しているのは「同じ入力を入れたら同じ確率が出るか」= **モデルの同一性**だけで、
+**本番が組み立てる入力が正しいか**は 1 mm も見ていない。
+
+実測: Q-035 で本番推論の prior 集計 16 列を書き換えた(3連単 argmax が golden で 7.05% 入れ替わる
+規模の変更)のに、**preflight C4b の max|Δp120| は 0.000e+00 のまま PASS**。
+INC-2026-0912-PRIORSTALE が長期間通過していたのはこの穴のため。
+
+→ golden は **2 本要る**:
+- **model identity golden**(TRAIN 側の raw を凍結)= 重み・正規化・推論コードの同一性
+- **serve path golden**(本番関数で入力を組み立てて TRAIN と突き合わせ)= 特徴生成の同一性
+
+Q-035 で後者を `q035_prior_gate.py`(preflight C6)として新設した。
+**負のコントロール必須**(P23)も適用し、修正前モジュール(r3)を検査させて **5 件 FAIL** することを確認済。
+
+### P26. `merge(how="left")` で落ちた行の NaT は、`sort_values` + `.last()` の末尾に残って未来値を拾う【**バグ型**(2026-09-12・Q-035)】
+
+`build_context(asof=<過去日>)` は、asof で切った `feat` と `features_extra2` を left merge してから
+`sort_values("dt").groupby(...).last()` で会場×コースの値を取っていた。
+**cutoff 以降の行は merge で `dt` が NaT になるが、値の列は非 NaN のまま残る**。
+pandas の `sort_values` は NaT を末尾に置き、`.last()` は列ごとに最後の非 NaN を返すため、
+**未来レースの値が採用される**。
+
+実測(asof = 2026-07-01): ext 2,095,498 行のうち 19,993 行が NaT 化し、
+**144 キー全部**で値がずれた(`venue_lane_win_prior` max 0.00118)。
+
+生きている本番(asof = 当日)は parquet に未来行が無いので発火しない = **過去日付 replay 専用のリーク**。
+だがバックテスト・再現検証はこの経路を通るので、**「本番は無事」で済ませてはいけない**。
+
+→ ①as-of で切るなら **切った側のフレームから値も作る**(join して持ってこない)
+②`.last()` は「最後の行」ではなく「列ごとの最後の非 NaN」。**NaN を挟む集計で使わない**
+③as-of フィルタの直後に `assert frame[時刻列].max() < cutoff` を置く(Q-035 で `build_context` に追加済)
+
 ---
 
 
@@ -396,7 +495,8 @@ TRAIN vs SERVE は 24〜46%。→ **出ている差は as-of の制約ではな�
 
 # RESEARCH_STATUS — 研究状態の正本
 
-- 最新更新: **2026-09-12 04:30**(更新者: Claude / Owner 指令 2026-09-12「**Q-030 = COMMIT + PUSH GO**」「**Q-034 = GO**」「**SYSTEM INTEGRITY AUDIT = GO**」完走 = **RES-2026-09-H / DoD 13-14**。**① Q-030 を git に確定**: commit `9e39b83`(`scripts/predict_b2_live.py` のみ +53 行)→ push。commit 後の再確認 全 PASS(bundle sha256 不変 / runtime revision **r3** / expected `wind_dir_code` = −1 / **golden 369R の train-serve 差分率 0.000%** / p120 **max Δ 0.000e+00**)。**② Q-034 = clean replica 完成**: `Q034_CLEAN_REPLICA`(bundle sha256 `7c7e4551…`・dump **59,923R**)。**学習の 1 step 前に REPLICA_IDENTITY_MANIFEST を凍結**。production は読み取りのみ・不変。holdout 未使用(max 2026-08-31)。旧 replica との差 = ΔNLL **+0.000793**(採用線の約 1/4)だが **3連単 argmax 9.17% 入替** → **dataset difference** と切り分け。Dependency Audit 再計算 = **NG-U2 SAME**(7 ゲート合否完全一致)/ **NG-PDS1 SAME**(6 特徴 × 4 ゲート完全一致)= **FLIPPED 0 件**。**③ System Integrity Audit v1 で新しい S3 を発見**: **INC-2026-0912-PRIORSTALE** = prior 集計 **24 列**の train/serve 不一致(p120 TVD **0.0388** / 3連単 argmax 入替 **10.30%** = Q-030 の 4 割強)。原因 = `build_context` snapshot の **1 レース遅れ** + 節 4 列の **3 日打ち切り**。同日出走なし 1,409 艇行で **TRAIN vs IDEAL = 0.00%** → **as-of の制約ではなく実装の off-by-one**。ablation で節 4+2 列が単独最大(TVD 0.0388→**0.0203** / 入替 10.30%→**5.69%**)。**leakage ではない(S3 であって S4)**。Owner 指令 §22 に従い**未修復** → **Q-035** 起票。**④ 再発防止の装置**: `FEATURE_LINEAGE_AUDIT.md`(41/41 解決)/ `FEATURE_CONTRACT.json`(rev `fc-v1-2026-09-12`)/ `GOLDEN_RACE_SET`(**371R・24 会場・四季**)/ preflight ゲート **10/10 PASS** / **負のコントロール 6/6 DETECTED**。**as-of 違反 0 件**(beforeinfo 357,808 file 全走査)。ただし **`_fetched_at` は取得時刻であって情報時点ではない**と判明(P24)。**S4 = 0 件**。**最終判定 = `INTEGRITY_YELLOW`**(Completion Gate 7/8・未達は unresolved S3 = 0 のみ)。人間向け = research/OWNER_VIEW.md)
+- 最新更新: **2026-09-12 05:40**(更新者: Claude / Owner 指令 2026-09-12「**Q-035 = STAGED GO**」完走 = **RES-2026-09-I / DoD 8-8**。**① Stage A**(commit `390281c`・runtime **r4**)= `extra3_for_racer` の節ブロック走査から **3 日 pre-filter を外した**。`setsu_day` が **EXACT** 化・残り 3 列の max|Δ| は 13/3/5 → **すべて 1**(同日 1 走ぶん)。**変化した列は対象 4 列のみ・他 37 列は bit 一致**。**② Stage B**(commit `bfcfcce`・runtime **r5**)= `build_context` の `groupby(...).last()` スナップショット(常に 1 レース古い)を、生の行から学習と同じ式で **as-of 再計算**する方式へ。**③ prior 集計 24 列の UNEXPECTED_DIFFERENCE = 24 → 0**。残る 21 列は **same-day 境界**による INTENTIONAL_DIFFERENCE で、**同日先行行が無い艇に絞ると 24/24 列で差分率 0.0000**(機械検査)。**④ INC-2026-0912-PRIORSTALE = CLOSED**(Owner 指令 §20 の 8 条件すべて成立)。**⑤ Completion Gate 8/8 → 最終判定 `INTEGRITY_GREEN`**。**⑥ 再発防止**: serve 経路を実際に組み立てて train と突合する preflight **C6** を新設(既存 golden は raw を TRAIN 側から取っており serve 経路を守っていなかった = **P25**)。負のコントロール = r3 モジュールで **5 件 FAIL**。**⑦ 副産物**: 過去日付 replay 専用の as-of リークを 1 件解消(**P26**)。**性能は採否条件ではない**: 固定 OOS 8,997R で NLL 3.74741 → **3.74665**(TRAIN 3.74452)/ 1着 Hit@1 21.64% → **21.73%**(TRAIN 21.79%)= **採用線(ΔNLL 0.003)の 1/4**。**「直したから当たるようになる」とは言えない**。人間向け = research/OWNER_VIEW.md)
+- 前回更新: **2026-09-12 04:30**(更新者: Claude / Owner 指令 2026-09-12「**Q-030 = COMMIT + PUSH GO**」「**Q-034 = GO**」「**SYSTEM INTEGRITY AUDIT = GO**」完走 = **RES-2026-09-H / DoD 13-14**。**① Q-030 を git に確定**: commit `9e39b83`(`scripts/predict_b2_live.py` のみ +53 行)→ push。commit 後の再確認 全 PASS(bundle sha256 不変 / runtime revision **r3** / expected `wind_dir_code` = −1 / **golden 369R の train-serve 差分率 0.000%** / p120 **max Δ 0.000e+00**)。**② Q-034 = clean replica 完成**: `Q034_CLEAN_REPLICA`(bundle sha256 `7c7e4551…`・dump **59,923R**)。**学習の 1 step 前に REPLICA_IDENTITY_MANIFEST を凍結**。production は読み取りのみ・不変。holdout 未使用(max 2026-08-31)。旧 replica との差 = ΔNLL **+0.000793**(採用線の約 1/4)だが **3連単 argmax 9.17% 入替** → **dataset difference** と切り分け。Dependency Audit 再計算 = **NG-U2 SAME**(7 ゲート合否完全一致)/ **NG-PDS1 SAME**(6 特徴 × 4 ゲート完全一致)= **FLIPPED 0 件**。**③ System Integrity Audit v1 で新しい S3 を発見**: **INC-2026-0912-PRIORSTALE** = prior 集計 **24 列**の train/serve 不一致(p120 TVD **0.0388** / 3連単 argmax 入替 **10.30%** = Q-030 の 4 割強)。原因 = `build_context` snapshot の **1 レース遅れ** + 節 4 列の **3 日打ち切り**。同日出走なし 1,409 艇行で **TRAIN vs IDEAL = 0.00%** → **as-of の制約ではなく実装の off-by-one**。ablation で節 4+2 列が単独最大(TVD 0.0388→**0.0203** / 入替 10.30%→**5.69%**)。**leakage ではない(S3 であって S4)**。Owner 指令 §22 に従い**未修復** → **Q-035** 起票。**④ 再発防止の装置**: `FEATURE_LINEAGE_AUDIT.md`(41/41 解決)/ `FEATURE_CONTRACT.json`(rev `fc-v1-2026-09-12`)/ `GOLDEN_RACE_SET`(**371R・24 会場・四季**)/ preflight ゲート **10/10 PASS** / **負のコントロール 6/6 DETECTED**。**as-of 違反 0 件**(beforeinfo 357,808 file 全走査)。ただし **`_fetched_at` は取得時刻であって情報時点ではない**と判明(P24)。**S4 = 0 件**。**最終判定 = `INTEGRITY_YELLOW`**(Completion Gate 7/8・未達は unresolved S3 = 0 のみ)。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-12 01:45**(更新者: Claude / Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」完走 = **RES-2026-09-G / DoD 14-14**。**① 本番の train/serve skew を是正**: prod3 は `wind_dir_code` を全行 −1 の定数として学習しているのに、commit `c260f3c`(2026-09-05)以降**推論側だけ実値 1〜16** が入っていた。live 実走で混入を確定(`南南東`→12・正規化後 **13.0**・供給元は boatrace.jp ではなく **openapi 補完**)→ 推論側を学習時定数へ固定(**runtime revision r3**・再学習なし・重み不変・可逆)。8,997R で **6 指標すべて改善**(3連単 NLL **3.78427→3.74452** = ΔNLL −0.03975 = 採用線の約 13 倍 / Brier120 −0.00224 / Hit@1 +0.27pp / 1着 Hit@1 +0.19pp / **prediction change rate 14.84%** / p120 TVD 平均 **0.0912**)・pipeline integrity 全 PASS。**INC-2026-0905-WINDDIR** を起票(9/5 04:43:31〜9/12 01:16:02)。**窓内に本番予測成果物の書き出し 0 件・bet_log 系 4 本 md5 不変 = 実弾への波及なし**。**② NG-REF1 で研究の土台を作り直した**: 欠陥は **2 種類**(D1 = clean 学習の prod3 に K 気象 → 入力差し替えで直る / D2 = **replica の重みそのものが K 気象で学習** → 再学習が要る)。Owner 必須条件「model weights は変更しない」を字義どおり守り **D1 を完全解消・D2 は据え置き → Q-034 起票**。canonical reference = `ref1_p120_prod3_clean.parquet`(8,997R)・**p120 生成前に manifest を凍結**。**汚染の広がりは気象 4 列のみ**と実測(残り 37 列は K と 100.0000% 一致)。最小再計算(既存 gate を import・式は無改変)で **Owner の 5 問すべて「結論は維持」**(SOB1F Race Formation = PARTIAL 不変 / market disagreement 維持 / PDS_NULL 維持 / **U2_NULL は 7 ゲートの合否が完全同一** / VA1 ref アーム維持)。ただし **AI と市場の距離が約 41% 縮む**新事実(勝者上 log 比 −0.02592→**−0.01524**・CI は依然 0 非跨ぎ。P11 極端帯 CR_ai 0.575→**0.668**)。FINDINGS に **PROVISIONAL_PENDING_REF1 / REF1 再検証済 を 17 件付与**(本文削除ゼロ)。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-12 00:15**(更新者: Claude / Owner 研究指令 2026-09-11 **第 3 弾**「Q-028 = GO / Q-029 = AUDIT ONLY GO」完走。**NG-VA1 = VA1_PARTIAL / PARTIAL_UNDERPOWERED**(機械)= **実質 Case A 寄り + 統合価値なし → 指令 §24 の分岐 C**。会場差は B2 win 残差で **τ が厳密に 0 へ縮約**(Q p=0.744・I²=0.000・生の会場 SD 0.898 < ノイズ 1.004・frozen 順位との ρ=−0.143)。判定を支える well-powered な 2 本 = **oracle 上限の venue 増分 0.000225〜0.000861(cross-fit 0.000144)= 採用線の 1/13〜1/21** と **結果非依存の model-side λ=1.072±0.270 = B2 の予測が会場差をほぼ丸ごと再現済み**。→ **U-36a を R-17 で否定・§14 の Venue PoC は起票しない・Venue Logic は説明層として保持し Prediction Edge から降格**。国全体の攻撃→イン被害は残差に生きている(−0.934±0.204・**exh120 後も −0.904 でほぼ不変 = 展示層は吸収しない**)が national 単独の oracle 上限も 0.000381 = 採用線の 1/8。**Q-029 = WEATHER_SAFE → CLOSE**(本番バンドルの mu/sd 指紋が beforeinfo と 8 桁一致・K と不一致。独立 5 線で確認)。監査中に別件 2 件を検出 = **Q-030 `wind_dir_code` の train/serve skew(実測 ΔNLL +0.04447 = 採用線の約 15 倍の劣化・1 着予測の入替 14.84%・2026-09-05 以降)**/ **Q-031 研究 p120 dump が K 気象を読んでいた(NG-REF1)**。FINDINGS P17 を訂正。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-11 22:05**(更新者: Claude / Owner 研究指令 2026-09-11 **第 2 弾**「Q-025 = GO + Venue Logic Research v0」完走。**NG-U2 = U2_NULL**(難条件 × 当地習熟の 2×2 DiD +0.086pp CI[−0.72,+0.85]・季節クリマトロジー置換 p=0.850・oracle 薄層 ΔNLL 上限 0.000165 = 採用線の 1/18 → U-2 を R-14 で否定・U-35 は閉鎖 = **当地経験は静的にも条件付きにも閉じた**)/ **VENUE-V0 = VENUE_PARTIAL**(16 チャネル中 1 本のみ異質 = 旗艦 `4 攻め → 1 号艇被害`。全国 −1.153pp/SD・桐生 −2.47 〜 芦屋 −0.43・I²=0.60・置換 p=0.005・前後期 rank ρ=+0.75)。**構造的な発見 = 崩れ方には会場差があるが拾われ方には無い(FINDINGS P14)/ scale reversal は会場でなく攻め手のコースが決める(P15)/ 難条件はどのスケールでも信号なし(P16)**。着手前に **K ファイル由来気象の as-of 不適合を検出して回避**(P17・本番学習側は Q-029)。会場 meta-regression の「天候が 92% 説明」は**プラセボで取り下げ**(P18)。次 = NG-VA1「会場 × 4 コース攻撃」1 本(Owner GO = Q-028)。人間向け = research/OWNER_VIEW.md)
@@ -467,19 +567,32 @@ TRAIN vs SERVE は 24〜46%。→ **出ている差は as-of の制約ではな�
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-12 04:30(**Owner 指令 2026-09-12「Q-030 = COMMIT + PUSH GO」「Q-034 = GO」「SYSTEM INTEGRITY AUDIT = GO」完走 = RES-2026-09-H**)
+最新更新: 2026-09-12 05:40(**Owner 指令 2026-09-12「Q-035 = STAGED GO」完走 = RES-2026-09-I**)
 
-## 最優先 — Owner 裁定待ち 2 件(これが決まるまで新しい Prediction Edge 仮説を起票しない)
+## 今サイクルで確定したこと(RES-2026-09-I / Q-035)
 
-- **Q-035 = INC-2026-0912-PRIORSTALE(S3・未修復)をどう扱うか**。prior 集計 **24 列**が本番推論と学習で食い違う
-  (p120 TVD **0.0388** / 3連単 argmax 入替 **10.30%** = Q-030 の **4 割強**)。
-  原因 2 つ = (A) `build_context` の snapshot が **1 レース古い** (B) 節 4 列が **3 日窓で打ち切られる近似**。
-  **避けられない差は 0.00%**(同日出走なし 1,409 艇行)= 実装の off-by-one。
-  ablation: **節 4+2 列を直すだけで TVD 0.0388→0.0203・入替 10.30%→5.69%**(単独最大の寄与)。
-  **推奨 = 段階 GO(節 4 列のみ先行)。但し「直せば当たるようになる」とは言えない**(train/serve が違うことだけが実証済み)
+- **Q-035 = Stage A / Stage B とも完了(ADOPT)**。commit `390281c`(runtime **r4**)/ `bfcfcce`(runtime **r5**)。
+  **コード変更前に `research/Q035_FROZEN_PLAN.md` を凍結**し、結果を見て対象列を増減していない
+- **prior 集計 24 列の UNEXPECTED_DIFFERENCE = 24 → 0**。残る 21 列は **same-day 境界**による
+  INTENTIONAL_DIFFERENCE で、**同日先行行が無い艇に絞ると 24/24 列で差分率 0.0000**(機械検査)
+- **`INC-2026-0912-PRIORSTALE` = CLOSED**(Owner 指令 §20 の 8 条件すべて成立)
+- **System Integrity = `INTEGRITY_GREEN`**(Completion Gate **8/8**)→ **Race Logic / Prediction Edge 研究の再開が可能**
+- **性能は採否条件ではない**(§14)。固定 OOS 8,997R で NLL 3.74741 → **3.74665**(TRAIN 3.74452)/
+  1着 Hit@1 21.64% → **21.73%**(TRAIN 21.79%)= **TRAIN 方向へ動いたが採用線(ΔNLL 0.003)の 1/4**。
+  **「直したから当たるようになる」とは言えない**
+- **golden set の構造的な穴を発見して塞いだ**(FINDINGS **P25**)。既存 golden は raw を TRAIN 側から
+  取っており serve 経路を守っていなかった → preflight **C6**(`q035_prior_gate.py`)を新設。
+  負のコントロール = r3 モジュールで 5 件 FAIL
+- **過去日付 replay 専用の as-of リークを 1 件解消**(FINDINGS **P26**)。`merge(how="left")` の NaT が
+  `.last()` に残って未来値を拾っていた
+
+## 最優先 — Owner 裁定待ち
+
+- **Q-037(新規)= Race Logic / Prediction Edge 研究を再開するか、するならどの戦線から**。
+  Integrity が GREEN になったので技術的な障害は無い。**再開の可否と順番は Owner 判断**(指令 §23)
 - **Q-036 = 監査で出た S1/S2 の整備 4 件**(silent fallback のログ化 / `odds_pre` の契約 / exh120 劣化経路の golden / manifest 無し artifact)
 
-## 今サイクルで確定したこと(RES-2026-09-H)
+## 前サイクルで確定したこと(RES-2026-09-H)
 
 - **Q-030 = CLOSE**(commit `9e39b83` / push 済)。**golden 369R の train-serve 差分率 0.000%** で是正を機械確認
 - **Q-034 = 完了**。`Q034_CLEAN_REPLICA` が新しい canonical Raw-B2。
@@ -683,6 +796,13 @@ NG-T3D4(4 券種 FAIL → route B・Market Gate 閉鎖)/ tail 可視化 / 乖離
 | 2026-09-12 | モデル同一性の定義 | **制定** | 『同じモデル』と呼ぶには `Model Weights + Feature Contract + Source Contract + Preprocessing Revision + Runtime Revision` の **5 点が一致**すること。**weights が同じだけでは同じモデルと扱わない。『Raw B2』という呼称だけでモデルを参照することを禁ずる** | research/SYSTEM_INTEGRITY_AUDIT_V1.md §14 |
 | 2026-09-12 | 監査ゲートの設計規律 | **制定** | **いつも PASS するだけのゲートは、何も守っていないゲートと区別できない。** preflight には必ず負のコントロール(故障を注入して検出されることの確認)を併設する。今回は 6 種すべて DETECTED | scripts/research/nextgen/sia1_preflight_negative_control.py / FINDINGS P23 |
 | 2026-09-12 | `_fetched_at` の解釈 | **確定(方法論)** | beforeinfo アーカイブの `_fetched_at` は**ダウンロード時刻であって情報時点ではない**。バックフィルのため比較可能 37,526 件すべてが「締切後取得」に見える。**fetch 時刻で as-of 監査をすると偽陽性 100%** | FINDINGS P24 / artifacts/research/nextgen/sia1/asof_source_audit.json |
+| 2026-09-12 | Q-035(prior 集計 24 列の train/serve 不一致) | **STAGED GO → Stage A / B とも完了(ADOPT)** | Owner「Q-035 = STAGED GO。24 列を一括修正しない。原因ごとに 修正 → parity → prediction impact → 次段階」。**コード変更前に `research/Q035_FROZEN_PLAN.md` を凍結**し、結果を見て対象列を増減していない。Stage A = commit `390281c`(節 4 列の 3 日打ち切り・runtime r4)/ Stage B = commit `bfcfcce`(snapshot の off-by-one・prior 12 列を as-of 再計算・runtime r5)。**UNEXPECTED_DIFFERENCE 24 → 0** | research/Q035_FROZEN_PLAN.md / artifacts/research/nextgen/q035/** |
+| 2026-09-12 | 残る train/serve 差の扱い | **INTENTIONAL_DIFFERENCE として契約化** | 21 列に差が残るが **すべて same-day 境界**。学習は同日の早い出走を含む(`shift(1)` / `cumcount`)が production は `build_context(asof=当日)` で日境界に切る(Codex C-3 の as-of リーク対策 + features.parquet は日次生成で当日行を持たない)。判定は主観ではなく機械検査 = **同日先行行が無い艇に絞ると 24/24 列で差分率 0.0000**。`FEATURE_CONTRACT.json:global_rules.prior_aggregate_asof_rule` に明文化 | artifacts/research/nextgen/q035/SAMEDAY_DECOMP_stageAB.json |
+| 2026-09-12 | 同日先行の数え方 | **確定(方法論)** | 「同日先行」は**学習と同じ行順(date, race_id, lane)で数える**。`(dt, race_no)` 順で数えると会場をまたぐキー(`motor_no` / `lane`)で判定を誤り、説明できない差が偽陽性で出る(実際に `motor_recent20_top2` 130 行 / `motor_race_count_prior` 68 行の偽陽性を一度出した) | research/FEATURE_LINEAGE_AUDIT.md §11 |
+| 2026-09-12 | golden set の構造的な穴 | **確定 → C6 で閉塞** | `GOLDEN_RACE_SET` の raw は `features_v2`(= TRAIN 側)由来なので **serve 経路を 1 mm も守っていない**。実際 Q-035 で本番の prior 16 列を書き換えても preflight C4b は **max\|Δp120\| = 0.000e+00 のまま PASS**。→ `q035_prior_gate.py` を新設し preflight **C6**(serve 経路を実際に組み立てて train と突合)として機械強制。負のコントロール = r3 モジュールで **5 件 FAIL** | FINDINGS P25 / scripts/research/nextgen/q035_prior_gate.py |
+| 2026-09-12 | `merge(how="left")` + `.last()` の as-of リーク | **発見 → 同時に解消** | `build_context(asof=<過去日>)` が `venue_lane` を EXT2 との left merge で持ってきていたため、cutoff 以降の行が `dt`=NaT のまま `.last()`(= 列ごとの最後の**非 NaN**)に拾われ、**未来レースの値が採用されていた**(asof=2026-07-01 で 144 キー全部・max 0.00118)。live(asof=当日)では未来行が無いので発火しない = **過去日付 replay 専用のリーク**。Stage B で生列から組み直して解消 | FINDINGS P26 |
+| 2026-09-12 | INC-2026-0912-PRIORSTALE | **CLOSED** | Owner 指令 §20 の 8 条件すべて成立(root cause 確定 / Stage A / Stage B / 24-24 parity explained / Golden PASS / production smoke PASS / rollback documented / runtime revision recorded) | research/INCIDENTS.md |
+| 2026-09-12 | System Integrity Audit v1 Completion Gate 再実行 | **INTEGRITY_GREEN** | Completion Gate **8/8**(unresolved S3 = 0 / S4 = 0)。preflight **16/16 PASS**(C6 追加後)/ 負のコントロール 2 系統。→ **Race Logic / Prediction Edge 研究の再開が可能**(実際に再開するかは Owner 判断)。ただし GREEN は「train と serve が同じ情報を見ている」保証であって**「当たる」保証ではない** | research/SYSTEM_INTEGRITY_AUDIT_V1.md §15 |
 
 
 
@@ -2259,18 +2379,53 @@ TRAIN vs SERVE は 24〜46%。→ **出ている差は as-of の制約ではな�
 ①ページの種類(beforeinfo か K か)②コード側の情報時点宣言(`leakguard_env.py` の T0/T1/T2)
 ③学習統計が beforeinfo から再現できるか、で行う。**fetch 時刻は使えない。**
 
+### P25. golden set を「学習側の値」で凍結すると、推論経路の事故を 1 件も止められない【**方法論**(2026-09-12・Q-035)】
+
+`GOLDEN_RACE_SET.parquet` の raw41 / z41 / p120 は **`features_v2`(= TRAIN 側)から**取っている。
+つまり凍結しているのは「同じ入力を入れたら同じ確率が出るか」= **モデルの同一性**だけで、
+**本番が組み立てる入力が正しいか**は 1 mm も見ていない。
+
+実測: Q-035 で本番推論の prior 集計 16 列を書き換えた(3連単 argmax が golden で 7.05% 入れ替わる
+規模の変更)のに、**preflight C4b の max|Δp120| は 0.000e+00 のまま PASS**。
+INC-2026-0912-PRIORSTALE が長期間通過していたのはこの穴のため。
+
+→ golden は **2 本要る**:
+- **model identity golden**(TRAIN 側の raw を凍結)= 重み・正規化・推論コードの同一性
+- **serve path golden**(本番関数で入力を組み立てて TRAIN と突き合わせ)= 特徴生成の同一性
+
+Q-035 で後者を `q035_prior_gate.py`(preflight C6)として新設した。
+**負のコントロール必須**(P23)も適用し、修正前モジュール(r3)を検査させて **5 件 FAIL** することを確認済。
+
+### P26. `merge(how="left")` で落ちた行の NaT は、`sort_values` + `.last()` の末尾に残って未来値を拾う【**バグ型**(2026-09-12・Q-035)】
+
+`build_context(asof=<過去日>)` は、asof で切った `feat` と `features_extra2` を left merge してから
+`sort_values("dt").groupby(...).last()` で会場×コースの値を取っていた。
+**cutoff 以降の行は merge で `dt` が NaT になるが、値の列は非 NaN のまま残る**。
+pandas の `sort_values` は NaT を末尾に置き、`.last()` は列ごとに最後の非 NaN を返すため、
+**未来レースの値が採用される**。
+
+実測(asof = 2026-07-01): ext 2,095,498 行のうち 19,993 行が NaT 化し、
+**144 キー全部**で値がずれた(`venue_lane_win_prior` max 0.00118)。
+
+生きている本番(asof = 当日)は parquet に未来行が無いので発火しない = **過去日付 replay 専用のリーク**。
+だがバックテスト・再現検証はこの経路を通るので、**「本番は無事」で済ませてはいけない**。
+
+→ ①as-of で切るなら **切った側のフレームから値も作る**(join して持ってこない)
+②`.last()` は「最後の行」ではなく「列ごとの最後の非 NaN」。**NaN を挟む集計で使わない**
+③as-of フィルタの直後に `assert frame[時刻列].max() < cutoff` を置く(Q-035 で `build_context` に追加済)
+
 
 
 # ===== research_state.json =====
 
 ```json
 {
-  "updated_at": "2026-09-12T04:30:00",
-  "updated_by": "Claude (Owner 指令 2026-09-12: Q-030 COMMIT+PUSH GO / Q-034 GO / SYSTEM INTEGRITY AUDIT GO)",
+  "updated_at": "2026-09-12T05:40:00",
+  "updated_by": "Claude (Owner 指令 2026-09-12: Q-035 = STAGED GO)",
   "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
   "architecture_version": "v2.1",
   "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
-  "current_phase": "RES-2026-09-H 完走 (DoD 13/14)。Q-030 hotfix を git 確定 (commit 9e39b83)・Q-034 clean replica 完成・System Integrity Audit v1 実施。最終判定 INTEGRITY_YELLOW (production 安全・S4 ゼロ・未解決 S3 が 1 件)。Completion Gate 7/8 で未達は unresolved S3 = 0 のみ。新しい Prediction Edge / Race Logic 研究は Q-035 の裁定まで保留",
+  "current_phase": "RES-2026-09-I 完走 (DoD 8/8)。Q-035 = STAGED GO を Stage A (commit 390281c・runtime r4) / Stage B (commit bfcfcce・runtime r5) の 2 段で実施。prior 集計 24 列の UNEXPECTED_DIFFERENCE 24 → 0 (残る 21 列は same-day 境界による INTENTIONAL_DIFFERENCE。同日先行行が無い艇に絞ると 24/24 列で差分率 0.0000)。INC-2026-0912-PRIORSTALE = CLOSED。Completion Gate 8/8 → 最終判定 INTEGRITY_GREEN。Race Logic / Prediction Edge 研究の再開は技術的には可能 (再開の可否と戦線は Q-037 で Owner 裁定待ち)",
   "baseline_model": {
     "id": "b2f41_prod2026_prod3",
     "description": "B2構造化着順NN (41特徴・6艇self-attention・120通り直接softmax・3seed平均) + exh120展示補正層(θ9) + 市場ブレンド(w=0.85・推論後段)",
@@ -2281,8 +2436,8 @@ TRAIN vs SERVE は 24〜46%。→ **出ている差は as-of の制約ではな�
     "id": "b2f41_prod2026_prod3",
     "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
   },
-  "current_experiment": "SIA-V1 (Prediction System Integrity Audit v1) — done_primary",
-  "current_experiment_note": "41 列 lineage 全数解決 / train-serve parity = EXACT 17・UNEXPECTED_DIFFERENCE 24 (全部 prior 集計) / GOLDEN_RACE_SET 371R・24 会場 / FEATURE_CONTRACT fc-v1-2026-09-12 / preflight 10/10 PASS・負のコントロール 6/6 DETECTED / as-of 違反 0 件 / S4 = 0 件 / 新 S3 = INC-2026-0912-PRIORSTALE (未修復・Q-035)",
+  "current_experiment": "NG-Q035 (Prior Aggregate Train/Serve Parity) — done_primary",
+  "current_experiment_note": "primary = parity (PARITY_RESOLVED: UNEXPECTED_DIFFERENCE 24 → 0)。secondary = prediction impact (固定 OOS 8,997R: NLL 3.74741 → 3.74665 / Brier 0.95760 → 0.95752 / 1着 Hit@1 21.64% → 21.73% / 3連単 Hit@1 10.21% → 10.18%。TRAIN は NLL 3.74452 / 1着 Hit@1 21.79%)。性能は採否条件ではない。ΔNLL −0.00076 は採用線 0.003 の約 1/4 で、回収率への効果は測っていない",
   "experiments": {
     "registry_path": "artifacts/research/experiment_registry.jsonl",
     "adopted": [
@@ -3367,6 +3522,17 @@ TRAIN vs SERVE は 24〜46%。→ **出ている差は as-of の制約ではな�
     "feature_contract_revision": "fc-v1-2026-09-12",
     "source_contract_revision": "sc-v1-2026-09-12-beforeinfo-only",
     "preprocessing_revision": "pp-v1-2026-09-12-winddir-train-constant"
+  },
+  "integrity": {
+    "verdict": "INTEGRITY_GREEN",
+    "as_of": "2026-09-12",
+    "completion_gate": "8/8",
+    "unresolved_s3": 0,
+    "unresolved_s4": 0,
+    "runtime_revision": "r5-2026-09-12-prior-train-consistent",
+    "feature_contract_revision": "fc-v3-2026-09-12",
+    "preflight": "16/16 PASS (C6 = serve 経路の prior parity)",
+    "note": "GREEN は『train と serve が同じ情報を見ている』保証であって『当たる』保証ではない。same-day 境界による差は 21 列に残る = アーキテクチャ上の下限"
   }
 }
 ```
