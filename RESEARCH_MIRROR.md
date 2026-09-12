@@ -4,14 +4,88 @@
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
 
-- 更新: **2026-09-12 09:00**(Owner 指令「**Q-037 = GO。最初の 1 本は MOTOR FEATURE SEMANTICS AUDIT**」の実行後 = **MOTOR_BUG_MATERIAL**)
+- 更新: **2026-09-12 19:15**(Owner 裁定「**Q-038 = GO / Q-039 = GO**」の実行後 = **RES-2026-09-K**)
+- 前回更新: 2026-09-12 09:00(Owner 指令「**Q-037 = GO。最初の 1 本は MOTOR FEATURE SEMANTICS AUDIT**」の実行後 = **MOTOR_BUG_MATERIAL**)
 - 前回更新: 2026-09-12 05:40(Owner 指令「Q-035 = STAGED GO」の実行後 = INTEGRITY_GREEN)
 - 前回更新: 2026-09-12 04:30(Owner 指令「Q-030 = COMMIT + PUSH GO」「Q-034 = GO」「SYSTEM INTEGRITY AUDIT = GO」の実行後)
 - 前々回更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
 - 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/q035_prior_parity_20260912.md`(今回)と `lane-reports/sia_v1_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
 - 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
 
-## 0. 今回(2026-09-12 朝)— **AI が見ていた「モーターの成績」は、別のモーターの成績だった**
+## 0. 今回(2026-09-12 夕)— **モーターを正しく直した。でも当たるようにはならなかった**
+
+前回「AI が見ていたモーターの成績は別のモーターの成績だった」と分かった。今回はそれを**実際に直して**、
+①本番に入れて安全か ②直したら当たるようになるのか ③過去に「モーターは効かない」と閉じた判断は正しかったのか
+を測った。
+
+### 結論を 3 行で
+
+1. **意味は正しく直った。**「この会場・この交換周期・この番号」の履歴だけを見るようになった(検査 7/7 合格)。
+2. **でも当たるようにはならなかった。** 3連単の 1 番手予想が **12.5% 入れ替わる**のに、
+   精度の改善は**採用ラインの 1/4** で、しかも**乱数の種を変えると符号が逆になる**。
+3. **だから今は本番に入れない。** 代わりに、**もっと効く直し先**が見つかった(下の「次の 1 手」)。
+
+### 「直したのに効かない」をどう読むか — ここが今回の核心
+
+モーター自体に情報はある。**モデルを一切使わずに**確かめた:
+同じ物理モーターの交換周期を前半・後半に割ると、**前半よかった機体は後半もよい**(相関 **0.24**)。
+ラベルをシャッフルした偽データでは相関 0.004 しか出ないので、これは偶然ではない(**ズレの大きさ 19 倍**)。
+そして**旧実装はこの個体差の約 99% を捨てていた**。
+
+では、なぜ直しても当たらないのか。**当日の展示(レース直前の試走)が強すぎる**から。
+
+| 情報 | 予測の改善度 |
+|---|---|
+| 当日の展示タイム・展示 ST | **−0.017 〜 −0.021** |
+| 正しいモーター履歴(単独) | −0.0024 |
+| **展示を入れた後に残るモーター分** | **−0.0008 〜 −0.0012(誤差と区別できない)** |
+
+**展示がモーターの情報の 48〜68% を吸収している。** 残りはゼロとは言えないが、ゼロと区別もできない。
+→ 過去の結論「モーターは展示に吸収されるから要らない」は **維持**。
+
+**ただし大事な訂正がある。** 過去にその結論を出した実験(NG-MS3)は、
+**壊れた 2 列を「モーターの実力の代わり」として使っていた**。
+つまり**そのときの検証は検証になっていなかった**。
+Owner が当時要求していた比較のうち 1 つは**一度も実行されていなかった**。
+→ **結論は正しかったが、根拠は間違っていた。今回はじめて正しい土台で確かめた。**
+
+### もう 1 つの発見 — 壊れていたのは B2 だけではなかった
+
+同じ 2 列は、**3 つの別の経路**にも入っていた。
+
+| 経路 | 何に影響するか |
+|---|---|
+| LGB 1着モデル系 | — |
+| 条件付き 2着3着 確率エンジン(住之江で合格済) | — |
+| **E10 の代理モデル** | その残差を **6 本の研究**(VENUE-V0 / MS1 / PDS1 / SOB1 / PXR1 / E10)が土台に使っている |
+
+**影響の大きさは測っていない**(コードの経路を確認しただけ)。
+研究台帳にはこの依存を書いた記録が 1 件もなかった = **盲点**だった。
+
+### 次の 1 手(推奨)
+
+**E10 の代理モデル(LGB 1 本)を正しいモーター履歴で作り直す。**
+
+理由: **1 本の学習で研究 6 本の土台がまとめて正される**。
+一方、本番モデルの切り替えは**予想を 12.5% 動かすのに当たるようにはしない**ので急がない。
+本番切替は「次のモデル更新とまとめて 1 回で」やる方が、予想の揺れが 1 回で済む。
+
+### 判断をお願いしたいこと
+
+| ID | 内容 |
+|---|---|
+| **Q-040** | 上の「3 つの別経路」をどうするか。**推奨 = 代理モデルだけ先に直す** |
+| **Q-041** | 本番モデルの「差し替え手順」がどのスクリプトにも無い(毎回手作業)。直すか |
+| 論点 | 私が凍結した合格条件の文面が、参照元の基準を**転記ミス**していた。文面では不合格・本来の基準では合格。**数字は後から動かしていない**ので、どちらを採るかの判断がほしい |
+
+### 本番には触っていない
+
+本番の予測コードもモデルも **1 行も変えていない**。
+封印期間(9/1〜10/31)のデータも**一切見ていない**。
+
+---
+
+## 0-前. 前回(2026-09-12 朝)— **AI が見ていた「モーターの成績」は、別のモーターの成績だった**
 
 用語: **モーター** = 各会場が持つエンジン。番号(1〜90 番くらい)が振ってあり、**毎年 1 回まとめて新品に入れ替える**。
 番号は**会場ごとに独立**していて、住之江の 22 号機と戸田の 22 号機は**まったくの別物**。
@@ -325,21 +399,21 @@ commit `9e39b83`。**本番の動きは 9/12 01:16 の時点ですでに直っ�
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: NG-MSA1 (Motor Feature Semantics Audit) — done_primary(primary = semantics 事実認定 (CASE 1 confirmed・RECOMPUTE_PARITY PASS)。secondary = 3(+1) アームの counterfactual retrain。ARM A 現…)
-- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・21533/49968 ページ・残り目安 3.87 日)
+- 実行中の実験: NG-CMB1 + NG-MR1 (完走)(Owner 裁定 Q-038 = GO / Q-039 = GO。corrected motor baseline (P1) を production と同一 training contract で構築し、意味論・parity・smoke…)
+- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・24703/49968 ページ・残り目安 3.44 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-REF1**(2026-09-12・done_primary・—): Owner 指令 2026-09-12「Q-031 = GO」。研究用 Raw-B2 参照を production-training-consistent / as-of-safe に再構築した (再学習ゼロ・production バンドル読み取りのみ・sha256 5f7bc1f2f7a8bc0a… 実行前後一致)。**欠陥は 2 種類あることが判明**: D1 = clean 学習の prod3 に K 気象を食わせていた (入力差し替えで直る) /…
-- **NG-Q034**(2026-09-12・done_primary・—): 学習の 1 step 前に REPLICA_IDENTITY_MANIFEST.json を凍結 (sha256 6e5b4377…) → Q034_CLEAN_REPLICA を再学習 (bundle sha256 7c7e4551…・features_v2 beforeinfo + extra3_ext・wind_dir_code=-1・fold2・seed 42/43/44・b2・30epoch)。dump 59,923 レース (2025-07-…
 - **SIA-V1**(2026-09-12・done_primary・—): ①production training の正規化統計 41/41 列が beforeinfo 入力だけから相対 1e-6 以内で再現 (学習窓 2,017,260 行) = Q-029 WEATHER_SAFE の独立再現 ②41 列の lineage を全数解決 (UNKNOWN は B ファイル公表時刻 1 点のみ) ③train/serve parity = EXACT 17 / UNEXPECTED_DIFFERENCE 24 (差は全部 pr…
 - **NG-Q035**(2026-09-12・done_primary・—): parity (GOLDEN_RACE_SET 369R / 2214 艇行): strict 分類 (same-day carve-out なし) で UNEXPECTED_DIFFERENCE **24 → 23 → 0** / EXACT 17 → 18 → 20。carve-out 適用後は残り 21 列が INTENTIONAL_DIFFERENCE。残差はすべて same-day 境界で、同日先行行が無い艇に絞ると 24/24 列が差分率 0…
 - **NG-MSA1**(2026-09-12・done_primary・—): 学習 src/features.py:102/104 も推論 predict_b2_live.py:340/342 も motor_no 単独 group (会場・交換周期なし)。物理個体キー (jcd,motor_no,cycle_id) は 11,643 個体に対し現行 group は 90 = 129 倍粗い。窓 20 件のうち自機は平均 1.95 件 (9.78%)・他会場混入 99.69%・自機ゼロの行 13.54%。影響 2,128,338 …
+- **NG-CMB1**(2026-09-12・done_primary・—): production の学習条件は完全再現 (正規化統計 41/41 列が相対差 0.00e+00・学習行数 2,017,260 が契約記録値と一致)。corrected 版は意味論的に正しく (7 検査 PASS・同日先行なし parity 0 行) production smoke も通るが、**予測改善は ΔNLL −0.000678 (採用線 0.003 の 1/4) で 3 seed の符号が揃わない**のに **3連単 argmax は 12…
+- **NG-MR1**(2026-09-12・done_primary・—): MS3 が作らなかった motor-free base (ARM N) を初めて作り、正しい物理個体キーで測り直した。corrected motor には単独の予測価値が実在する (両 fold で CI が 0 を跨がず 3 seed 同符号) が採用線 0.003 に届かず (−0.0024)、当日展示を併用すると純増分は CI が 0 を含む。展示による吸収は 48〜68% で完全ではない。model-free には持続的な個体差が明確に存在 (z…
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-12 09:00(**Owner 指令 2026-09-12「Q-037 = GO・最初の 1 本は MOTOR FEATURE SEMANTICS AUDIT」完走 = RES-2026-09-J**) ## 今サイクルで確定したこと(RES-2026-09-J / NG-MSA1) - **最終判定 `MOTOR_BUG_MATERIAL`**(CASE 1 = semantics bug confirmed / M2-minor)。 **コード変更・再学習の前に `research/MOTOR_SEMANTICS_FROZEN_PLAN.md` を凍結**し、 **判定 script(`msa1_verdict.py`)も学習が終わる前に書いた** = 閾値の事後変更を構造的に封じた - **production B2 の motor 履歴 2 列は物理モーターを識別していなかった**(FINDINGS **P27**)。 学習も推論も `motor_no` 単独 group。物理…
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-12 19:15(**Owner 裁定 2026-09-12「Q-038 = GO / Q-039 = GO」完走 = RES-2026-09-K**) ## 今サイクルで確定したこと(RES-2026-09-K / NG-CMB1 + NG-MR1) - **production の学習条件は完全再現できた**。旧 semantics replica(P0)の予測が production と **数値的に区別できない**(ΔNLL **+0.000000** / p120 TVD **0.00000** / argmax 入替 **0.00%**)。 weights は 44 テンソル中 43 個が最大 5e-6 違う = **独立に再学習されている**(バグではない)。 正規化統計は **41/41 列が相対差 0.00e+00**、学習行数 **2,017,260** が契約記録値と一致 - **corrected 版(P1)は意味論的に正しい**: semantics gate …
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -417,16 +491,16 @@ commit `9e39b83`。**本番の動きは 9/12 01:16 の時点ですでに直っ�
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-12 | INC-2026-0912-PRIORSTALE | **CLOSED** — Owner 指令 §20 の 8 条件すべて成立(root cause 確定 / Stage A / Stage B / 24-24 parity explained / Gol…
-- 2026-09-12 | System Integrity Audit v1 Completion Gate 再実行 | **INTEGRITY_GREEN** — Completion Gate **8/8**(unresolved S3 = 0 / S4 = 0)。preflight **16/16 PASS**(C6 追加後)/ 負のコ…
-- 2026-09-12 | Q-037(研究再開の可否と戦線) | **GO(Owner)— ただし最初の 1 本は MOTOR FEATURE SEMANTICS AUDIT** — 新 Race Logic 仮説ではなく、production B2 の motor 履歴特徴が物理モーターを識別していたかの意味論監査を最優先に指定
-- 2026-09-12 | NG-MSA1 凍結計画 | **凍結(コード変更・再学習の前)** — 判定基準 E1〜E4 / physical identity key の確定手順 / 汚染指標 / arm 定義 / 評価窓・指標・閾値 M0〜M4 / 最終判定を固定。**判定…
-- 2026-09-12 | NG-MSA1 事実認定 | **CASE 1 = SEMANTICS BUG CONFIRMED** — 学習 `src/features.py:102/104` / 推論 `predict_b2_live.py:340/342` とも `motor_no` 単独 group。物理個…
-- 2026-09-12 | NG-MSA1 判定 | **MOTOR_BUG_MATERIAL(M2-minor)** — 固定 OOS 8,997R: ARM A 3.752954 / B(修正)3.751335(ΔNLL −0.00162・3seed 同符号)/ C(無効化)3.753002(+0…
-- 2026-09-12 | NG-MSA1 ARM B′(事前登録した条件付きアーム) | **NO-GO(部分修正は不可)** — 会場だけ直し交換周期を無視すると ΔNLL **+0.00344** = 採用線を悪い方向に超えた唯一のアーム。窓が 3 日 → 30 日に伸び前周期の別個体が 9.43% の行…
-- 2026-09-12 | Integrity の定義 | **2 軸へ訂正** — `INTEGRITY_GREEN` は train/serve parity の保証であって semantics の保証ではない。Parity Integrity = GREEN…
-- 2026-09-12 | NG-MSA1 dependency 再計算 | **FLIPPED 0** — corrected B2(ARM B)で既存 frozen gate をそのまま適用。NG-U2 = `U2_NULL` でゲート合否完全一致 / NG-PDS1 = `PDS1…
-- 2026-09-12 | INC-2026-0912-MOTORSEMANTICS | **起票(OPEN)** — FEATURE_SEMANTICS_INCIDENT・Medium。research finding は確定・production 是正は Owner 裁定待ち(Q-038)。*…
+- 2026-09-12 | NG-CMB1 G-A3(train/serve parity) | **割れ** — 凍結文面「差分率 0.000%」= FAIL / Q-035 実基準「同日先行なしで 0.0000」= PASS (Golden 371R で 0/1,409 行・狭域 0/83…
+- 2026-09-12 | NG-CMB1 G-A4(proper scoring 非劣化) | **FAIL** — point は −0.000678 で条件を満たすが **3 seed 同符号が False** (−0.0050 / −0.0004 / +0.0019)。効果量 0.0007…
+- 2026-09-12 | NG-CMB1 G-A5 / G-A6 / G-A7 / G-A8 | **PASS** — calib 最悪ずれ 0.1658 → 0.1544 (改善) / production smoke 7/7 / rollback 手順確認 / holdout 非接触
+- 2026-09-12 | **NG-CMB1 production 切替** | **DO_NOT_CUTOVER**(凍結 §12 の機械適用) — G-A3 FAIL により規則上 DO_NOT_CUTOVER。実質的にも 3連単 argmax が 12.48% 入替わるのに ΔNLL は −0.000678 (採用線の 1…
+- 2026-09-12 | **NG-MR1 Gate 1**(corrected motor 単独) | **FAIL**(閾値のみ) — 両 fold で CI が 0 を跨がず 3 seed 同符号だが point −0.0024 が採用線 −0.003 に届かない。**「効果が無い」ではない**
+- 2026-09-12 | **NG-MR1 Gate 3**(展示後の純増分) | **FAIL** — 両 fold で CI が 0 を含む (−0.00077 / −0.00121)。吸収率 67.5% / 47.8% = 完全吸収ではない
+- 2026-09-12 | NG-MR1 Gate 4(B2 残差の説明) | **旧 PASS / corrected FAIL** — 旧 semantics の残差は corrected motor で t=3.47/3.33 = **取りこぼしていた**。corrected の残差は t=1.14/1.21 …
+- 2026-09-12 | NG-MR1 Gate 6(市場距離・診断) | 診断のみ — 勝者上 log 比 −0.01524 → −0.01698 = 市場から +11.4% 遠ざかる。PROD 側の値は REF1 記録と完全一致。**市場較正は再開していない**
+- 2026-09-12 | **NG-MR1 最終ラベル** | **MOTOR_REVALIDATED_NULL** — H1 = 旧結論「motor は展示に吸収される」は**維持**。ただし旧 MS3 の根拠(壊れた 2 列を統制に使用)は無効で、**今回初めて正しい土台で検証した**。REOP…
+- 2026-09-12 | NG-MR1 dependency 再計算 | **FLIPPED 0** — VA1 SAME(replica → ARM B)/ SOB1F SAME(**prod3 → corrected P1** = MSA1 が閉じられなかった箇所)/ VENUE…
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -620,6 +694,172 @@ motor 履歴の group key を **会場だけ**直し(`jcd × motor_no`)交換周
 → **scope-key を直すときは「キーを細かくする」だけでなく「窓が張る時間幅がどう変わるか」を必ず見る。**
 部分的な修正は無修正より悪くなりうる。
 
+### P30. motor を物理個体で正しく引くと、train/serve の「同日ずれ」が**薄く広く**から**濃く狭く**へ変わる【**確定**(2026-09-12・NG-CMB1 G-A3′)】
+
+corrected key で train/serve parity を実走検査したところ、一律一致はせず、
+**同日先行のある行だけ**がずれた。同日先行が無い行に絞ると**完全一致**。
+
+| 条件 | `motor_recent20_top2` | `motor_race_count_prior` |
+|---|---|---|
+| 全行の差分率 | 21.97% (29/132 行) | 37.12% (49/132 行) |
+| **同日先行なしの行** | **0 / 83 行** | **0 / 83 行** |
+| 同日先行のある行の割合 (corrected key) | **37.1%** | 37.1% |
+| 同日先行のある行の割合 (現行 key) | **70.5%** | 70.5% |
+
+原因は **`data/processed/national/features.parquet` が日中更新されない**こと (Q-035 で確立した
+`INTENTIONAL_DIFFERENCE` と同一クラス)。**キーの誤りではない**。
+実データで確認した事実: **同じモーターが同じ日に同じ会場で 2 走することがある**
+(例 `2026-08-16_02_04` と `2026-08-16_02_09` が同一 uid)。「モーターは 1 日 1 走」は誤り。
+
+向きは**改善**: 日中 staleness に曝される行は **70.5% → 37.1% へ半減**する
+(窓が同一会場・同一周期に閉じるため)。ただし**感度は上がる**
+— `motor_race_count_prior` は中央値 9999 → 97 になるので、1 走ぶんのずれが相対 1% の差になる
+(旧実装では 9999 天井に張り付いていて同日ずれが値に出なかった)。
+
+→ **scope-key を細かくすると、parity の「ずれ方」自体が変わる。**
+差分率の絶対値ではなく「**何が説明するずれか**」で見ないと、正しい修正を誤って棄却する。
+
+### P31. 同じ 2 列を抱えた**第 2 の経路**がある — 会場別 features は「会場だけ正しい」= B′ 配置【**未測定の露出面**(2026-09-12・NG-MR1 依存監査)】
+
+`motor_recent20_top2` / `motor_race_count_prior` は B2/F41 だけの列ではない。
+**自分でコードを確認した範囲で** 次の 3 経路が同じ 2 列を特徴に含む:
+
+| # | 経路 | 根拠 | 入力 |
+|---|---|---|---|
+| 1 | `src/model.py:FEATURE_COLS`(LGB 1着系) | 当該行 | 会場別 or national(未確定) |
+| 2 | `src/conditional_finish.py:CANDIDATE_FEATURE_COLS`(条件付き 2着3着 エンジン・住之江 GATE PASS) | 当該行 | 同上 |
+| 3 | **`e10_build_p1_panel.py` の LGB 代理モデル** = `BOAT_COLS`(26 列)で学習 | `BOAT_COLS` に 2 列が含まれることを実行確認 | **national**(B2 と同じ会場跨ぎ) |
+
+**3 が一番広い。** `p1_residual_panel.parquet`(この代理モデルの残差)を読む研究は
+**VENUE-V0 / NG-MS1 / NG-PDS1 / NG-SOB1 / NG-PXR1 / NG-E10**(grep で確認)。
+とくに **VENUE-V0 の verdict はこの残差だけから作られる**ので、
+**「B2 を差し替えても動かない」= 「motor bug の影響を受けていない」ではない。**
+(当初この 1 件を「B2 非依存だから NOT_APPLICABLE」と書いたが、**それは誤り**だった。
+B2 非依存であることと motor bug 非依存であることは別。)
+
+さらに `scripts/build_features_all_venues.py:33` は `build_features` を **会場ごとに**呼ぶため、
+会場別 `data/processed/<venue>/features.parquet` の motor 履歴は
+**会場は正しく・交換周期だけ跨ぐ = ARM B′ と同じ配置**になる。
+B′ は MSA1 で**現行より悪化した唯一のアーム**(ΔNLL +0.00344)だった。
+
+**測っていないこと(推測で埋めない)**: 3 経路それぞれの影響量、
+経路 1 / 2 が会場別 parquet と national parquet のどちらを実際に読んでいるか、
+これらのモデルが現在どれだけ使われているか。
+**コード経路を確認しただけで、影響は未測定。** → `DECISION_QUEUE` Q-040 で Owner 裁定待ち。
+B2 の ARM C(2 列を中立化)が +0.00005 だったことを**他系列へ外挿してはいけない**
+(LGB と NN で寄与の出方が違いうる)。
+
+→ **feature semantics の事故は「そのモデル」で閉じない。同じ列名を import している全系列を数える。**
+研究台帳には条件付き 2着3着エンジンと P1 代理モデルの motor 依存を記した finding が
+1 件も無かった(= 盲点)。**「B2 を直したから研究の土台は直った」と言えるのは B2 依存の分だけ。**
+
+### P32. 「歴史的モーター強さを統制した上で」という比較は、一度も実施されていなかった【**確定(前提の誤り)**(2026-09-12・NG-MR1)】
+
+NG-MS3 は Owner の 5 比較のうち ③「MS のみ」と ④「歴史的強さ + MS」を
+**同一アームに統合**した。その根拠は凍結プランに明記されている —
+「F41 に歴史的モーター強さ(`motor_2rate` / `boat_2rate` / `motor_recent20_top2` /
+`motor_race_count_prior`)が既に入っているため ③ と ④ は同一アームになる」。
+
+4 列のうち 2 列は、いま **AUC 0.5264 / 0.5006**(= 信号ゼロ)・
+`motor_race_count_prior` は **63.2% が 9999 天井**だったと判明している。
+さらに同プランは「字義どおりの『MS のみ』(F41 から歴史 motor 列を抜く)」を
+**明示的に不採用**としていた。
+
+→ **MS3 の `MS_NET_ZERO` は「歴史的モーター強さを統制した上で MS が効かない」ではなく、
+「信号ゼロの 2 列を入れた状態で MS が効かない」だった。**
+偽前提は 4 箇所に残存(`ms3_operational_plan_frozen.json` / `ms3_gate_results.json` /
+`ms3_ablation_gate.py:346-347` / `lane-reports/ms3_g3_results_20260906.md:20`)。
+
+→ **「既に入っているから作らない」と書いたアームは、その『入っている』を実測で確認する。**
+契約書の列名は、その列が情報を運んでいることを保証しない。
+
+### P33. 物理モーターには本当に persistent state がある — 旧キーはその 99% を捨てていた【**確定(model-free)**(2026-09-12・NG-MR1 §15 PoC)】
+
+**モデルを 1 つも作らずに**(記述統計 + permutation null だけで)、
+正しく追跡した物理モーター `(jcd, motor_no, cycle_id)` に持続的な個体差があるかを測った。
+
+**分割相関** — 交換周期内を時系列で前半/後半に割り、個体ごとの 2 連対率を相関させる:
+
+| 量 | 値 |
+|---|---|
+| 対象 | 周期内 20 走以上の物理モーター **11,414 個体** |
+| 実測 r(前半 vs 後半) | **0.240** |
+| permutation null(会場 × 周期の中で個体ラベルを入替・200 回) | **0.0036 ± 0.0125** |
+| null の p95 | 0.0229 |
+| **z** | **18.9** |
+
+null は**会場と周期の平均構造を保ったまま個体の対応だけ壊す**ので、
+r = 0.240 は会場差や周期差の artifact ではなく **個体レベルの持続性**である。
+
+**ICC(級内相関・lane と選手力を除いた残差で)**:
+
+| group key | ICC |
+|---|---|
+| **`(jcd, motor_no, cycle_id)`(正しい)** | **0.00905** |
+| `motor_no` 単独(旧実装) | **0.0000895** |
+
+→ **旧キーは個体間分散の約 99.0% を捨てていた**(101 倍の差)。
+「旧特徴の精度寄与が実質ゼロ(ARM C で +0.00005)」だったのは、
+**モーターに情報が無かったからではなく、情報を捨てるキーで集計していたから**である。
+
+**lifecycle(周期内の消化数別 2 連対率)**: 0-9 走 0.3300 / 10-24 0.3394 / 25-49 0.3374 /
+50-99 0.3383 / 100-199 0.3388 / 200+ 0.3405。
+**系統的な経年曲線はほぼ無い**(最初の 10 走だけわずかに低い)。
+→ 持続性は**個体差として**存在し、**共通の加齢カーブとしては存在しない**。
+§16 の lifecycle frame を NN 構造にする根拠は、少なくともこの集計水準には無い。
+
+**限界**: ①この r は 2 連対率の相関で、**予測に使えるか**とは別の問い
+(B2 が他の特徴で既に説明している分と重複しうる)②モーターは節単位で同じ選手が使うので
+個体内に選手効果が混じる。ただし前半/後半は別の節 = ほぼ別の選手であり、
+permutation null も会場 × 周期を保っているため、この 2 つで交絡の大半は統制されている。
+
+→ **「効かなかった」と「情報を壊して入れていた」を区別せずに棄却してはいけない。**
+
+### P34. 正しい motor でも展示を越えられない — ただし「効かない」と「半分吸収される」は違う【**確定**(2026-09-12・NG-MR1 三者比較)】
+
+MS3 が作らなかった **motor-free な base(ARM N = 壊れた 2 列を train 平均で中立化)**を初めて作り、
+正しい物理個体キーの corrected motor を同じ土台の上で測った(NG-MS3 と同一プロトコル・2 fold・3 seed・
+cluster bootstrap B=2000)。
+
+| 量 | fold1 | fold2 | 読み |
+|---|---|---|---|
+| **corrected motor 単独**(M − N) | **−0.00238** CI[−0.00374,−0.00094] | **−0.00231** CI[−0.00347,−0.00114] | **両 fold で CI が 0 を跨がず 3 seed 同符号**。だが採用線 0.003 に届かない |
+| 当日展示(E − N) | −0.01677 | −0.02056 | **展示は motor の約 8 倍** |
+| **展示後の motor 純増分**(ME − E) | **−0.00077** CI[−0.0018,**+0.0003**] | **−0.00121** CI[−0.0026,**+0.0002**] | **両 fold で CI が 0 を含む** |
+| placebo(PL − N) | **+0.00254** | **+0.00130** | 情報ゼロの列を足すと**悪化** = ハーネス健全 |
+| 壊れた 2 列を消す(N − A) | −0.00152 | −0.00111 | **消すだけで改善**(旧列はノイズ) |
+| **旧列 → corrected**(M − A) | **−0.00390** | **−0.00342** | **両 fold で採用線を超える** |
+
+**展示による吸収率 = fold1 67.5% / fold2 47.8%。完全吸収ではない。**
+残り 1/3〜1/2 は 0 と区別できないだけで、ゼロと実証されたわけではない。
+
+→ 最終ラベル **`MOTOR_REVALIDATED_NULL`**(Gate 1 / Gate 3 とも凍結閾値で FAIL)。
+**旧結論「motor state は当日展示に吸収される」は維持。ただし根拠が差し替わった** —
+旧 MS3 は信号ゼロの 2 列を「歴史的強さの統制」として使っており検証になっていなかった(P32)。
+**結論は正しかったが、根拠は間違っていた。**
+
+**規律**: 効果量が採用線の 80%(−0.0024 vs −0.003)で、CI も seed も揃っている場合、
+「FAIL」と「効果が無い」を同じ言葉で書かない。**同型の前例 = NG-N1**(閾値が効果の理論上限より高く FAIL)。
+
+### P35. 学習データを増やすと「壊れた特徴を直す効果」が縮む【**確定**(2026-09-12・NG-CMB1 vs NG-MR1)】
+
+同じ「旧列 → corrected」の差し替えを、学習窓の大きさだけ変えて 3 通り測った。
+
+| 学習窓 | train 行数 | ΔNLL(corrected − 旧列) |
+|---|---|---|
+| MR1 panel fold1(train 〜2025-05) | 約 55,000 レース | **−0.00390** |
+| MR1 panel fold2(train 〜2025-11) | 約 85,000 レース | **−0.00342** |
+| MSA1 fold2(train 〜2024-07) | 1.45M 行 | −0.00162 |
+| **CMB1 prod2026(train 〜2026-07)** | **2.02M 行** | **−0.000678**(3 seed で符号不一致) |
+
+**学習データが増えるほど、motor 履歴を直す効果は小さくなる。**
+仮説: 他の 39 特徴から同じ情報を取れるようになるので、motor 列の固有寄与が減る。
+
+→ **帰結 2 つ。** ①**小さい窓で測った修正効果を production 窓へ外挿してはいけない**
+(MSA1 の −0.00162 は production 窓では −0.0007 だった)。
+②**壊れた特徴の修正は「早いほど価値が高い」**。データが増えるほど直す実利は減る
+(意味論を直す理由は残るが、精度の理由は消えていく)。
+
 ---
 
 
@@ -627,7 +867,8 @@ motor 履歴の group key を **会場だけ**直し(`jcd × motor_no`)交換周
 
 # RESEARCH_STATUS — 研究状態の正本
 
-- 最新更新: **2026-09-12 09:00**(更新者: Claude / Owner 指令 2026-09-12「**Q-037 = GO。ただし研究再開の最初の 1 本は 新 Race Logic 仮説ではなく MOTOR FEATURE SEMANTICS AUDIT**」完走 = **RES-2026-09-J / NG-MSA1**。**最終判定 `MOTOR_BUG_MATERIAL`**(CASE 1 = semantics bug confirmed / M2-minor)。**① 事実認定**: 学習 `src/features.py:102/104`・推論 `predict_b2_live.py:340/342` とも **`motor_no` 単独 group** (会場も交換周期も入っていない)。原因は単一会場時代のコメント「住之江なのでモーター番号 = 場のモーター」の残存。物理個体キー `(jcd, motor_no, cycle_id)` は **11,643 個体**・現行 group は **90** = **129 倍粗い**。**窓 20 件のうち自機は平均 1.95 件(9.78%)**・他会場混入 **99.69%**・自機ゼロの行 **13.54%**。影響 **2,128,338 行(99.72%)/ 356,096 レース / 2020-01-01 以降ずっと**(新しい退行ではない)。**RECOMPUTE_PARITY gate PASS**(現行定義の再計算が保存値を max abs diff **0.0** で再現)。**② 壊れていないもの**: `motor_2rate` は出走表の公式値で正しい(161 本の交換境界で平均 **−33.7pt** リセットを実測)。展示層 exh120 は入力 9 列に motor 集計を含まない = 別レイヤー。**③ 影響量**(固定 OOS 8,997R・4 アームを同一条件で再学習): ARM A 現行 **3.752954** / ARM B 修正 **3.751335**(ΔNLL **−0.00162**・3 seed 同符号・採用線 0.003 の約半分)/ ARM C 無効化 **3.753002**(**+0.00005** = 旧特徴の精度寄与は実質ゼロ)/ **ARM B′ 会場のみ 3.756395(+0.00344 = 悪化)**。p120 TVD(B,A)**0.0426**・**3連単 argmax 入替 13.25%**。ARM A は Q-034 clean replica を差 **2.4e-07** で再現(determinism check)。**④ 解釈**: 旧特徴は精度を上げないが argmax を 6.26% 揺らす**ノイズ**だった。正しい履歴には小さいが本物の情報がある。**半分だけ直すと悪化する**(窓が 3 日 → 30 日に伸び前周期の別個体が 9.43% の行に混入 = **P29**)。**⑤ Integrity は 2 軸**: `INTEGRITY_GREEN` は parity の保証であって semantics の保証ではない (**Parity = GREEN 維持 / Semantics = YELLOW 新設**・**P28**)。**⑥ dependency 再計算 = FLIPPED 0**(NG-U2 / NG-PDS1 とも SAME・既存 frozen gate をそのまま適用)。**⑦ `INC-2026-0912-MOTORSEMANTICS` 起票(OPEN)**。**production コードは 1 行も変更していない**・holdout 非接触。Owner 裁定待ち = **Q-038**(production 是正)/ **Q-039**(再検証戦線)。人間向け = research/OWNER_VIEW.md)
+- 最新更新: **2026-09-12 19:15**(更新者: Claude / Owner 裁定 2026-09-12「**Q-038 = GO / Q-039 = GO**」完走 = **RES-2026-09-K / NG-CMB1 + NG-MR1**。**①production の学習条件を完全再現**: 旧 semantics replica (P0) の予測が production と**数値的に区別できない** (ΔNLL **+0.000000** / p120 TVD **0.00000** / argmax 入替 **0.00%**)。weights は 44 テンソル中 43 個が最大 5e-6 違う = **独立再学習である**。正規化統計 **41/41 列が相対差 0.00e+00**・学習行数 **2,017,260** が契約記録値と一致。**②corrected 版 (P1) は意味論的に正しい**: semantics gate **7/7** (全 2,134,563 行・物理モーター 11,643 個体で会場混入 0 / 周期混入 0 / 未来参照 0)・production smoke **7/7**・`motor_race_count_prior` が **9999 天井 (63.2% の行) から脱出**。**③しかし当たるようにはならなかった**: 固定 OOS 8,997R で **3連単 argmax が 12.48% 入れ替わる**のに ΔNLL は **−0.000678** (採用線 0.003 の **1/4**) で **3 seed の符号が揃わない** (−0.0050 / −0.0004 / **+0.0019**・seed std 0.0035 が効果量の 5 倍)。1着 Hit@1 **−0.24pp**・市場から **+11.4% 遠ざかる**。calibration だけ改善 (0.1658 → **0.1544**)。**④parity は判定が割れた**: 凍結文面「一律 0.000%」= **FAIL** / Q-035 実基準「同日先行なしで 0.0000」= **PASS** (Golden 371R・24 会場・6.5 年で **0/1,409 行**)。凍結文が Q-035 基準の転記ミス・**閾値は結果を見てから動かしていない**。**⑤最終ラベル `MOTOR_REVALIDATED_NULL`**: Gate 1 (corrected motor 単独) は**両 fold で CI が 0 を跨がず 3 seed 同符号**だが point **−0.0024** が採用線 −0.003 に届かず FAIL / Gate 3 (展示後の純増分) は**両 fold で CI が 0 を含む** (−0.00077 / −0.00121)。**展示による吸収は 48〜68% で完全ではない**。**⑥model-free には持続的な個体差が明確に存在** (周期内 前半/後半 相関 **r=0.240** vs permutation null 0.0036±0.0125・**z=18.9**・11,414 個体)。**旧キーは個体間分散の約 99% を捨てていた** (ICC 0.00905 vs 0.0000895)。**⑦Gate 4 の読み方が逆**: 旧 semantics の残差は corrected motor で t=3.47/3.33 = **説明できる** (取りこぼしていた) / corrected の残差は t=1.14/1.21 = **取り込んだ**。**⑧dependency 再計算 = FLIPPED 0** (VA1 SAME / **SOB1F SAME** = prod3 を corrected P1 へ差し替えて **MSA1 が閉じられなかった限界を閉じた** / VENUE-V0 は `NOT_RESOLVABLE_BY_B2_SWAP`)。**REOPEN 0 件**。**⑨MS3 の偽前提が確定** (P32): Owner が要求した比較④「歴史的強さ + MS」は**一度も実施されていなかった**。**結論は正しかったが根拠は間違っていた**。**⑩第 2 の露出面を発見** (P31): 壊れた 2 列は LGB 1着系 / 条件付き 2着3着エンジン / **E10 P1 代理モデル** にも入り、③の残差は **6 本の研究**が読む。**影響量は未測定** → Q-040。**⑪学習データが増えると修正効果が縮む** (P35): 55k レース窓 −0.0039 → 2.02M 行窓 −0.0007。**production 切替 = `DO_NOT_CUTOVER`** (凍結 §12 の機械適用・推奨も「いま切らず次のモデル更新とまとめる」)。**production コードは 1 行も変更していない**・holdout 非接触。人間向け = research/OWNER_VIEW.md)
+- 前回更新: **2026-09-12 09:00**(更新者: Claude / Owner 指令 2026-09-12「**Q-037 = GO。ただし研究再開の最初の 1 本は 新 Race Logic 仮説ではなく MOTOR FEATURE SEMANTICS AUDIT**」完走 = **RES-2026-09-J / NG-MSA1**。**最終判定 `MOTOR_BUG_MATERIAL`**(CASE 1 = semantics bug confirmed / M2-minor)。**① 事実認定**: 学習 `src/features.py:102/104`・推論 `predict_b2_live.py:340/342` とも **`motor_no` 単独 group** (会場も交換周期も入っていない)。原因は単一会場時代のコメント「住之江なのでモーター番号 = 場のモーター」の残存。物理個体キー `(jcd, motor_no, cycle_id)` は **11,643 個体**・現行 group は **90** = **129 倍粗い**。**窓 20 件のうち自機は平均 1.95 件(9.78%)**・他会場混入 **99.69%**・自機ゼロの行 **13.54%**。影響 **2,128,338 行(99.72%)/ 356,096 レース / 2020-01-01 以降ずっと**(新しい退行ではない)。**RECOMPUTE_PARITY gate PASS**(現行定義の再計算が保存値を max abs diff **0.0** で再現)。**② 壊れていないもの**: `motor_2rate` は出走表の公式値で正しい(161 本の交換境界で平均 **−33.7pt** リセットを実測)。展示層 exh120 は入力 9 列に motor 集計を含まない = 別レイヤー。**③ 影響量**(固定 OOS 8,997R・4 アームを同一条件で再学習): ARM A 現行 **3.752954** / ARM B 修正 **3.751335**(ΔNLL **−0.00162**・3 seed 同符号・採用線 0.003 の約半分)/ ARM C 無効化 **3.753002**(**+0.00005** = 旧特徴の精度寄与は実質ゼロ)/ **ARM B′ 会場のみ 3.756395(+0.00344 = 悪化)**。p120 TVD(B,A)**0.0426**・**3連単 argmax 入替 13.25%**。ARM A は Q-034 clean replica を差 **2.4e-07** で再現(determinism check)。**④ 解釈**: 旧特徴は精度を上げないが argmax を 6.26% 揺らす**ノイズ**だった。正しい履歴には小さいが本物の情報がある。**半分だけ直すと悪化する**(窓が 3 日 → 30 日に伸び前周期の別個体が 9.43% の行に混入 = **P29**)。**⑤ Integrity は 2 軸**: `INTEGRITY_GREEN` は parity の保証であって semantics の保証ではない (**Parity = GREEN 維持 / Semantics = YELLOW 新設**・**P28**)。**⑥ dependency 再計算 = FLIPPED 0**(NG-U2 / NG-PDS1 とも SAME・既存 frozen gate をそのまま適用)。**⑦ `INC-2026-0912-MOTORSEMANTICS` 起票(OPEN)**。**production コードは 1 行も変更していない**・holdout 非接触。Owner 裁定待ち = **Q-038**(production 是正)/ **Q-039**(再検証戦線)。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-12 05:40**(更新者: Claude / Owner 指令 2026-09-12「**Q-035 = STAGED GO**」完走 = **RES-2026-09-I / DoD 8-8**。**① Stage A**(commit `390281c`・runtime **r4**)= `extra3_for_racer` の節ブロック走査から **3 日 pre-filter を外した**。`setsu_day` が **EXACT** 化・残り 3 列の max|Δ| は 13/3/5 → **すべて 1**(同日 1 走ぶん)。**変化した列は対象 4 列のみ・他 37 列は bit 一致**。**② Stage B**(commit `bfcfcce`・runtime **r5**)= `build_context` の `groupby(...).last()` スナップショット(常に 1 レース古い)を、生の行から学習と同じ式で **as-of 再計算**する方式へ。**③ prior 集計 24 列の UNEXPECTED_DIFFERENCE = 24 → 0**。残る 21 列は **same-day 境界**による INTENTIONAL_DIFFERENCE で、**同日先行行が無い艇に絞ると 24/24 列で差分率 0.0000**(機械検査)。**④ INC-2026-0912-PRIORSTALE = CLOSED**(Owner 指令 §20 の 8 条件すべて成立)。**⑤ Completion Gate 8/8 → 最終判定 `INTEGRITY_GREEN`**。**⑥ 再発防止**: serve 経路を実際に組み立てて train と突合する preflight **C6** を新設(既存 golden は raw を TRAIN 側から取っており serve 経路を守っていなかった = **P25**)。負のコントロール = r3 モジュールで **5 件 FAIL**。**⑦ 副産物**: 過去日付 replay 専用の as-of リークを 1 件解消(**P26**)。**性能は採否条件ではない**: 固定 OOS 8,997R で NLL 3.74741 → **3.74665**(TRAIN 3.74452)/ 1着 Hit@1 21.64% → **21.73%**(TRAIN 21.79%)= **採用線(ΔNLL 0.003)の 1/4**。**「直したから当たるようになる」とは言えない**。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-12 04:30**(更新者: Claude / Owner 指令 2026-09-12「**Q-030 = COMMIT + PUSH GO**」「**Q-034 = GO**」「**SYSTEM INTEGRITY AUDIT = GO**」完走 = **RES-2026-09-H / DoD 13-14**。**① Q-030 を git に確定**: commit `9e39b83`(`scripts/predict_b2_live.py` のみ +53 行)→ push。commit 後の再確認 全 PASS(bundle sha256 不変 / runtime revision **r3** / expected `wind_dir_code` = −1 / **golden 369R の train-serve 差分率 0.000%** / p120 **max Δ 0.000e+00**)。**② Q-034 = clean replica 完成**: `Q034_CLEAN_REPLICA`(bundle sha256 `7c7e4551…`・dump **59,923R**)。**学習の 1 step 前に REPLICA_IDENTITY_MANIFEST を凍結**。production は読み取りのみ・不変。holdout 未使用(max 2026-08-31)。旧 replica との差 = ΔNLL **+0.000793**(採用線の約 1/4)だが **3連単 argmax 9.17% 入替** → **dataset difference** と切り分け。Dependency Audit 再計算 = **NG-U2 SAME**(7 ゲート合否完全一致)/ **NG-PDS1 SAME**(6 特徴 × 4 ゲート完全一致)= **FLIPPED 0 件**。**③ System Integrity Audit v1 で新しい S3 を発見**: **INC-2026-0912-PRIORSTALE** = prior 集計 **24 列**の train/serve 不一致(p120 TVD **0.0388** / 3連単 argmax 入替 **10.30%** = Q-030 の 4 割強)。原因 = `build_context` snapshot の **1 レース遅れ** + 節 4 列の **3 日打ち切り**。同日出走なし 1,409 艇行で **TRAIN vs IDEAL = 0.00%** → **as-of の制約ではなく実装の off-by-one**。ablation で節 4+2 列が単独最大(TVD 0.0388→**0.0203** / 入替 10.30%→**5.69%**)。**leakage ではない(S3 であって S4)**。Owner 指令 §22 に従い**未修復** → **Q-035** 起票。**④ 再発防止の装置**: `FEATURE_LINEAGE_AUDIT.md`(41/41 解決)/ `FEATURE_CONTRACT.json`(rev `fc-v1-2026-09-12`)/ `GOLDEN_RACE_SET`(**371R・24 会場・四季**)/ preflight ゲート **10/10 PASS** / **負のコントロール 6/6 DETECTED**。**as-of 違反 0 件**(beforeinfo 357,808 file 全走査)。ただし **`_fetched_at` は取得時刻であって情報時点ではない**と判明(P24)。**S4 = 0 件**。**最終判定 = `INTEGRITY_YELLOW`**(Completion Gate 7/8・未達は unresolved S3 = 0 のみ)。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-12 01:45**(更新者: Claude / Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」完走 = **RES-2026-09-G / DoD 14-14**。**① 本番の train/serve skew を是正**: prod3 は `wind_dir_code` を全行 −1 の定数として学習しているのに、commit `c260f3c`(2026-09-05)以降**推論側だけ実値 1〜16** が入っていた。live 実走で混入を確定(`南南東`→12・正規化後 **13.0**・供給元は boatrace.jp ではなく **openapi 補完**)→ 推論側を学習時定数へ固定(**runtime revision r3**・再学習なし・重み不変・可逆)。8,997R で **6 指標すべて改善**(3連単 NLL **3.78427→3.74452** = ΔNLL −0.03975 = 採用線の約 13 倍 / Brier120 −0.00224 / Hit@1 +0.27pp / 1着 Hit@1 +0.19pp / **prediction change rate 14.84%** / p120 TVD 平均 **0.0912**)・pipeline integrity 全 PASS。**INC-2026-0905-WINDDIR** を起票(9/5 04:43:31〜9/12 01:16:02)。**窓内に本番予測成果物の書き出し 0 件・bet_log 系 4 本 md5 不変 = 実弾への波及なし**。**② NG-REF1 で研究の土台を作り直した**: 欠陥は **2 種類**(D1 = clean 学習の prod3 に K 気象 → 入力差し替えで直る / D2 = **replica の重みそのものが K 気象で学習** → 再学習が要る)。Owner 必須条件「model weights は変更しない」を字義どおり守り **D1 を完全解消・D2 は据え置き → Q-034 起票**。canonical reference = `ref1_p120_prod3_clean.parquet`(8,997R)・**p120 生成前に manifest を凍結**。**汚染の広がりは気象 4 列のみ**と実測(残り 37 列は K と 100.0000% 一致)。最小再計算(既存 gate を import・式は無改変)で **Owner の 5 問すべて「結論は維持」**(SOB1F Race Formation = PARTIAL 不変 / market disagreement 維持 / PDS_NULL 維持 / **U2_NULL は 7 ゲートの合否が完全同一** / VA1 ref アーム維持)。ただし **AI と市場の距離が約 41% 縮む**新事実(勝者上 log 比 −0.02592→**−0.01524**・CI は依然 0 非跨ぎ。P11 極端帯 CR_ai 0.575→**0.668**)。FINDINGS に **PROVISIONAL_PENDING_REF1 / REF1 再検証済 を 17 件付与**(本文削除ゼロ)。人間向け = research/OWNER_VIEW.md)
@@ -700,9 +941,72 @@ motor 履歴の group key を **会場だけ**直し(`jcd × motor_no`)交換周
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-12 09:00(**Owner 指令 2026-09-12「Q-037 = GO・最初の 1 本は MOTOR FEATURE SEMANTICS AUDIT」完走 = RES-2026-09-J**)
+最新更新: 2026-09-12 19:15(**Owner 裁定 2026-09-12「Q-038 = GO / Q-039 = GO」完走 = RES-2026-09-K**)
 
-## 今サイクルで確定したこと(RES-2026-09-J / NG-MSA1)
+## 今サイクルで確定したこと(RES-2026-09-K / NG-CMB1 + NG-MR1)
+
+- **production の学習条件は完全再現できた**。旧 semantics replica(P0)の予測が production と
+  **数値的に区別できない**(ΔNLL **+0.000000** / p120 TVD **0.00000** / argmax 入替 **0.00%**)。
+  weights は 44 テンソル中 43 個が最大 5e-6 違う = **独立に再学習されている**(バグではない)。
+  正規化統計は **41/41 列が相対差 0.00e+00**、学習行数 **2,017,260** が契約記録値と一致
+- **corrected 版(P1)は意味論的に正しい**: semantics gate **7/7**(全 2,134,563 行・11,643 個体で
+  会場混入 0 / 周期混入 0 / 未来参照 0)・production smoke **7/7**・
+  `motor_race_count_prior` が **9999 天井(63.2% の行)から脱出**
+- **しかし当たるようにはならなかった**: 固定 OOS 8,997R で **3連単 argmax が 12.48% 入れ替わる**のに
+  ΔNLL は **−0.000678**(採用線 0.003 の **1/4**)で、**3 seed の符号が揃わない**
+  (−0.0050 / −0.0004 / **+0.0019**。seed std 0.0035 が効果量 0.0007 の 5 倍)。
+  1着 Hit@1 は **−0.24pp**、市場からは **+11.4% 遠ざかる**。calibration だけは改善(0.1658 → **0.1544**)
+- **train/serve parity は判定が割れた**。凍結文面「一律 0.000%」= **FAIL** /
+  Q-035 の実基準「同日先行なしで 0.0000」= **PASS**(Golden 371R・24 会場・6.5 年で **0/1,409 行**)。
+  凍結文が Q-035 基準の**転記ミス**。**閾値は結果を見てから動かしていない**
+- **最終ラベル `MOTOR_REVALIDATED_NULL`**。Gate 1(corrected motor 単独)は
+  **両 fold で CI が 0 を跨がず 3 seed 同符号**だが point **−0.0024** が採用線 −0.003 に届かず FAIL。
+  Gate 3(展示後の純増分)は**両 fold で CI が 0 を含む**(−0.00077 / −0.00121)
+- **展示による吸収は 48〜68% で完全ではない**。残りは 0 と区別できないだけで、ゼロと実証されたわけではない
+- **model-free には持続的な個体差が明確に存在**(周期内 前半/後半 相関 **r=0.240** vs
+  permutation null 0.0036±0.0125・**z=18.9**・11,414 個体)。**旧キーは個体間分散の約 99% を捨てていた**
+  (ICC 0.00905 vs 0.0000895)
+- **Gate 4 の読み方が逆**: 旧 semantics の残差は corrected motor で **t=3.47/3.33 = 説明できる**
+  (取りこぼしていた)。corrected の残差は t=1.14/1.21 = 説明できない(**取り込んだ**)
+- **dependency 再計算 = FLIPPED 0 件**。VA1 SAME / **SOB1F SAME**(prod3 を corrected P1 へ差し替え
+  = **MSA1 が閉じられなかった限界を閉じた**)/ VENUE-V0 は `NOT_RESOLVABLE_BY_B2_SWAP`
+- **REOPEN は 0 件**。ただし旧研究と今回で使った motor 表現が違うことは台帳に明記した
+- **MS3 の偽前提が確定**(FINDINGS **P32**)。Owner が要求した比較④「歴史的強さ + MS」は
+  **一度も実施されていなかった**。信号ゼロの 2 列を「統制」として使い、
+  「F41 から歴史 motor 列を抜く arm」を明示的に不採用にしていた。**結論は正しかったが根拠は間違っていた**
+- **第 2 の露出面を発見**(FINDINGS **P31**)。壊れた 2 列は B2 だけの話ではなく、
+  ①LGB 1着系 ②条件付き 2着3着エンジン ③**E10 P1 代理モデル**(`BOAT_COLS` で学習)にも入る。
+  ③の残差 `p1_residual_panel` は **VENUE-V0 / MS1 / PDS1 / SOB1 / PXR1 / E10 の 6 本**が読む。**影響量は未測定**
+- **学習データが増えると修正効果が縮む**(FINDINGS **P35**)。同じ差し替えが
+  55k レース窓で −0.0039 → 2.02M 行窓で −0.0007。**小窓の修正効果を production 窓へ外挿してはいけない**
+
+## 最優先 — Owner 裁定待ち(新規 2 件 + 論点 1 件)
+
+- **Q-040 = 壊れた 2 列の「第 2 の露出面」をどう扱うか**。
+  **推奨 = (e) E10 P1 代理モデル(LGB 1 本)を corrected motor で再学習する。**
+  **1 本の再学習で研究 6 本の土台がまとめて正される**うえ、
+  **Semantics Integrity を GREEN に近づける唯一の残り作業**でもある
+- **Q-041 = production bundle の昇格手順が未追跡の手作業**。推奨 = Q-038 の cutover を承認するならその前提として
+- **論点: G-A3 の凍結文面 vs Q-035 実基準の食い違い**(閾値は動かしていないので Owner 判断が要る)
+
+## production 切替の扱い
+
+- **凍結計画 §12 の機械適用 = `DO_NOT_CUTOVER`**(G-A3 が FAIL)
+- **推奨も「いま切らない」**。ただし「直さない」ではなく「**直す順番を変える**」 —
+  corrected B2 は**予想を 12.5% 動かすのに当たるようにはしない**ので、
+  **研究の土台(Q-040)を先に直し、production 切替は次のモデル更新とまとめる**方が churn が 1 回で済む
+- **会場だけ直すのは厳禁**(ARM B′ = ΔNLL +0.00344 で現行より悪化)
+- corrected 版を入れる場合は**交換周期境界テーブルの年次更新**が運用義務として増える
+  (陳腐化すると現行より悪化。**410 日の fail-closed guard** を実装済・負のコントロールで発動確認済)
+
+## Race Logic 研究の再開可否
+
+- **B2 を土台にする研究は再開してよい**(corrected B2 での再計算で FLIPPED 0 件 = 土台は安定)
+- **`p1_residual_panel` を土台にする 6 本は Q-040 の裁定まで待つ**
+
+---
+
+## 前サイクルで確定したこと(RES-2026-09-J / NG-MSA1)
 
 - **最終判定 `MOTOR_BUG_MATERIAL`**(CASE 1 = semantics bug confirmed / M2-minor)。
   **コード変更・再学習の前に `research/MOTOR_SEMANTICS_FROZEN_PLAN.md` を凍結**し、
@@ -977,6 +1281,23 @@ NG-T3D4(4 券種 FAIL → route B・Market Gate 閉鎖)/ tail 可視化 / 乖離
 | 2026-09-12 | Integrity の定義 | **2 軸へ訂正** | `INTEGRITY_GREEN` は train/serve parity の保証であって semantics の保証ではない。Parity Integrity = GREEN 維持 / Semantics Integrity = YELLOW を新設。**§13-3 / §15 の GREEN 判定は取り消していない** | SYSTEM_INTEGRITY_AUDIT_V1 §16 / FINDINGS P28 |
 | 2026-09-12 | NG-MSA1 dependency 再計算 | **FLIPPED 0** | corrected B2(ARM B)で既存 frozen gate をそのまま適用。NG-U2 = `U2_NULL` でゲート合否完全一致 / NG-PDS1 = `PDS1_NULL` 不変。**統計の式は 1 行も書き直していない**。限界 = replica アームのみ差し替え(production 窓は未学習) | artifacts/research/nextgen/msa1/recheck/msa1_recheck_verdicts.json |
 | 2026-09-12 | INC-2026-0912-MOTORSEMANTICS | **起票(OPEN)** | FEATURE_SEMANTICS_INCIDENT・Medium。research finding は確定・production 是正は Owner 裁定待ち(Q-038)。**production コードは 1 行も変更していない** | research/INCIDENTS.md |
+| 2026-09-12 | Q-038(corrected motor を production に反映するか) | **GO**(Owner) | 壊れた motor 履歴 2 列を物理個体キーで直した production 候補を作り、切替可否を検査する。切替自体は別 GO | Owner 指令 2026-09-12 Part A |
+| 2026-09-12 | Q-039(motor 研究の再審範囲) | **GO**(Owner) | 壊れた motor semantics の影響を受けたものだけ再審。無差別な全研究再実行は禁止 | Owner 指令 2026-09-12 Part B |
+| 2026-09-12 | NG-CMB1 G-A1(production 学習条件の再現) | **PASS** | P0 の正規化統計が production と 41/41 列で相対差 0.00e+00・学習行数 2,017,260 が契約記録値と一致・P1 は 39/41(差は corrected した motor 2 列のみ) | artifacts/research/nextgen/cmb1/CMB1_ARMS.json |
+| 2026-09-12 | NG-CMB1 G-A2(Semantics Integrity Gate) | **PASS 7/7** | 全 2,134,563 行・物理モーター 11,643 個体で会場混入 0 / 周期混入 0 / 未来参照 0 | CMB1_VALIDATE.json |
+| 2026-09-12 | NG-CMB1 §9-1 / §9-2(MSA1 の独立再現) | **PASS** | 独立 numpy 実装で max abs diff 0.0(全行)/ 集計を書き直して不一致 0 項目 | CMB1_VALIDATE.json / CMB1_REPRODUCE_MSA1.json |
+| 2026-09-12 | NG-CMB1 G-A9(fail-closed guard) | **PASS** | 交換周期境界が 410 日古くなった会場を中立化。stale 注入の負のコントロールで発動確認 | CMB1_VALIDATE.json |
+| 2026-09-12 | NG-MR1 §15(persistent motor state の存在) | **支持(model-free)** | 周期内前半/後半の個体別 2 連対率 r=0.240 vs permutation null 0.0036±0.0125(z=18.9・11,414 個体)。ICC は正しいキー 0.00905 vs 旧キー 0.0000895 = 旧キーが個体間分散の約 99% を捨てていた | MR1_PERSISTENCE_POC.json / FINDINGS P33 |
+| 2026-09-12 | NG-CMB1 G-A3(train/serve parity) | **割れ** | 凍結文面「差分率 0.000%」= FAIL / Q-035 実基準「同日先行なしで 0.0000」= PASS (Golden 371R で 0/1,409 行・狭域 0/83 行)。凍結文が Q-035 基準の転記ミス。閾値は動かさず両方報告 | CMB1_GOLDEN_PARITY.json / CMB1_SERVE_PARITY.json |
+| 2026-09-12 | NG-CMB1 G-A4(proper scoring 非劣化) | **FAIL** | point は −0.000678 で条件を満たすが **3 seed 同符号が False** (−0.0050 / −0.0004 / +0.0019)。効果量 0.0007 に対し seed std 0.0035 | CMB1_ARMS.json |
+| 2026-09-12 | NG-CMB1 G-A5 / G-A6 / G-A7 / G-A8 | **PASS** | calib 最悪ずれ 0.1658 → 0.1544 (改善) / production smoke 7/7 / rollback 手順確認 / holdout 非接触 | CMB1_ARMS.json / CMB1_PROD_SMOKE.json |
+| 2026-09-12 | **NG-CMB1 production 切替** | **DO_NOT_CUTOVER**(凍結 §12 の機械適用) | G-A3 FAIL により規則上 DO_NOT_CUTOVER。実質的にも 3連単 argmax が 12.48% 入替わるのに ΔNLL は −0.000678 (採用線の 1/4)・seed 符号不一致・市場から +11.4% 遠ざかる。**推奨 = いま切らず、次のモデル更新とまとめる** | lane-reports/cmb1_mr1_corrected_motor_20260912.md §9 |
+| 2026-09-12 | **NG-MR1 Gate 1**(corrected motor 単独) | **FAIL**(閾値のみ) | 両 fold で CI が 0 を跨がず 3 seed 同符号だが point −0.0024 が採用線 −0.003 に届かない。**「効果が無い」ではない** | MR1_THREEWAY.json |
+| 2026-09-12 | **NG-MR1 Gate 3**(展示後の純増分) | **FAIL** | 両 fold で CI が 0 を含む (−0.00077 / −0.00121)。吸収率 67.5% / 47.8% = 完全吸収ではない | MR1_THREEWAY.json |
+| 2026-09-12 | NG-MR1 Gate 4(B2 残差の説明) | **旧 PASS / corrected FAIL** | 旧 semantics の残差は corrected motor で t=3.47/3.33 = **取りこぼしていた**。corrected の残差は t=1.14/1.21 = **取り込んだ** | MR1_GATE4.json |
+| 2026-09-12 | NG-MR1 Gate 6(市場距離・診断) | 診断のみ | 勝者上 log 比 −0.01524 → −0.01698 = 市場から +11.4% 遠ざかる。PROD 側の値は REF1 記録と完全一致。**市場較正は再開していない** | MR1_GATE6_MARKET_DIAG.json |
+| 2026-09-12 | **NG-MR1 最終ラベル** | **MOTOR_REVALIDATED_NULL** | H1 = 旧結論「motor は展示に吸収される」は**維持**。ただし旧 MS3 の根拠(壊れた 2 列を統制に使用)は無効で、**今回初めて正しい土台で検証した**。REOPEN は 0 件 | MR1_THREEWAY.json / FINDINGS P34 |
+| 2026-09-12 | NG-MR1 dependency 再計算 | **FLIPPED 0** | VA1 SAME(replica → ARM B)/ SOB1F SAME(**prod3 → corrected P1** = MSA1 が閉じられなかった箇所)/ VENUE-V0 は NOT_RESOLVABLE_BY_B2_SWAP | MR1_RECHECK.json |
 
 
 
@@ -1502,7 +1823,7 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 | U-3 | 部品交換は選手の潜在診断信号 | ⬜未検証 | パーサ修理待ち | W2修理→W3 |
 | U-4 | 師弟・先輩後輩で行動が変わる | ⬜未検証 | 記録なし | W3以降(DEFER) |
 | U-5 | ルーキー急成長を市場が遅れて評価 | ❌否定寄り(BACKLOG から除外) | **NG-PDS1(2026-09-11)で選手の動的状態 6 本が B2 残差を説明せず(well-powered null)**。「最近の変化を市場が遅れて評価する」の AI 側前提が成立しない | 再起票しない(同一形) |
-| U-6 | 気温・気圧でモーター性能差が変わる | ⬜未検証 | 素値は棄却済・差分系のみ可 | E6(W2) |
+| U-6 | 気温・気圧でモーター性能差が変わる | ⬜未検証 | 素値は棄却済・差分系のみ可。**2026-09-12: 物理モーターに持続的な個体差があることは model-free に確認済 (r=0.240 / z=18.9 / FINDINGS P33)。ただし corrected motor 単独でも採用線未達・展示後は CI が 0 を含む (P34) ので、環境交互作用に進む前に「展示で説明できない分」の存在を示す必要がある** | E6(W2) |
 | U-7 | 準優は2着保持が重要 | ⬜未検証 | ST変化の傍証のみ | E23後続(準優δ) |
 | U-8 | 攻め気配で荒れを検知できる | ⬜未検証 | 展示補正は方向11/12正・量が保守的 | backlog 1-6→E12-14 |
 | U-9〜U-13 | 市場残差学習/オッズ時系列/本命エッジ移植/不一致フィルタ/条件別較正 ほか | ⬜未検証 | 各項参照 | backlog 2-2/2-3/2-4/3-3/1-5 |
@@ -2644,14 +2965,180 @@ motor 履歴の group key を **会場だけ**直し(`jcd × motor_no`)交換周
 → **scope-key を直すときは「キーを細かくする」だけでなく「窓が張る時間幅がどう変わるか」を必ず見る。**
 部分的な修正は無修正より悪くなりうる。
 
+### P30. motor を物理個体で正しく引くと、train/serve の「同日ずれ」が**薄く広く**から**濃く狭く**へ変わる【**確定**(2026-09-12・NG-CMB1 G-A3′)】
+
+corrected key で train/serve parity を実走検査したところ、一律一致はせず、
+**同日先行のある行だけ**がずれた。同日先行が無い行に絞ると**完全一致**。
+
+| 条件 | `motor_recent20_top2` | `motor_race_count_prior` |
+|---|---|---|
+| 全行の差分率 | 21.97% (29/132 行) | 37.12% (49/132 行) |
+| **同日先行なしの行** | **0 / 83 行** | **0 / 83 行** |
+| 同日先行のある行の割合 (corrected key) | **37.1%** | 37.1% |
+| 同日先行のある行の割合 (現行 key) | **70.5%** | 70.5% |
+
+原因は **`data/processed/national/features.parquet` が日中更新されない**こと (Q-035 で確立した
+`INTENTIONAL_DIFFERENCE` と同一クラス)。**キーの誤りではない**。
+実データで確認した事実: **同じモーターが同じ日に同じ会場で 2 走することがある**
+(例 `2026-08-16_02_04` と `2026-08-16_02_09` が同一 uid)。「モーターは 1 日 1 走」は誤り。
+
+向きは**改善**: 日中 staleness に曝される行は **70.5% → 37.1% へ半減**する
+(窓が同一会場・同一周期に閉じるため)。ただし**感度は上がる**
+— `motor_race_count_prior` は中央値 9999 → 97 になるので、1 走ぶんのずれが相対 1% の差になる
+(旧実装では 9999 天井に張り付いていて同日ずれが値に出なかった)。
+
+→ **scope-key を細かくすると、parity の「ずれ方」自体が変わる。**
+差分率の絶対値ではなく「**何が説明するずれか**」で見ないと、正しい修正を誤って棄却する。
+
+### P31. 同じ 2 列を抱えた**第 2 の経路**がある — 会場別 features は「会場だけ正しい」= B′ 配置【**未測定の露出面**(2026-09-12・NG-MR1 依存監査)】
+
+`motor_recent20_top2` / `motor_race_count_prior` は B2/F41 だけの列ではない。
+**自分でコードを確認した範囲で** 次の 3 経路が同じ 2 列を特徴に含む:
+
+| # | 経路 | 根拠 | 入力 |
+|---|---|---|---|
+| 1 | `src/model.py:FEATURE_COLS`(LGB 1着系) | 当該行 | 会場別 or national(未確定) |
+| 2 | `src/conditional_finish.py:CANDIDATE_FEATURE_COLS`(条件付き 2着3着 エンジン・住之江 GATE PASS) | 当該行 | 同上 |
+| 3 | **`e10_build_p1_panel.py` の LGB 代理モデル** = `BOAT_COLS`(26 列)で学習 | `BOAT_COLS` に 2 列が含まれることを実行確認 | **national**(B2 と同じ会場跨ぎ) |
+
+**3 が一番広い。** `p1_residual_panel.parquet`(この代理モデルの残差)を読む研究は
+**VENUE-V0 / NG-MS1 / NG-PDS1 / NG-SOB1 / NG-PXR1 / NG-E10**(grep で確認)。
+とくに **VENUE-V0 の verdict はこの残差だけから作られる**ので、
+**「B2 を差し替えても動かない」= 「motor bug の影響を受けていない」ではない。**
+(当初この 1 件を「B2 非依存だから NOT_APPLICABLE」と書いたが、**それは誤り**だった。
+B2 非依存であることと motor bug 非依存であることは別。)
+
+さらに `scripts/build_features_all_venues.py:33` は `build_features` を **会場ごとに**呼ぶため、
+会場別 `data/processed/<venue>/features.parquet` の motor 履歴は
+**会場は正しく・交換周期だけ跨ぐ = ARM B′ と同じ配置**になる。
+B′ は MSA1 で**現行より悪化した唯一のアーム**(ΔNLL +0.00344)だった。
+
+**測っていないこと(推測で埋めない)**: 3 経路それぞれの影響量、
+経路 1 / 2 が会場別 parquet と national parquet のどちらを実際に読んでいるか、
+これらのモデルが現在どれだけ使われているか。
+**コード経路を確認しただけで、影響は未測定。** → `DECISION_QUEUE` Q-040 で Owner 裁定待ち。
+B2 の ARM C(2 列を中立化)が +0.00005 だったことを**他系列へ外挿してはいけない**
+(LGB と NN で寄与の出方が違いうる)。
+
+→ **feature semantics の事故は「そのモデル」で閉じない。同じ列名を import している全系列を数える。**
+研究台帳には条件付き 2着3着エンジンと P1 代理モデルの motor 依存を記した finding が
+1 件も無かった(= 盲点)。**「B2 を直したから研究の土台は直った」と言えるのは B2 依存の分だけ。**
+
+### P32. 「歴史的モーター強さを統制した上で」という比較は、一度も実施されていなかった【**確定(前提の誤り)**(2026-09-12・NG-MR1)】
+
+NG-MS3 は Owner の 5 比較のうち ③「MS のみ」と ④「歴史的強さ + MS」を
+**同一アームに統合**した。その根拠は凍結プランに明記されている —
+「F41 に歴史的モーター強さ(`motor_2rate` / `boat_2rate` / `motor_recent20_top2` /
+`motor_race_count_prior`)が既に入っているため ③ と ④ は同一アームになる」。
+
+4 列のうち 2 列は、いま **AUC 0.5264 / 0.5006**(= 信号ゼロ)・
+`motor_race_count_prior` は **63.2% が 9999 天井**だったと判明している。
+さらに同プランは「字義どおりの『MS のみ』(F41 から歴史 motor 列を抜く)」を
+**明示的に不採用**としていた。
+
+→ **MS3 の `MS_NET_ZERO` は「歴史的モーター強さを統制した上で MS が効かない」ではなく、
+「信号ゼロの 2 列を入れた状態で MS が効かない」だった。**
+偽前提は 4 箇所に残存(`ms3_operational_plan_frozen.json` / `ms3_gate_results.json` /
+`ms3_ablation_gate.py:346-347` / `lane-reports/ms3_g3_results_20260906.md:20`)。
+
+→ **「既に入っているから作らない」と書いたアームは、その『入っている』を実測で確認する。**
+契約書の列名は、その列が情報を運んでいることを保証しない。
+
+### P33. 物理モーターには本当に persistent state がある — 旧キーはその 99% を捨てていた【**確定(model-free)**(2026-09-12・NG-MR1 §15 PoC)】
+
+**モデルを 1 つも作らずに**(記述統計 + permutation null だけで)、
+正しく追跡した物理モーター `(jcd, motor_no, cycle_id)` に持続的な個体差があるかを測った。
+
+**分割相関** — 交換周期内を時系列で前半/後半に割り、個体ごとの 2 連対率を相関させる:
+
+| 量 | 値 |
+|---|---|
+| 対象 | 周期内 20 走以上の物理モーター **11,414 個体** |
+| 実測 r(前半 vs 後半) | **0.240** |
+| permutation null(会場 × 周期の中で個体ラベルを入替・200 回) | **0.0036 ± 0.0125** |
+| null の p95 | 0.0229 |
+| **z** | **18.9** |
+
+null は**会場と周期の平均構造を保ったまま個体の対応だけ壊す**ので、
+r = 0.240 は会場差や周期差の artifact ではなく **個体レベルの持続性**である。
+
+**ICC(級内相関・lane と選手力を除いた残差で)**:
+
+| group key | ICC |
+|---|---|
+| **`(jcd, motor_no, cycle_id)`(正しい)** | **0.00905** |
+| `motor_no` 単独(旧実装) | **0.0000895** |
+
+→ **旧キーは個体間分散の約 99.0% を捨てていた**(101 倍の差)。
+「旧特徴の精度寄与が実質ゼロ(ARM C で +0.00005)」だったのは、
+**モーターに情報が無かったからではなく、情報を捨てるキーで集計していたから**である。
+
+**lifecycle(周期内の消化数別 2 連対率)**: 0-9 走 0.3300 / 10-24 0.3394 / 25-49 0.3374 /
+50-99 0.3383 / 100-199 0.3388 / 200+ 0.3405。
+**系統的な経年曲線はほぼ無い**(最初の 10 走だけわずかに低い)。
+→ 持続性は**個体差として**存在し、**共通の加齢カーブとしては存在しない**。
+§16 の lifecycle frame を NN 構造にする根拠は、少なくともこの集計水準には無い。
+
+**限界**: ①この r は 2 連対率の相関で、**予測に使えるか**とは別の問い
+(B2 が他の特徴で既に説明している分と重複しうる)②モーターは節単位で同じ選手が使うので
+個体内に選手効果が混じる。ただし前半/後半は別の節 = ほぼ別の選手であり、
+permutation null も会場 × 周期を保っているため、この 2 つで交絡の大半は統制されている。
+
+→ **「効かなかった」と「情報を壊して入れていた」を区別せずに棄却してはいけない。**
+
+### P34. 正しい motor でも展示を越えられない — ただし「効かない」と「半分吸収される」は違う【**確定**(2026-09-12・NG-MR1 三者比較)】
+
+MS3 が作らなかった **motor-free な base(ARM N = 壊れた 2 列を train 平均で中立化)**を初めて作り、
+正しい物理個体キーの corrected motor を同じ土台の上で測った(NG-MS3 と同一プロトコル・2 fold・3 seed・
+cluster bootstrap B=2000)。
+
+| 量 | fold1 | fold2 | 読み |
+|---|---|---|---|
+| **corrected motor 単独**(M − N) | **−0.00238** CI[−0.00374,−0.00094] | **−0.00231** CI[−0.00347,−0.00114] | **両 fold で CI が 0 を跨がず 3 seed 同符号**。だが採用線 0.003 に届かない |
+| 当日展示(E − N) | −0.01677 | −0.02056 | **展示は motor の約 8 倍** |
+| **展示後の motor 純増分**(ME − E) | **−0.00077** CI[−0.0018,**+0.0003**] | **−0.00121** CI[−0.0026,**+0.0002**] | **両 fold で CI が 0 を含む** |
+| placebo(PL − N) | **+0.00254** | **+0.00130** | 情報ゼロの列を足すと**悪化** = ハーネス健全 |
+| 壊れた 2 列を消す(N − A) | −0.00152 | −0.00111 | **消すだけで改善**(旧列はノイズ) |
+| **旧列 → corrected**(M − A) | **−0.00390** | **−0.00342** | **両 fold で採用線を超える** |
+
+**展示による吸収率 = fold1 67.5% / fold2 47.8%。完全吸収ではない。**
+残り 1/3〜1/2 は 0 と区別できないだけで、ゼロと実証されたわけではない。
+
+→ 最終ラベル **`MOTOR_REVALIDATED_NULL`**(Gate 1 / Gate 3 とも凍結閾値で FAIL)。
+**旧結論「motor state は当日展示に吸収される」は維持。ただし根拠が差し替わった** —
+旧 MS3 は信号ゼロの 2 列を「歴史的強さの統制」として使っており検証になっていなかった(P32)。
+**結論は正しかったが、根拠は間違っていた。**
+
+**規律**: 効果量が採用線の 80%(−0.0024 vs −0.003)で、CI も seed も揃っている場合、
+「FAIL」と「効果が無い」を同じ言葉で書かない。**同型の前例 = NG-N1**(閾値が効果の理論上限より高く FAIL)。
+
+### P35. 学習データを増やすと「壊れた特徴を直す効果」が縮む【**確定**(2026-09-12・NG-CMB1 vs NG-MR1)】
+
+同じ「旧列 → corrected」の差し替えを、学習窓の大きさだけ変えて 3 通り測った。
+
+| 学習窓 | train 行数 | ΔNLL(corrected − 旧列) |
+|---|---|---|
+| MR1 panel fold1(train 〜2025-05) | 約 55,000 レース | **−0.00390** |
+| MR1 panel fold2(train 〜2025-11) | 約 85,000 レース | **−0.00342** |
+| MSA1 fold2(train 〜2024-07) | 1.45M 行 | −0.00162 |
+| **CMB1 prod2026(train 〜2026-07)** | **2.02M 行** | **−0.000678**(3 seed で符号不一致) |
+
+**学習データが増えるほど、motor 履歴を直す効果は小さくなる。**
+仮説: 他の 39 特徴から同じ情報を取れるようになるので、motor 列の固有寄与が減る。
+
+→ **帰結 2 つ。** ①**小さい窓で測った修正効果を production 窓へ外挿してはいけない**
+(MSA1 の −0.00162 は production 窓では −0.0007 だった)。
+②**壊れた特徴の修正は「早いほど価値が高い」**。データが増えるほど直す実利は減る
+(意味論を直す理由は残るが、精度の理由は消えていく)。
+
 
 
 # ===== research_state.json =====
 
 ```json
 {
-  "updated_at": "2026-09-12T09:00:00",
-  "updated_by": "Claude (Owner 指令 2026-09-12: Q-037 = GO・最初の 1 本 = MOTOR FEATURE SEMANTICS AUDIT)",
+  "updated_at": "2026-09-12 19:15",
+  "updated_by": "Claude (RES-2026-09-K / NG-CMB1 + NG-MR1)",
   "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
   "architecture_version": "v2.1",
   "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
@@ -2666,8 +3153,8 @@ motor 履歴の group key を **会場だけ**直し(`jcd × motor_no`)交換周
     "id": "b2f41_prod2026_prod3",
     "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
   },
-  "current_experiment": "NG-MSA1 (Motor Feature Semantics Audit) — done_primary",
-  "current_experiment_note": "primary = semantics 事実認定 (CASE 1 confirmed・RECOMPUTE_PARITY PASS)。secondary = 3(+1) アームの counterfactual retrain。ARM A 現行 3.752954 / ARM B 修正 3.751335 / ARM C 無効化 3.753002 / ARM B′ 会場のみ 3.756395 (固定 OOS 8,997R の 3連単 NLL)。ARM A は Q-034 clean replica を差 2.4e-07 で再現 (determinism check)。dependency 再計算 = NG-U2 / NG-PDS1 とも SAME・FLIPPED 0",
+  "current_experiment": "NG-CMB1 + NG-MR1 (完走)",
+  "current_experiment_note": "Owner 裁定 Q-038 = GO / Q-039 = GO。corrected motor baseline (P1) を production と同一 training contract で構築し、意味論・parity・smoke・rollback・guard を検査。production 切替は凍結 §12 の機械適用で DO_NOT_CUTOVER (G-A3 FAIL)。motor 研究の再審は MOTOR_REVALIDATED_NULL (Gate 1 は閾値のみ FAIL・Gate 3 は CI が 0 を含む)。dependency 再計算 FLIPPED 0。production コード無変更・holdout 非接触",
   "experiments": {
     "registry_path": "artifacts/research/experiment_registry.jsonl",
     "adopted": [
@@ -3764,11 +4251,82 @@ motor 履歴の group key を **会場だけ**直し(`jcd × motor_no`)交換周
     "preflight": "16/16 PASS (C6 = serve 経路の prior parity)",
     "note": "INTEGRITY_GREEN は『train と serve が同じ情報を見ている』保証であって『その情報が意図した意味を持つ』保証ではない。SYSTEM_INTEGRITY_AUDIT_V1 §16",
     "parity_integrity": "GREEN (RES-2026-09-I・unresolved S3 = 0 / S4 = 0)",
-    "semantics_integrity": "YELLOW (2026-09-12・NG-MSA1)。motor 履歴 2 列で確定した意味の誤り 1 件。是正は Owner 裁定待ち (Q-038)。parity 検査では捕まらない事故クラス = FINDINGS P28"
+    "semantics_integrity": "YELLOW (2026-09-12・NG-MSA1)。motor 履歴 2 列で確定した意味の誤り 1 件。是正は Owner 裁定待ち (Q-038)。parity 検査では捕まらない事故クラス = FINDINGS P28",
+    "parity": "GREEN (維持)",
+    "semantics": "YELLOW (維持)。GREEN には Q-038 (B2 の corrected 版を production へ) だけでなく Q-040 (B2 以外の 3 経路 = LGB 1着系 / 条件付き 2着3着エンジン / E10 P1 代理モデル) の解決が必要"
   },
   "open_incidents": [
     "INC-2026-0912-MOTORSEMANTICS (FEATURE_SEMANTICS_INCIDENT・Medium・OPEN・research finding は確定・production 是正は Q-038 待ち)"
-  ]
+  ],
+  "res_2026_09_k": {
+    "cycle": "RES-2026-09-K",
+    "experiments": [
+      "NG-CMB1",
+      "NG-MR1"
+    ],
+    "frozen_plan": "research/CORRECTED_MOTOR_BASELINE_FROZEN_PLAN.md",
+    "part_a_gates": {
+      "G-A1": "PASS (P0 の予測が production と数値的に区別できない)",
+      "G-A2": "PASS 7/7",
+      "G-A3": "FAIL (凍結文面 一律 0.000%)",
+      "G-A3_prime": "PASS (Q-035 実基準・Golden 0/1,409 行)",
+      "G-A4": "FAIL (point は満たすが 3 seed 同符号 False)",
+      "G-A5": "PASS (calib 最悪ずれ 0.1658 → 0.1544)",
+      "G-A6": "PASS 7/7",
+      "G-A7": "PASS",
+      "G-A8": "PASS",
+      "G-A9": "PASS"
+    },
+    "part_a_effect": {
+      "reference_delta_nll": -0.000678,
+      "trifecta_argmax_change": 0.1248,
+      "clean_subwindow_delta_nll": -0.000745,
+      "seed_same_sign": false,
+      "win_hit_at1_delta_pp": -0.24
+    },
+    "production_verdict": "DO_NOT_CUTOVER (凍結 §12 機械適用)",
+    "part_b_gates": {
+      "Gate1": "FAIL (閾値のみ・両 fold で CI は 0 を跨がず 3 seed 同符号)",
+      "Gate2": "FAIL",
+      "Gate3": "FAIL (両 fold で CI が 0 を含む)",
+      "Gate4": "旧 PASS (t=3.47/3.33) / corrected FAIL (t=1.14/1.21)",
+      "Gate5": "FAIL",
+      "Gate6": "診断のみ (市場から +11.4% 遠ざかる)"
+    },
+    "part_b_label": "MOTOR_REVALIDATED_NULL",
+    "exhibition_absorption": {
+      "fold1": 0.675,
+      "fold2": 0.478
+    },
+    "persistence_poc": {
+      "split_half_r": 0.24,
+      "null_mean": 0.0036,
+      "z": 18.9,
+      "icc_correct_key": 0.00905,
+      "icc_old_key": 8.95e-05,
+      "n_motors": 11414
+    },
+    "recheck": {
+      "NG-VA1": "SAME",
+      "NG-SOB1F": "SAME",
+      "VENUE-V0": "NOT_RESOLVABLE_BY_B2_SWAP",
+      "flipped": 0
+    },
+    "reopened": 0,
+    "new_findings": [
+      "P30",
+      "P31",
+      "P32",
+      "P33",
+      "P34",
+      "P35"
+    ],
+    "new_owner_decisions": [
+      "Q-040",
+      "Q-041"
+    ],
+    "lane_report": "lane-reports/cmb1_mr1_corrected_motor_20260912.md"
+  }
 }
 ```
 
