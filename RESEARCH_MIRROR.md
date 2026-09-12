@@ -4,7 +4,8 @@
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
 
-- 更新: **2026-09-13 05:10**(Owner 裁定「**Q-042 = GO / AUDIT ONLY**」の実行後 = **RES-2026-09-M / NG-Q042**)
+- 更新: **2026-09-13 05:19**(Owner 裁定「**RES-2026-09-N = GO / AUDIT ONLY**」の実行後 = **RES-2026-09-N / NG-Q044**)
+- 前回更新: **2026-09-13 05:10**(Owner 裁定「**Q-042 = GO / AUDIT ONLY**」の実行後 = **RES-2026-09-M / NG-Q042**)
 - 前回更新: **2026-09-13 03:00**(Owner 裁定「**Q-040 = GO**」の実行後 = **RES-2026-09-L / NG-Q040**)
 - 前回更新: 2026-09-12 19:15(Owner 裁定「**Q-038 = GO / Q-039 = GO**」の実行後 = **RES-2026-09-K**)
 - 前回更新: 2026-09-12 09:00(Owner 指令「**Q-037 = GO。最初の 1 本は MOTOR FEATURE SEMANTICS AUDIT**」の実行後 = **MOTOR_BUG_MATERIAL**)
@@ -13,6 +14,76 @@
 - 前々回更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
 - 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/q035_prior_parity_20260912.md`(今回)と `lane-reports/sia_v1_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
 - 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
+
+## 0. 今回(2026-09-13 朝・2 本目)— **測りに行ったバグより、大きいバグが出てきた**
+
+前回まで「唯一 本当に動いている未測定の場所」と書いていた —
+**毎晩 24 会場の AI 予想を作っている LightGBM 1着モデル**を測った。
+**Owner 指令どおり、測るだけ。1 行も直していない。**
+
+### 結論を 5 行で
+
+1. **場所は 1 つではなく 24 個だった。** 24 個すべてが壊れたモーター情報を持ち、**24 個すべてが今も動いている**。
+2. **今夜 LENS に出る 285 レースのうち 24 レース(8.42%)は、モーターを正しくすると 1着予想が別の艇になる。**
+3. **桐生は 100 レース中 6 レース**、住之江は 2 レース。住之江の 3連単まで見ると
+   **100 レース中 11 レースで 1 番手・19 レースで買い目の上位 3 点**が入れ替わる。
+4. **なのに当たりやすさは良くならない**(桐生はほんの少し良く、住之江は乱数で符号が逆になる)。
+5. **いちばん大事な発見は別**: **壊れたモーター情報は、実は「時計」として働いていた**(§下記)。
+
+### いちばん意外だったこと — **壊れた数字は「モーターの経験」ではなく「日付」だった**
+
+`motor_race_count_prior`(そのモーターが何走してきたか)という特徴は、
+**日付との相関が 0.97**(1.0 が完全一致)だった。つまり **ほぼ日付そのもの**。
+
+理由は単純。モーター番号は会場ごとに **71 個 / 65 個**しかないので、
+「番号ごとの累積走数」を全期間で数えると **「データが始まってから何走目か」とほぼ同じ数字**になる。
+
+**これが全部を説明する:**
+
+| 観測 | 意味 |
+|---|---|
+| 重要度は下から数えた方が早いのに、**木の 7〜9 割**がこの特徴を使っている | 決定木にとって「日付」は**時期ごとの傾向を切り分ける最良の目印**だから |
+| **正しく直すと住之江の精度が落ちる**(木の本数も 69 → 24 に減る) | 時計を取り上げると、モデルは唯一の「時間の目印」を失う |
+| **桐生では正しく直すと精度が良くなる** | 桐生は「新しいデータを重視する」学習方法を使っており、**時間の扱いを別に持っている**から |
+
+→ **これは「精度を落としているバグ」ではなく「約束と実装の意味が違うバグ」。**
+直すこと自体は正しいが、**直すなら「日付は日付として正面から入れ直す」設計を同時に決めないと精度が落ちる。**
+
+### そして — **測りに行ったバグより大きい問題が出てきた**
+
+| # | 見つかったこと |
+|---|---|
+| **★** | **24 会場のうち 17 会場のデータが 7 月 18〜24 日で止まっている。** データを作り直すプログラムが**自動実行に登録されていない**。それでも毎晩 288 レース分の予想が画面に出ているので、**17 会場 204 レースは「7 月下旬のレース」をそのまま毎晩載せ直している** |
+| | 桐生の 30 分ごとの買い目シートも、**同じ 2026-07-24 のレースを 1 日 28 回作り直している** |
+| | **本番の毎週の再学習が、封印していた期間(9/1〜10/31)を自分の検証データに飲み込み始めている**(6,609 行のうち 572 行) |
+
+> **順序で言うと、モーターのバグより ★ が先である。**
+> モーターは「288 レース中 24 レースで順位が違う」問題。**★ は「204 レースが 51 日前のレースそのもの」問題。**
+> 原因も単純(定期実行に登録されていないだけ)。
+>
+> **ただし定期実行の追加は承認が要る操作**なので、**記録して上げるところまでにした。**
+
+### 実害はあるか(正直に)
+
+**「今出ている順位が少しずれている」実害は実在する**(今夜 285 レース中 24 レース)。
+**「当たりにくくなっている」実害は示せない**(会場で符号が逆・乱数で反転)。
+**それより大きい実害は ★ のほう**(17 会場の画面が 51 日前)。
+
+### 次に決めてほしいこと
+
+| ID | 決めること | 推奨 |
+|---|---|---|
+| **Q-046** | 17 会場のデータ停止を直すか | **やる。モーター是正より先。** 原因は定期実行の未登録だけ |
+| **Q-045** | モーター情報を正しく直すか(`src/features.py` の 2 行) | **やる。ただし Q-038(本番モデルの入替)と 1 本で決める** — 同じ 2 行を共有していて別々に直せない。**「日付を正面から入れ直す」設計も同時に決める** |
+| **Q-047** | 封印期間が毎週の検証に食われている問題 | **検証期間を 8/31 までで固定する** |
+| Q-043(持ち越し) | 止まっている 2着3着エンジンを封印するか | **封印。ただし優先度は Q-046 / Q-045 の後** |
+
+### 本番はどうなっているか
+
+**1 行も触っていない**(`git diff` で 0 行を確認)。モデルの symlink も実体も、定期実行も触っていない。
+データファイル 24 本も 1 本も直していない。**封印期間(9/1〜10/31)の着順・配当・命中は 1 つも見ていない。**
+
+---
 
 ## 0. 今回(2026-09-13 朝)— **止まっているエンジンだった。でも「止まった日の答え」が今も画面に載っている**
 
@@ -565,21 +636,21 @@ commit `9e39b83`。**本番の動きは 9/12 01:16 の時点ですでに直っ�
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: NG-Q042 (done_primary)(条件付き 2着3着エンジン (src/conditional_finish.py) の motor semantics 露出量測定。最終ラベル Q042_EXPOSURE_MATERIAL (+ SEED_UNSTABLE)・LIVE 判…)
-- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・27363/49968 ページ・残り目安 3.08 日)
+- 実行中の実験: NG-Q044 (完走・LGB1_LIVE_REPAIR_REQUIRED)(Owner 裁定 2026-09-13「RES-2026-09-N = GO / AUDIT・IMPACT MEASUREMENT ONLY」を実行し完走。src/model.py:FEATURE_COLS を使う LIVE LGB 1着…)
+- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・27733/49968 ページ・残り目安 3.03 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-MSA1**(2026-09-12・done_primary・—): 学習 src/features.py:102/104 も推論 predict_b2_live.py:340/342 も motor_no 単独 group (会場・交換周期なし)。物理個体キー (jcd,motor_no,cycle_id) は 11,643 個体に対し現行 group は 90 = 129 倍粗い。窓 20 件のうち自機は平均 1.95 件 (9.78%)・他会場混入 99.69%・自機ゼロの行 13.54%。影響 2,128,338 …
 - **NG-CMB1**(2026-09-12・done_primary・—): production の学習条件は完全再現 (正規化統計 41/41 列が相対差 0.00e+00・学習行数 2,017,260 が契約記録値と一致)。corrected 版は意味論的に正しく (7 検査 PASS・同日先行なし parity 0 行) production smoke も通るが、**予測改善は ΔNLL −0.000678 (採用線 0.003 の 1/4) で 3 seed の符号が揃わない**のに **3連単 argmax は 12…
 - **NG-MR1**(2026-09-12・done_primary・—): MS3 が作らなかった motor-free base (ARM N) を初めて作り、正しい物理個体キーで測り直した。corrected motor には単独の予測価値が実在する (両 fold で CI が 0 を跨がず 3 seed 同符号) が採用線 0.003 に届かず (−0.0024)、当日展示を併用すると純増分は CI が 0 を含む。展示による吸収は 48〜68% で完全ではない。model-free には持続的な個体差が明確に存在 (z…
 - **NG-Q040**(2026-09-13・done_primary・—): E10 P1 代理モデルにも同じ motor bug が実在した (BOAT_COLS 26 列のうち 2 列・6.7 年 / 2,134,383 行 / 356,100 レース)。正しい物理個体キーで作り直すと代理モデルは素直に良くなった (logloss −0.00057 / AUC +0.0010・6 年すべて改善) が、残差の順位はほぼ動かず (Spearman 0.99598・符号反転 0.163%)、6 研究すべてで verdict ラベルは…
 - **NG-Q042**(2026-09-13・done_primary・—): 
+- **NG-Q044**(2026-09-13・done_primary・—): 
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-13 05:10(**Owner 裁定 2026-09-13「Q-042 = GO / AUDIT ONLY」完走 = RES-2026-09-M / NG-Q042**) ## 今サイクルで確定したこと(RES-2026-09-M / NG-Q042) - **最終ラベル = `Q042_EXPOSURE_MATERIAL`(+ `SEED_UNSTABLE`)。凍結閾値 M1〜M5 の 5 指標すべてが線を超えた。** - **LIVE 判定 = `LIVE_DORMANT`**(新設の第 3 状態)。scheduled entrypoint から**推移的到達 0 件**・ 出力の新規生成 **0 件 / 30 日**。`conditional_picks.json` は**リポジトリ全体で 1 本だけ** (2026-06-03 10:02 が最後。`reports/` のデータセットは **3,156 個**)。 **ただし serving 経路は今日のデータでそのまま動き**…
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-13 05:19(**Owner 裁定 2026-09-13「RES-2026-09-N = GO / AUDIT ONLY」完走 = RES-2026-09-N / NG-Q044**。**最終ラベル `LGB1_LIVE_REPAIR_REQUIRED`**) ## 今サイクルで確定したこと(RES-2026-09-N / NG-Q044) - **最終ラベル = `LGB1_LIVE_REPAIR_REQUIRED`(+ `SEED_UNSTABLE`)= 凍結 4 ラベルのうち最も重いもの。** **repair trigger は発火したが実行していない**(production 変更 0 行・Owner の別 GO が必要)。 - **経路は 1 本ではなく 24 artifact だった**(`MOTOR_DEPENDENCY_LEDGER` F-6 ① の訂正・**FINDINGS P45**)。 **24/24 が壊れた 2 列を両方持ち、24/24 が `LIVE_A…
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -656,6 +727,9 @@ commit `9e39b83`。**本番の動きは 9/12 01:16 の時点ですでに直っ�
 - #29 Q-035: INC-2026-0912-PRIORSTALE (prior 集計 24 列の train/serve 不一致・S3) をどう扱うか(推奨: 段階 GO (まず節 4 列の 3 日打ち切りだけ直す。単独で差の約半分が消える))
 - #30 Q-036: System Integrity Audit v1 の S1/S2 整備 4 件 (silent fallback のログ化 / odds_pre の契約 / exh120 劣化経路の golden / manifest 無し artifact)(推奨: GO (①silent fallback のログ化 と ②odds_pre の契約 を先に))
 - #Q-042 条件付き 2着3着エンジン (src/conditional_finish.py) の motor 露出量測定(推奨: GO (measurement only・修正しない・production 非変更))
+- #32 Q-045 kyotei: LIVE LGB 1着系 24 artifact の motor semantics を是正するか (案 R1 = src/features.py の group key 是正 → 既存の週次再学習に corrected モデルを…(推奨: (a) GO。ただし Q-038 と 1 本に統合して裁定する。**R1 単独では features.parquet を 2 系統に分岐させない限り LGB …)
+- #33 Q-046 kyotei: 会場別 features.parquet 17 本が 2026-07-18〜24 で停止している (build_features_all_venues.py が自動実行に載っていない)。LENS は毎晩 288 レース publi…(推奨: (a) GO・**motor 是正より優先**。motor バグは「288 レース中 24 レースで順位が違う」問題だが、本件は「17 会場 204 レースが…)
+- #34 Q-047 kyotei: 週次再学習の valid 窓が封印期間 (2026-09-01〜10-31) へ前進しており、住之江 LIVE artifact の valid 6,609 行のうち 572 行 (96 レース) が封印窓の中にある。best_i…(推奨: (a) valid を固定日付 (2026-08-31 まで) に切る、または (b) 封印の対象から本 model family を外すと明文化する。**ど…)
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
@@ -1200,12 +1274,114 @@ LIVE の p1 artifact `lgbm_v1_20260531_020022` の記録値(n_train/calib/valid 
 
 ---
 
+### P43. **壊れた特徴が「別の有用な情報」として効いていることがある** — 意味の誤りを直すと精度が落ちる場合がある【**確定**(2026-09-13・NG-Q044)】
+
+`motor_race_count_prior` は契約上「その艇がいま積んでいる物理モーターの累積出走数」だが、
+旧実装(`group=["motor_no"]` / `window=9999`)では **日付との Spearman が +0.9713(住之江)/ +0.9785(桐生)**
+= **ほぼ純粋な単調時間インデックス**として振る舞っていた(corrected では +0.1159 / +0.0547 まで落ちる)。
+
+原因は構造的: モーター番号は会場ごとに固定の小集合(住之江 **71** / 桐生 **65**)なので、
+`motor_no` 単独 group の累積カウントは **「データセットが始まってから何走目か」にほぼ等しくなる**。
+
+これが 3 つの観測を同時に説明する:
+
+| 観測 | 説明 |
+|---|---|
+| gain 順位は 4〜18 位なのに **木の 72〜86%** がこの列を使う | 決定木にとって単調な時間軸は「時期別 base rate を切る」最良の軸。親条件の最頻値が **自分自身**(住之江 20 回 / 桐生 43 回)= 多段の時期バンド分割 |
+| corrected にすると**住之江は logloss +0.0111 悪化**・`best_iter` **69 → 24** | 時計を取り上げると唯一の単調な時間特徴を失う(`month` / `dow` / `race_period` は周期的で単調でない) |
+| corrected にすると**桐生は logloss −0.0017 改善** | 桐生は `recency_half_life_days=365` の指数減衰重みで**既に時間トレンドを別経路で扱っている**ので、時計を失っても損しない |
+
+**帰結**: 「意味が間違っている」と「役に立っていない」は別の判断である。
+契約違反は直すべきだが、**直した瞬間に失う情報を先に特定しておかないと精度が落ちる**。
+本件の正しい設計は「時間トレンドは時間トレンドとして明示的に入れる」ことで、
+**motor 列の誤りとして密輸させない**こと。単純削除(ARM N)は住之江で **+0.0191** 悪化するので却下候補。
+
+**P40 の例外**: P40 は「中立化アームが corrected と同オーダーに動くならその特徴はノイズ」としたが、
+**動き方が同じでも精度への寄与が同じとは限らない**。P40 は displacement の判定規則としては有効で、
+**「情報かノイズか」の結論には ARM N の精度差も併せて見る必要がある**。
+
+---
+
+### P44. **同じバグ・同じモデル族でも、学習レシピが 1 つ違うと修正の符号が変わる**【**確定**(2026-09-13・NG-Q044)】
+
+同一の壊れた 2 列・同一の `FEATURE_COLS` 28 列・同一の LightGBM params で、
+**住之江(均等重み)は corrected で logloss +0.0111 悪化、桐生(`recency_half_life_days=365`)は −0.0017 改善**。
+差は **recency 重み付けの有無だけ**(P43 の機構による)。
+
+さらに **Hit@1 は logloss と逆向きに動いた**: 住之江 **+0.39pt 改善** / 桐生 **−0.69pt 悪化**。
+
+**帰結**: NG-Q040 の **P38「同じ 2 列でも NN では効かず LGB では素直に効く」も、そのまま外挿できない。**
+**「LGB だから効く」ではなく「そのレシピだから効く」**。
+露出量は **artifact 単位 × レシピ単位**で測る。会場をまとめた平均は意味を持たない。
+
+---
+
+### P45. **「経路」は artifact 単位で数え直さないと桁を間違える**【**運用事実**(2026-09-13・NG-Q044)】
+
+`MOTOR_DEPENDENCY_LEDGER` F-6 ① は `src/model.py:FEATURE_COLS`(LGB 1着系)を **1 経路**として数えていた。
+実体は **24 artifact** で、**24/24 が壊れた 2 列を両方含み、24/24 が `LIVE_ACTIVE`** だった。
+
+| 層 | 定義 | 件数 |
+|---|---|---|
+| P | `feature_cols` が `FEATURE_COLS` と完全一致(28 列同順) | **2**(住之江 root / 桐生 clean28) |
+| S | `FEATURE_COLS` の上位集合(33 列)で壊れた 2 列を含む | **22**(会場別) |
+
+`FEATURE_COLS` を import する script は 1 つでも、
+**symlink が指す実体・学習時点・再学習されるかどうかは artifact ごとに違う**。
+本件では **週次再学習されるのは住之江 root 1 本だけ**で、他 23 本は手動学習時点のまま serve されていた。
+
+**P36「依存監査はファイル単位ではなく列単位で切る」の逆方向の落とし穴**:
+**列は共有でも artifact は共有ではない。** 依存監査は
+**①どの列を読むか(P36)②どの実体が serve されるか(本 finding)** の 2 軸で切る。
+
+---
+
+### P46. **exposure 監査には「入力の鮮度の停止」の検出がタダで付いてくる**【**方法論**(2026-09-13・NG-Q044)】
+
+motor semantics の露出量を測るために「何レースに効くか」の分母を数えた過程で、
+**本来の監査対象より大きい LIVE 欠陥**を 2 件拾った:
+
+- **会場別 `features.parquet` 24 本のうち 17 本が 2026-07-18〜24 で停止**していた。
+  `scripts/build_features_all_venues.py` は **cron / launchd のどこにも載っていない**。
+  それでも `nightly.sh` 手順 5 は毎晩 24 会場 × 12R = **288 レース**を LENS へ publish している
+  = **17 会場 204 レースは 7 月下旬の同じレースを再掲載し続けている**。
+- **桐生 picks の 30 分 cron は `date=2026-07-24` を 1 日 28 回再生成**していた(ログ 91 回すべて同じ日付)。
+
+**帰結**: 露出量監査のテンプレートに **「入力ファイルの mtime と date_max を必ず出す」**を入れる。
+「壊れた値がどれだけ予測を変えるか」より前に、**「その予測がいつのレースのものか」**が壊れていることがある。
+NG-Q042 の **P41(`LIVE_DORMANT`)は「エンジンが止まっている」形だったが、本件は「エンジンは動いていて入力が止まっている」形** = 別の失敗モード。
+
+---
+
+### P47. **本番の週次再学習は、封印窓を自分の valid 窓に飲み込んでいく**【**運用事実 + 規律**(2026-09-13・NG-Q044)】
+
+住之江 LIVE artifact `lgbm_v1_20260913_020022`(毎週日曜 02:00 再学習)の split を実測したところ:
+
+| split | 行数 | 期間 | 封印窓(2026-09-01〜)の行 |
+|---|---|---|---|
+| train | 74,268 | 2020-01-02〜2025-09-20 | **0** |
+| calib | 6,529 | 2025-09-21〜2026-02-27 | **0** |
+| **valid** | 6,609 | 2026-02-28〜**2026-09-12** | **572 行(96 レース)** |
+
+`valid_ratio=0.075` は**フレームの末尾 7.5%** を取るので、フレームが伸びるたび valid 窓が前進する。
+= **`best_iter`(76)と週次 valid metric は封印窓の着順に依存しており、
+この model family について封印窓は既に out-of-sample ではない。**
+
+**帰結**: **「封印」はデータを凍結するだけでは成立しない。** 学習窓の前進を止める運用がないと、
+自動再学習が勝手に封印窓を消費する。封印を宣言するときは
+**①どのフレームか ②どの学習ジョブの窓が前進するか ③その窓を止めるか valid を固定日付にするか**
+を同時に決める。
+(本サイクルでは judgement を `*_SAFE` アーム = 2026-08-31 構造カットで行い、封印窓の着順は 1 つも参照していない。)
+
+---
+
 
 # ===== RESEARCH_STATUS.md =====
 
 # RESEARCH_STATUS — 研究状態の正本
 
-- 最新更新: **2026-09-13 05:10**(更新者: Claude / Owner 裁定 2026-09-13「**Q-042 = GO。ただし AUDIT / IMPACT MEASUREMENT ONLY**」完走 = **RES-2026-09-M / NG-Q042**。**最終ラベル `Q042_EXPOSURE_MATERIAL`(+ `SEED_UNSTABLE`)**。**①LIVE 判定 = `LIVE_DORMANT`**: crontab 7 本 + launchd 6 本の全 entrypoint から推移的 import 走査で条件付きエンジンへ**到達 0 件**、`conditional_picks.json` は**リポジトリ全体で 1 本のみ**(`reports/suminoe_20260527`・2026-06-03 10:02 が最後。`reports/` のデータセットは **3,156 個**ある)。**ただし serving 経路は今日のデータでそのまま実行可能**(2026-08-18 で 12R/12R 生成成功)で、**その 2026-05-27 の古い出力が `nightly.sh` 手順 6 の `build_predictions_data.py` によって毎晩 LENS の live データへ再 publish され続けている** = 「エンジンは止まっているが、止まった日の答えが今も画面に載っている」(FINDINGS **P41**)。**②露出範囲を訂正**: **P2/P3 に直接入る壊れた列は `motor_recent20_top2` の 1 列だけ**で `motor_race_count_prior` は入っていない(**MOTOR_DEPENDENCY_LEDGER F-6 ②の「2 列」は誤り**)。**p1(`data/models/latest.txt`・毎週日曜 02:00 に自動再学習)には 2 列とも入り**、`p1`/`winner_p1`/`second_p1` として P2/P3 と 120 通り式へ伝播する。**③住之江単独フレームなので cross-venue 汚染は構造的に 0.00%**・誤りは **cycle 跨ぎのみ**(= MSA1 で唯一悪化した **ARM B′ 配置**)。窓 20 件のうち本物の同一個体 **18.73 件(94.38%)**・`motor_recent20_top2` 一致率 **91.12%**・9999 天井 **0.00%**・group 71 vs 物理個体 543(**7.6 倍**)= **national(9.71% / 10.94% / 63.2% / 129.4 倍)より遥かに軽い**。**④再現ゲート PASS 5/5・bit 一致**(p1 raw logit と P2/P3 raw score の `max_abs_delta` **0.0**・`valid_logloss` は **0.32035966066202215** まで exact・木の本数も 50/112/211 で一致)。学習カットは指紋照合で **p1 = 2026-05-30 / conditional = 2026-06-02**(候補は各 1 つのみ)。**⑤再現が一度 FAIL した原因を特定**: 現行 `src/model.py:split_train_calib_valid` では再現できず、**LIVE の p1 artifact は 2026-06-07 の split 変更(Codex review #2・行 index → 日付境界)より前の産物**だった。`backup_20260515_lens` との突合で **features.parquet の遡及ドリフトは 0 行**と確認済み(データは壊れていない)。**production を変更せず研究 clone に旧版 split を逐語複製**して bit 一致に到達(FINDINGS **P42**)。**⑥Primary = prediction displacement(評価窓 2026-06-03〜2026-08-18・426 レース・seeds 42/43/44)**: **3連単 argmax 入替 22.54%** / **2着本命 7.28%** / **3着本命 18.54%** / **p120 平均 TVD 0.05475** / **top-3 券種セット 34.04%** / top-10 55.63% / 押さえ **36.62%**。**1着本命だけは 1.17% しか動かない**。条件付き分布は P2 平均 |Δ| 0.99pp・argmax 4.93%・順位入替 29.46% / P3 平均 |Δ| 1.89pp・argmax **16.26%**・順位入替 39.41%。**⑦精度は同等**: 3連単 logloss 3.877234 → 3.871267(−0.006)だが **3 seed で符号が反転**(−0.006 / +0.007 / +0.004)= `SEED_UNSTABLE`。**displacement は 3 seed すべてで 5 指標とも線超え**。**= 「性能問題」ではなく「予測 identity 問題」**。**⑧ARM N(中立化)も同オーダーに動く**(argmax **26.06%** / TVD 0.0697)のに**精度は +0.013 しか落ちない** → **この 2 列は情報ではなく順位をかき混ぜるノイズ**(FINDINGS **P40**)。**⑨D-SWAP(凍結後に追加した診断・severity 非参加)**: 再学習せず LIVE と bit 一致の booster に corrected 列を serve 時だけ与えても **3連単 argmax 9.62% / top-3 セット 15.73% / TVD 0.0339** が動く = 再学習の交絡なしでも配備済みモデルは動く。**⑩LGB 診断**: `motor_recent20_top2` の gain share は P2 **1.59%(17 中 16 位)**/ P3 **2.41%(19 中 15 位)** と下位なのに、**P2 は 112 本中 72 本・P3 は 211 本中 128 本の木で使われ平均深さ 6.1**(葉に近い最後の決め手)= **寄与は小さいが決着をつける位置にいる**(FINDINGS **P39**)。**⑪Semantics Integrity = YELLOW 維持**(5 条件中 3)・**INC-2026-0912-MOTORSEMANTICS は OPEN 維持**(CLOSE 7 条件中 6)。**ただし「未測定 exposure」が 4 → 0 になった**(4 経路すべてに数字が付いた)= 残るのは「**測ったうえで直していない = 管理された既知差**」。**⑫Race Logic 再開ゲート = LIMITED**(B2 系は可・**conditional 由来 artifact と住之江 GATE PASS を土台にする研究は不可**)。**production は 1 行も変更していない**(`git diff` = 0 行)・**live model の symlink も実体も触っていない**・**cached feature 26 本は 1 本も修復していない**・holdout 2026-09-01〜10-31 は完全非接触。次の Owner 裁定 = **Q-043**(条件付きエンジンを封印するか直すか。**推奨 = 封印**)。人間向け = research/OWNER_VIEW.md)
+- 最新更新: **2026-09-13 05:19**(更新者: Claude / Owner 裁定 2026-09-13「**RES-2026-09-N = GO。ただし AUDIT / IMPACT MEASUREMENT ONLY**」完走 = **RES-2026-09-N / NG-Q044**。**最終ラベル `LGB1_LIVE_REPAIR_REQUIRED`(+ `SEED_UNSTABLE`)= 凍結 4 ラベルのうち最も重いもの**。**①経路は 1 本ではなく 24 artifact だった**(`MOTOR_DEPENDENCY_LEDGER` F-6 ① の訂正 = FINDINGS **P45**)。P 層 2(`feature_cols` が `FEATURE_COLS` と完全一致する 28 列 = 住之江 root `lgbm_v1_20260913_020022`「**今朝 02:00 に再学習された実体**」/ 桐生 `lgbm_v1_kiryu_clean28_20260607_031831`)+ S 層 22(33 列の上位集合 = 会場別)。**24/24 が壊れた 2 列を両方持ち、24/24 が `LIVE_ACTIVE`**。`nightly.sh` 手順 5(`build_lens_data_all_venues.py:42-46`)が**毎晩 24 model をロードして 24 会場 × 12R = 288 レース**を `lens_all_venues.js` へ publish(実測 2026-09-13 00:29 再生成)。**②HANDOFF の記載も訂正**: 30 分 cron(`build_kiryu_picks_today.py:146`)が読むのは **`data/models/kiryu/latest.txt`** で、**週次再学習されるのは住之江 root のみ**(他 23 artifact は手動学習時点のまま serve)。**③再現ゲート PASS 8/8 × 2 artifact・bit 一致**(raw score / 確率の `max_abs_delta` **0.0**・`valid_logloss` は 0.33249257471172217 / 0.3616727786012645 まで exact)。**桐生は 2026-06-07 の split 変更より前の産物**で、**行 index 版 split + カット 2026-05-03** でのみ再現 = versioned reproduction(production の `src/model.py` は変更せず研究 clone に旧版 split を逐語複製。`features.parquet` は 2026-07-24 に再生成されているが**遡及ドリフトは無かった**)。**④cross-venue 汚染は住之江・桐生とも実測 0.00%**(構造的ゼロ)・cross-cycle 5.62% / 4.70%・窓 20 件中の本物 **94.38% / 95.30%**・`motor_recent20_top2` 一致率 **91.12% / 92.61%**・`motor_race_count_prior` 水増し **6.83 倍 / 6.46 倍**・**9999 天井 0%** = national(9.71% / 10.94% / 77 倍 / 63.2%)より**はるかに軽い ARM B′ 配置**。保存列 == 旧 semantics の自前再計算(**不一致 0 行**)。**⑤displacement(主系列 = ARM *_SAFE / seed 42 / 封印窓 0 行を assert・住之江 1,029R / 桐生 1,013R)**: **N1 1着本命入替 住之江 1.94% / 桐生 5.82%**(線 5.0%)・**N2 top-2 セット 16.42% / 21.52%**(線 10.0%)・N3 mean|Δp| 0.01915 / 0.01682(線 0.010)・**N4 p6 TVD 0.05744 / 0.05046**(線 0.020)・N7 順位並び入替 **57.34% / 57.26%**。**⑥3連単まで伝播(配備済み P2/P3 を固定し p1 のみアーム差 = 1着モデル単独の寄与・住之江 800R)**: **D1 p120 TVD 0.0611 / D2 3連単 argmax 11.38% / D3 top-3 券種セット 18.50%** = NG-Q042 の 22.54%(p1 + P2/P3 両方 corrected)の**約半分が 1着モデル由来**。**⑦D-SWAP(再学習なし・24 artifact)**: **285 レース中 24 レース(8.42%)で 1着本命が入れ替わる**(平均 TVD 0.0463・最大 naruto 25.0%)。**ただし train/serve skew を自作するので修復案としては却下**。**⑧精度は repair の根拠にならない(§16 の分離を厳守)**: A1 logloss Δ = **桐生 −0.00166**(改善・採用線 0.003 の半分・3 seed 一致)/ **住之江 +0.01112**(悪化)かつ **3 seed で符号反転**(+0.0111 / −0.0237 / +0.0005)= `SEED_UNSTABLE`。**Hit@1 は logloss と逆向き**(住之江 +0.39pt / 桐生 −0.69pt)。住之江は `best_iter` **69 → 24**・T 1.2 → 1.0・ECE 0.0217 → **0.0434**。**⑨最大の発見は真因の性質**(FINDINGS **P43**): **壊れた `motor_race_count_prior` は日付との Spearman +0.9713(住之江)/ +0.9785(桐生) = ほぼ純粋な単調時間インデックスとして働いていた**(corrected では +0.1159 / +0.0547)。モーター番号が会場ごとの固定小集合(71 / 65)なので `motor_no` 単独 group の累積カウントが「データセット開始から何走目か」にほぼ等しくなる。→ **gain は 4〜18 位なのに木の 72〜86% が使い平均深さ 6.1〜8.0**、親条件の最頻値が**自分自身**(20 / 43 回)= 多段の時期バンド分割。**この incident は「精度を損なう bug」ではなく「契約と実装の意味がずれている bug」であり、直すと住之江では精度が落ちる**。**⑩ARM N(削除)で P40 に例外が付いた**: 動き方は corrected と同オーダー(住之江 N1 2.14% / 桐生 7.40%)だが**精度への寄与は同じでない**(桐生 −0.0008 / **住之江 +0.0191**)→ **単純削除は住之江で損 = 却下候補**。**⑪同じバグでもレシピが 1 つ違うと修正の符号が変わる**(**P44**。桐生は `recency_half_life_days=365` で時間トレンドを別処理している)→ **P38「LGB では素直に効く」も外挿できない**。**⑫repair trigger は発火したが実行していない**: `Q044_REPAIR_PROPOSAL.md` に案 R1〜R4 / candidate 6 本(**research 領域のみ**)/ rollback 5 手順 / staging S1〜S8。**`data/models/` に q044 由来 0 件を assert で機械確認**。**推奨 = 案 R1**(`src/features.py` の group key 是正 → 既存の週次再学習に corrected モデルを作らせる)だが**`src/features.py` は B2 と共有されるため R1 は Q-038 の判断を内包する** → **Q-045**。**⑬監査の副産物として motor バグより大きい LIVE 欠陥を 2 件発見**(**P46**): **会場別 `features.parquet` 24 本のうち 17 本が 2026-07-18〜24 で停止**(`build_features_all_venues.py` は自動実行に載っていない)= **LENS は毎晩 288 レース publish しているのに 17 会場 204 レースは 7 月下旬のレースの再掲載**。桐生 picks の 30 分 cron も `date=2026-07-24` を 1 日 28 回再生成(ログ 91 回すべて同じ日付)→ **Q-046**。**⑭封印窓が週次 valid に飲み込まれている**(**P47**): 住之江 LIVE artifact の valid 6,609 行のうち **572 行(96 レース)が 2026-09-01〜09-12** = **この model family について封印窓は既に OOS ではない** → **Q-047**。判定の主系列は `*_SAFE`(2026-08-31 構造カット)で行い、**封印窓の着順・配当・命中は 1 つも参照していない**。**⑮Parity Integrity = GREEN 維持 / Semantics Integrity = YELLOW 維持**(既存 5 条件定義と矛盾なし)・**`INC-2026-0912-MOTORSEMANTICS` は OPEN 維持**(CLOSE 7 条件中 6)。unresolved exposure **4**(live 3 / dormant 1 / research 0)・**未測定 exposure 0 を維持**。**⑯Race Logic = LIMITED**(corrected artifact = q040 パネル / cmb1 P1 / **q044 ARM C** は可・**LIVE 1着 model の予測値を土台にする研究は不可**)。**production は 1 行も変更していない**(`git diff` = 0 行)・**live symlink も実体も不変**・**cron 不変**・**cached feature 24 本は 1 本も修復していない**・**新研究は 1 本も開始していない**(U-18〜U-22 は BACKLOG 記録のみ)。人間向け = research/OWNER_VIEW.md)
+- 前回更新: **2026-09-13 05:10**(更新者: Claude / Owner 裁定 2026-09-13「**Q-042 = GO。ただし AUDIT / IMPACT MEASUREMENT ONLY**」完走 = **RES-2026-09-M / NG-Q042**。**最終ラベル `Q042_EXPOSURE_MATERIAL`(+ `SEED_UNSTABLE`)**。**①LIVE 判定 = `LIVE_DORMANT`**: crontab 7 本 + launchd 6 本の全 entrypoint から推移的 import 走査で条件付きエンジンへ**到達 0 件**、`conditional_picks.json` は**リポジトリ全体で 1 本のみ**(`reports/suminoe_20260527`・2026-06-03 10:02 が最後。`reports/` のデータセットは **3,156 個**ある)。**ただし serving 経路は今日のデータでそのまま実行可能**(2026-08-18 で 12R/12R 生成成功)で、**その 2026-05-27 の古い出力が `nightly.sh` 手順 6 の `build_predictions_data.py` によって毎晩 LENS の live データへ再 publish され続けている** = 「エンジンは止まっているが、止まった日の答えが今も画面に載っている」(FINDINGS **P41**)。**②露出範囲を訂正**: **P2/P3 に直接入る壊れた列は `motor_recent20_top2` の 1 列だけ**で `motor_race_count_prior` は入っていない(**MOTOR_DEPENDENCY_LEDGER F-6 ②の「2 列」は誤り**)。**p1(`data/models/latest.txt`・毎週日曜 02:00 に自動再学習)には 2 列とも入り**、`p1`/`winner_p1`/`second_p1` として P2/P3 と 120 通り式へ伝播する。**③住之江単独フレームなので cross-venue 汚染は構造的に 0.00%**・誤りは **cycle 跨ぎのみ**(= MSA1 で唯一悪化した **ARM B′ 配置**)。窓 20 件のうち本物の同一個体 **18.73 件(94.38%)**・`motor_recent20_top2` 一致率 **91.12%**・9999 天井 **0.00%**・group 71 vs 物理個体 543(**7.6 倍**)= **national(9.71% / 10.94% / 63.2% / 129.4 倍)より遥かに軽い**。**④再現ゲート PASS 5/5・bit 一致**(p1 raw logit と P2/P3 raw score の `max_abs_delta` **0.0**・`valid_logloss` は **0.32035966066202215** まで exact・木の本数も 50/112/211 で一致)。学習カットは指紋照合で **p1 = 2026-05-30 / conditional = 2026-06-02**(候補は各 1 つのみ)。**⑤再現が一度 FAIL した原因を特定**: 現行 `src/model.py:split_train_calib_valid` では再現できず、**LIVE の p1 artifact は 2026-06-07 の split 変更(Codex review #2・行 index → 日付境界)より前の産物**だった。`backup_20260515_lens` との突合で **features.parquet の遡及ドリフトは 0 行**と確認済み(データは壊れていない)。**production を変更せず研究 clone に旧版 split を逐語複製**して bit 一致に到達(FINDINGS **P42**)。**⑥Primary = prediction displacement(評価窓 2026-06-03〜2026-08-18・426 レース・seeds 42/43/44)**: **3連単 argmax 入替 22.54%** / **2着本命 7.28%** / **3着本命 18.54%** / **p120 平均 TVD 0.05475** / **top-3 券種セット 34.04%** / top-10 55.63% / 押さえ **36.62%**。**1着本命だけは 1.17% しか動かない**。条件付き分布は P2 平均 |Δ| 0.99pp・argmax 4.93%・順位入替 29.46% / P3 平均 |Δ| 1.89pp・argmax **16.26%**・順位入替 39.41%。**⑦精度は同等**: 3連単 logloss 3.877234 → 3.871267(−0.006)だが **3 seed で符号が反転**(−0.006 / +0.007 / +0.004)= `SEED_UNSTABLE`。**displacement は 3 seed すべてで 5 指標とも線超え**。**= 「性能問題」ではなく「予測 identity 問題」**。**⑧ARM N(中立化)も同オーダーに動く**(argmax **26.06%** / TVD 0.0697)のに**精度は +0.013 しか落ちない** → **この 2 列は情報ではなく順位をかき混ぜるノイズ**(FINDINGS **P40**)。**⑨D-SWAP(凍結後に追加した診断・severity 非参加)**: 再学習せず LIVE と bit 一致の booster に corrected 列を serve 時だけ与えても **3連単 argmax 9.62% / top-3 セット 15.73% / TVD 0.0339** が動く = 再学習の交絡なしでも配備済みモデルは動く。**⑩LGB 診断**: `motor_recent20_top2` の gain share は P2 **1.59%(17 中 16 位)**/ P3 **2.41%(19 中 15 位)** と下位なのに、**P2 は 112 本中 72 本・P3 は 211 本中 128 本の木で使われ平均深さ 6.1**(葉に近い最後の決め手)= **寄与は小さいが決着をつける位置にいる**(FINDINGS **P39**)。**⑪Semantics Integrity = YELLOW 維持**(5 条件中 3)・**INC-2026-0912-MOTORSEMANTICS は OPEN 維持**(CLOSE 7 条件中 6)。**ただし「未測定 exposure」が 4 → 0 になった**(4 経路すべてに数字が付いた)= 残るのは「**測ったうえで直していない = 管理された既知差**」。**⑫Race Logic 再開ゲート = LIMITED**(B2 系は可・**conditional 由来 artifact と住之江 GATE PASS を土台にする研究は不可**)。**production は 1 行も変更していない**(`git diff` = 0 行)・**live model の symlink も実体も触っていない**・**cached feature 26 本は 1 本も修復していない**・holdout 2026-09-01〜10-31 は完全非接触。次の Owner 裁定 = **Q-043**(条件付きエンジンを封印するか直すか。**推奨 = 封印**)。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-13 03:00**(更新者: Claude / Owner 裁定 2026-09-13「**Q-040 = GO(選択肢 e)**」完走 = **RES-2026-09-L / NG-Q040**。**最終ラベル `Q040_MINOR`**。**①第 2 の露出面を事実認定**: E10 P1 代理モデル (`e10_build_p1_panel.py` の LightGBM) は `BOAT_COLS` 26 列で学習しており、そこに壊れた 2 列 (#21 `motor_recent20_top2` / #22 `motor_race_count_prior`) が入っていた。入力は national `features.parquet` = **24 場を 1 フレーム**なので B2 と同じ形で会場も交換周期も跨いでいた。影響 **2,134,383 行 (99.99%) / 356,100 レース / 2020-01-01〜2026-08-31 (6.7 年)**。`motor_race_count_prior` は平均 **8,105 → 104.8**(**77 倍の過大**・一致率 0.04%)/ `motor_recent20_top2` 一致率 **10.94%**。**②再現ゲートは bit 一致で PASS 5/5**: 旧 artifact を現フレームの旧 semantics replica が完全再現 (pred/resid の max_abs_delta **0.0**・年別 logloss 差 **0.000000**・行数差 0) = **データドリフト成分ゼロ**。**③「変えたのは 2 列だけ」を機械証明**: 旧 semantics の自前再計算が保存列を**不一致 0 行**で再現 / motor 2 列以外の **24 列が両アームで完全一致** / corrected 側 semantics gate **7/7**。**④corrected 代理は素直に良くなった**: logloss 0.518256 → **0.517682**(−0.000574)・AUC 0.791780 → **0.792788**(+0.001009)・**6 年すべて改善**で改善幅は 2021 −0.0018 → 2026H1 −0.0009 と縮む (**P35 の独立再現**)。**⑤残差の順位はほぼ動かない**: Spearman **0.99598** / 符号反転 **0.163%** / 上位 decile 重なり 93.19%。ただし**レースの 23.24% で 6 艇の残差順位がどこか入れ替わる**。**⑥6 研究の再判定 = FLIPPED 0 件**: VENUE-V0 SAME (`VENUE_PARTIAL`・T1_4to1 のみ) / **MS1 SAME (`ms_panel.parquet` が sha256 一致 = 統計は定義上不変。MS1 は P1 から `is_top2` しか読んでいなかった)** / PDS1 SAME_BUT_MAGNITUDE_CHANGED (`PDS_NULL` 維持・`f_resid` β −20% だが**全ゲート不合格の係数**・他 5 特徴は完全一致) / SOB1 SAME (`PASS` 8/14・成立 ID 完全一致) / SOB1F SAME (P1 非依存) / PXR1 SAME (Step1 FAIL 1/6・Step2 FAIL) / **E10 STRENGTHENED (層1 `PASS` 維持・確認済み signature 7 → 9・旧 7 件は全部残存)**。**gate 変更 NONE**。**⑦Q0 ドリフト統制が 7 研究すべてで記録値を完全再現** = Q1 と記録値の差は丸ごと motor semantics の効果。**⑧fail-closed の ID namespace guard を新設**(venue / cycle / impossible history / cross-venue / stale table の 5 検査)・負のコントロール 5 ケースすべて発火。**⑨Semantics Integrity = YELLOW 維持**(5 条件中 3)・**INC-2026-0912-MOTORSEMANTICS は OPEN 維持**(CLOSE 7 条件中 **6 成立**・本サイクルで 4 条件を新規達成)。残る露出面 4 = production B2 (意図的・Q-038) / LGB 1着系 / **条件付き 2着3着エンジン (未測定 かつ LIVE)** / cached feature files 25 本。**production は 1 行も変更していない**・holdout 非接触。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-12 19:15**(更新者: Claude / Owner 裁定 2026-09-12「**Q-038 = GO / Q-039 = GO**」完走 = **RES-2026-09-K / NG-CMB1 + NG-MR1**。**①production の学習条件を完全再現**: 旧 semantics replica (P0) の予測が production と**数値的に区別できない** (ΔNLL **+0.000000** / p120 TVD **0.00000** / argmax 入替 **0.00%**)。weights は 44 テンソル中 43 個が最大 5e-6 違う = **独立再学習である**。正規化統計 **41/41 列が相対差 0.00e+00**・学習行数 **2,017,260** が契約記録値と一致。**②corrected 版 (P1) は意味論的に正しい**: semantics gate **7/7** (全 2,134,563 行・物理モーター 11,643 個体で会場混入 0 / 周期混入 0 / 未来参照 0)・production smoke **7/7**・`motor_race_count_prior` が **9999 天井 (63.2% の行) から脱出**。**③しかし当たるようにはならなかった**: 固定 OOS 8,997R で **3連単 argmax が 12.48% 入れ替わる**のに ΔNLL は **−0.000678** (採用線 0.003 の **1/4**) で **3 seed の符号が揃わない** (−0.0050 / −0.0004 / **+0.0019**・seed std 0.0035 が効果量の 5 倍)。1着 Hit@1 **−0.24pp**・市場から **+11.4% 遠ざかる**。calibration だけ改善 (0.1658 → **0.1544**)。**④parity は判定が割れた**: 凍結文面「一律 0.000%」= **FAIL** / Q-035 実基準「同日先行なしで 0.0000」= **PASS** (Golden 371R・24 会場・6.5 年で **0/1,409 行**)。凍結文が Q-035 基準の転記ミス・**閾値は結果を見てから動かしていない**。**⑤最終ラベル `MOTOR_REVALIDATED_NULL`**: Gate 1 (corrected motor 単独) は**両 fold で CI が 0 を跨がず 3 seed 同符号**だが point **−0.0024** が採用線 −0.003 に届かず FAIL / Gate 3 (展示後の純増分) は**両 fold で CI が 0 を含む** (−0.00077 / −0.00121)。**展示による吸収は 48〜68% で完全ではない**。**⑥model-free には持続的な個体差が明確に存在** (周期内 前半/後半 相関 **r=0.240** vs permutation null 0.0036±0.0125・**z=18.9**・11,414 個体)。**旧キーは個体間分散の約 99% を捨てていた** (ICC 0.00905 vs 0.0000895)。**⑦Gate 4 の読み方が逆**: 旧 semantics の残差は corrected motor で t=3.47/3.33 = **説明できる** (取りこぼしていた) / corrected の残差は t=1.14/1.21 = **取り込んだ**。**⑧dependency 再計算 = FLIPPED 0** (VA1 SAME / **SOB1F SAME** = prod3 を corrected P1 へ差し替えて **MSA1 が閉じられなかった限界を閉じた** / VENUE-V0 は `NOT_RESOLVABLE_BY_B2_SWAP`)。**REOPEN 0 件**。**⑨MS3 の偽前提が確定** (P32): Owner が要求した比較④「歴史的強さ + MS」は**一度も実施されていなかった**。**結論は正しかったが根拠は間違っていた**。**⑩第 2 の露出面を発見** (P31): 壊れた 2 列は LGB 1着系 / 条件付き 2着3着エンジン / **E10 P1 代理モデル** にも入り、③の残差は **6 本の研究**が読む。**影響量は未測定** → Q-040。**⑪学習データが増えると修正効果が縮む** (P35): 55k レース窓 −0.0039 → 2.02M 行窓 −0.0007。**production 切替 = `DO_NOT_CUTOVER`** (凍結 §12 の機械適用・推奨も「いま切らず次のモデル更新とまとめる」)。**production コードは 1 行も変更していない**・holdout 非接触。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-12 09:00**(更新者: Claude / Owner 指令 2026-09-12「**Q-037 = GO。ただし研究再開の最初の 1 本は 新 Race Logic 仮説ではなく MOTOR FEATURE SEMANTICS AUDIT**」完走 = **RES-2026-09-J / NG-MSA1**。**最終判定 `MOTOR_BUG_MATERIAL`**(CASE 1 = semantics bug confirmed / M2-minor)。**① 事実認定**: 学習 `src/features.py:102/104`・推論 `predict_b2_live.py:340/342` とも **`motor_no` 単独 group** (会場も交換周期も入っていない)。原因は単一会場時代のコメント「住之江なのでモーター番号 = 場のモーター」の残存。物理個体キー `(jcd, motor_no, cycle_id)` は **11,643 個体**・現行 group は **90** = **129 倍粗い**。**窓 20 件のうち自機は平均 1.95 件(9.78%)**・他会場混入 **99.69%**・自機ゼロの行 **13.54%**。影響 **2,128,338 行(99.72%)/ 356,096 レース / 2020-01-01 以降ずっと**(新しい退行ではない)。**RECOMPUTE_PARITY gate PASS**(現行定義の再計算が保存値を max abs diff **0.0** で再現)。**② 壊れていないもの**: `motor_2rate` は出走表の公式値で正しい(161 本の交換境界で平均 **−33.7pt** リセットを実測)。展示層 exh120 は入力 9 列に motor 集計を含まない = 別レイヤー。**③ 影響量**(固定 OOS 8,997R・4 アームを同一条件で再学習): ARM A 現行 **3.752954** / ARM B 修正 **3.751335**(ΔNLL **−0.00162**・3 seed 同符号・採用線 0.003 の約半分)/ ARM C 無効化 **3.753002**(**+0.00005** = 旧特徴の精度寄与は実質ゼロ)/ **ARM B′ 会場のみ 3.756395(+0.00344 = 悪化)**。p120 TVD(B,A)**0.0426**・**3連単 argmax 入替 13.25%**。ARM A は Q-034 clean replica を差 **2.4e-07** で再現(determinism check)。**④ 解釈**: 旧特徴は精度を上げないが argmax を 6.26% 揺らす**ノイズ**だった。正しい履歴には小さいが本物の情報がある。**半分だけ直すと悪化する**(窓が 3 日 → 30 日に伸び前周期の別個体が 9.43% の行に混入 = **P29**)。**⑤ Integrity は 2 軸**: `INTEGRITY_GREEN` は parity の保証であって semantics の保証ではない (**Parity = GREEN 維持 / Semantics = YELLOW 新設**・**P28**)。**⑥ dependency 再計算 = FLIPPED 0**(NG-U2 / NG-PDS1 とも SAME・既存 frozen gate をそのまま適用)。**⑦ `INC-2026-0912-MOTORSEMANTICS` 起票(OPEN)**。**production コードは 1 行も変更していない**・holdout 非接触。Owner 裁定待ち = **Q-038**(production 是正)/ **Q-039**(再検証戦線)。人間向け = research/OWNER_VIEW.md)
@@ -1221,6 +1397,36 @@ LIVE の p1 artifact `lgbm_v1_20260531_020022` の記録値(n_train/calib/valid 
 - 本ファイルは Canonical Research State の入口。機械可読版 = `research_state.json`。人間向け表示 = 研究コンソール(Artifact 494f0be1… — 本ファイル群から生成される view であり正本ではない)
 
 ## 現在の研究フェーズ
+
+**2026-09-13 05:19: 今そこで動いている LightGBM 1着モデルを測った(LIVE exposure measurement)。**
+本サイクルも新しい仮説を 1 つも足していない。前サイクルで「唯一 本当に `LIVE_ACTIVE` な未測定経路」と書いた
+`src/model.py:FEATURE_COLS` の LGB 1着系を測った。**Owner 指令どおり、測るだけ。1 行も直していない。**
+
+**答えは 3 つあった。**
+
+①**経路は 1 本ではなく 24 artifact だった**(**P45**)。台帳は「LGB 1着系 = 1 経路」と数えていたが、
+**24/24 が壊れた 2 列を両方持ち、24/24 が `LIVE_ACTIVE`** で、`nightly.sh` が毎晩 **288 レース**を LENS へ出している。
+**週次再学習されるのは住之江 1 本だけ**で、30 分 cron の桐生 picks が読むのは**別実体**だった。
+
+②**判定は `LGB1_LIVE_REPAIR_REQUIRED`**(凍結 4 ラベルの最も重いもの)。
+**桐生は 100 レースあたり 6 レースで 1着本命が入れ替わり**、住之江の 3連単まで伝播させると
+**100 レースあたり 11 レースで 1 番手・19 レースで上位 3 点**が入れ替わる。
+**それでいて当たりやすさは改善しない**(桐生 logloss −0.0017 = 採用線の半分 / 住之江は 3 seed で符号反転)。
+
+③**いちばん重要なのは真因の性質**(**P43**)。**壊れた `motor_race_count_prior` は日付との Spearman +0.97 =
+ほぼ純粋な「時計」として働いていた。** だから **正しく直すと住之江では精度が落ちる**(logloss +0.011・`best_iter` 69 → 24)。
+桐生は `recency_half_life=365` で時間トレンドを別処理しているので corrected でも損しない(**P44**)。
+**= この incident は「精度を損なう bug」ではなく「契約と実装の意味がずれている bug」**であり、
+是正は「motor semantics の是正」+「**時間トレンドを明示的な特徴として入れ直す**」の 2 点セットで設計する必要がある。
+
+**そして監査は、本来の対象より大きい欠陥を拾った**(**P46**)。
+**会場別 `features.parquet` 17 本が 2026-07-18〜24 で停止**しており
+(`build_features_all_venues.py` は cron / launchd のどこにも載っていない)、
+**LENS は毎晩 288 レースを publish しているのに 17 会場 204 レースは 7 月下旬のレースそのもの**だった。
+**motor バグは「288 レース中 24 レースで順位が違う」問題だが、こちらは「204 レースが 51 日前」という桁の違う問題である。**
+**次の 1 手はこちらを推奨する**(→ Q-046)。
+
+以下は前サイクルの記録:
 
 **2026-09-13 03:00: 研究の物差しを正しい意味論で作り直した(semantic repair + dependency revalidation)。**
 本サイクルも新しい仮説を 1 つも足していない。前サイクルで見つけた「第 2 の露出面」= **E10 P1 代理モデル**を
@@ -1296,9 +1502,85 @@ LIVE の p1 artifact `lgbm_v1_20260531_020022` の記録値(n_train/calib/valid 
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-13 05:10(**Owner 裁定 2026-09-13「Q-042 = GO / AUDIT ONLY」完走 = RES-2026-09-M / NG-Q042**)
+最新更新: 2026-09-13 05:19(**Owner 裁定 2026-09-13「RES-2026-09-N = GO / AUDIT ONLY」完走 = RES-2026-09-N / NG-Q044**。**最終ラベル `LGB1_LIVE_REPAIR_REQUIRED`**)
 
-## 今サイクルで確定したこと(RES-2026-09-M / NG-Q042)
+## 今サイクルで確定したこと(RES-2026-09-N / NG-Q044)
+
+- **最終ラベル = `LGB1_LIVE_REPAIR_REQUIRED`(+ `SEED_UNSTABLE`)= 凍結 4 ラベルのうち最も重いもの。**
+  **repair trigger は発火したが実行していない**(production 変更 0 行・Owner の別 GO が必要)。
+- **経路は 1 本ではなく 24 artifact だった**(`MOTOR_DEPENDENCY_LEDGER` F-6 ① の訂正・**FINDINGS P45**)。
+  **24/24 が壊れた 2 列を両方持ち、24/24 が `LIVE_ACTIVE`。**
+  P 層 2(`feature_cols` が `FEATURE_COLS` と完全一致する 28 列)= 住之江 root `lgbm_v1_20260913_020022`
+  (**今朝 02:00 に再学習された実体**)/ 桐生 `lgbm_v1_kiryu_clean28_20260607_031831`。
+  S 層 22(33 列の上位集合)= 会場別。
+- **HANDOFF の記載も訂正**: 30 分 cron(`build_kiryu_picks_today.py:146`)が読むのは
+  **`data/models/kiryu/latest.txt`**。**週次再学習されるのは住之江 root のみ**で、他 23 artifact は手動学習時点のまま。
+- **`nightly.sh` 手順 5 が毎晩 24 model をロードして 24 会場 × 12R = 288 レースを LENS へ publish**
+  (`lens_all_venues.js` は実測 2026-09-13 00:29 再生成)。2 本目の scheduled 経路 = launchd `signal-notify`。
+- **再現ゲート PASS 8/8 × 2 artifact・bit 一致**(raw score / 確率の `max_abs_delta` **0.0**)。
+  **桐生は 2026-06-07 の split 変更より前の産物**で、**行 index 版 split + カット 2026-05-03** でのみ再現
+  = versioned reproduction(production の `src/model.py` は変更していない。遡及ドリフトも無かった)。
+- **cross-venue 汚染は住之江・桐生とも実測 0.00%**・cross-cycle 5.62% / 4.70%・窓の本物 **94.38% / 95.30%**・
+  `motor_race_count_prior` 水増し **6.83 倍 / 6.46 倍**・**9999 天井 0%** = national より**はるかに軽い ARM B′ 配置**。
+- **displacement(主系列 = ARM *_SAFE / seed 42 / 封印窓 0 行を assert)**:
+  **N1 1着本命入替 住之江 1.94% / 桐生 5.82%**(線 5.0%)/ **N2 top-2 セット 16.42% / 21.52%**(線 10.0%)/
+  N3 0.01915 / 0.01682(線 0.010)/ **N4 p6 TVD 0.05744 / 0.05046**(線 0.020)/ N7 順位並び **57.34% / 57.26%**。
+- **3連単まで伝播(p1 のみアーム差 = 1着モデル単独の寄与・住之江 800R)**:
+  **D1 p120 TVD 0.0611 / D2 3連単 argmax 11.38% / D3 top-3 券種セット 18.50%**
+  = **NG-Q042 の 22.54% の約半分が 1着モデル由来**。
+- **D-SWAP(再学習なし・24 artifact)= 285 レース中 24 レース(8.42%)で 1着本命が入れ替わる**。
+  **ただし train/serve skew を自作するので修復案としては却下。**
+- **精度は repair の根拠にならない**(§16 の分離): 桐生 logloss **−0.00166**(採用線の半分)/
+  住之江 **+0.01112** かつ **3 seed で符号反転** = `SEED_UNSTABLE`。**Hit@1 は logloss と逆向き**。
+- **最大の発見 = 真因の性質**(**P43**): **壊れた `motor_race_count_prior` は日付との Spearman +0.97 =
+  ほぼ純粋な時間インデックス**だった。**だから正しく直すと住之江では精度が落ちる**。
+  **= 「精度を損なう bug」ではなく「契約と実装の意味がずれている bug」。**
+- **ARM N(削除)で P40 に例外が付いた**(**P43**)/ **レシピ 1 つで修正の符号が変わる**(**P44**)
+  → **P38「LGB では素直に効く」も外挿できない**。
+- 新 findings = **P43**(壊れた特徴が別の有用な情報として効く)/ **P44**(レシピで符号が変わる)/
+  **P45**(経路は artifact 単位で数え直す)/ **P46**(exposure 監査は入力の停止を拾う)/
+  **P47**(週次再学習は封印窓を valid に飲み込む)
+
+## 最優先 — 次の 1 本(AI 推奨)
+
+- **会場別 `features.parquet` 17 本の停止を潰すこと**(→ **Q-046**)。
+  `build_features_all_venues.py` は **cron / launchd のどこにも載っていない**ため、
+  **17 会場の features が 2026-07-18〜24 で止まっている**。それでも `nightly.sh` は毎晩 288 レースを publish しており、
+  **17 会場 204 レースは 7 月下旬のレースの再掲載**である。
+  **理由**: motor バグは「288 レース中 24 レースで順位が違う」問題だが、これは
+  **「204 レースが 51 日前のレースそのもの」= 桁が違う**。かつ原因は単純(cron 未登録)。
+  **ただし常駐ジョブの追加は承認必須**なので、**AI 単独では実施しない**。
+
+## Owner 裁定待ち — 新規 3 件 + 持ち越し
+
+| ID | 論点 | 推奨 |
+|---|---|---|
+| **Q-046**(新規・**最優先**) | 会場別 features 17 本の停止を直すか | **(a) GO・motor 是正より優先**。原因は cron 未登録 |
+| **Q-045**(新規) | LIVE LGB 1着系 24 artifact の motor semantics を是正するか(案 R1) | **(a) GO。ただし Q-038 と 1 本に統合**。`src/features.py` を共有するため分離不能。**精度改善は根拠にしない**。**時間トレンドを明示特徴として入れ直す設計(U-18)を同時に決める** |
+| **Q-047**(新規) | 週次再学習の valid 窓が封印期間へ前進している問題 | **(a) valid を固定日付(2026-08-31)に切る** |
+| **Q-043**(持ち越し) | 条件付きエンジンを封印するか直すか | **(a) 封印**。**優先順位は Q-046 > Q-045 > Q-043**(dormant で誰も使っていない)。ただし production 非接触で安いので並行裁定可 |
+| Q-041 / Q-038 / G-A3 の食い違い / Q-036 / Q-006 / Q-007 a〜d | 持ち越し | — |
+
+## Race Logic 研究の再開可否(**更新**)
+
+- **LIMITED で再開可**(前サイクルから変更なし。ただし禁止リストが増えた)。
+- **可**: corrected artifact = `q040/p1_residual_panel__corrected_motor_uid__e10p1__rev1__20260913.parquet` /
+  `cmb1/cmb1_P1_bundle.pt` / **`q044/candidates/q044_*_armC_seed42_safe.txt`(corrected 1着 LGB・research only)**
+- **不可**: **`data/models/latest.txt` / `data/models/<venue>/latest.txt` の予測値を土台にする研究**(新規追加)/
+  `src/conditional_finish.py` の出力・条件付き残差・住之江 GATE PASS /
+  `lens_all_venues.js`・`predictions_data.js` の AI 予測値(新規追加)
+
+## Semantics Integrity / incident の現在地
+
+- **Parity Integrity = GREEN**(維持)/ **Semantics Integrity = YELLOW**(維持・5 条件中 3)
+- **`INC-2026-0912-MOTORSEMANTICS` は OPEN 維持**。CLOSE 7 条件中 **6 成立**(増減なし)
+- **unresolved exposure = 4**(**live 3** / dormant 1 / research 0)/ **未測定 exposure = 0**(維持)
+- **GREEN に必要な残り**: ①production B2 の cutover(Q-038)②**LGB 1着系の正式修復**(Q-045)
+  ③条件付きエンジンの封印 or 修復(Q-043)④cached feature の corrected 化(①②に従属)
+
+---
+
+## 前サイクルで確定したこと(RES-2026-09-M / NG-Q042)
 
 - **最終ラベル = `Q042_EXPOSURE_MATERIAL`(+ `SEED_UNSTABLE`)。凍結閾値 M1〜M5 の 5 指標すべてが線を超えた。**
 - **LIVE 判定 = `LIVE_DORMANT`**(新設の第 3 状態)。scheduled entrypoint から**推移的到達 0 件**・
@@ -1368,7 +1650,7 @@ LIVE の p1 artifact `lgbm_v1_20260531_020022` の記録値(n_train/calib/valid 
 
 ---
 
-## 前サイクルで確定したこと(RES-2026-09-L / NG-Q040)
+## 前々サイクルで確定したこと(RES-2026-09-L / NG-Q040)
 
 - **最終ラベル = `Q040_MINOR`。FLIPPED は 0 件。**
 - **E10 P1 代理モデルにも同じ motor bug が実在した**。`BOAT_COLS` 26 列のうち 2 列
@@ -1815,6 +2097,66 @@ NG-T3D4(4 券種 FAIL → route B・Market Gate 閉鎖)/ tail 可視化 / 乖離
 | 2026-09-13 | INC-2026-0912-MOTORSEMANTICS | **OPEN 維持(CLOSE 6/7)** | 条件 7「unresolved exposure = 0」が未達(4 経路)。**ただし未測定 exposure = 0 を達成**し「測ったうえで直していない = 管理された既知差」に質が変わった | research/INCIDENTS.md 追記 2026-09-13 朝 |
 | 2026-09-13 | Race Logic 再開ゲート | **LIMITED** | B2 系を土台にする研究は可。**conditional 由来 artifact(住之江 GATE PASS 含む)を土台にする研究は禁止** | Q042_VERDICT.json race_logic_gate |
 | 2026-09-13 | production 修復 | **実施しない(AUDIT ONLY)** | material でも直さない(Owner 指令 §17)。修復案 R1/R2/R3 + ロールバック 5 手順は提案として保存 | artifacts/research/nextgen/q042/Q042_REPAIR_PROPOSAL.md |
+
+---
+
+## 2026-09-13(RES-2026-09-N / NG-Q044)— LIVE LGB 1着系の motor 露出量測定(AUDIT ONLY)
+
+1. **Owner 裁定「RES-2026-09-N = GO(AUDIT / IMPACT MEASUREMENT ONLY)」を実行し完走した。**
+   production 修正・モデル切替・cron 変更・live symlink 変更はいずれも行っていない(`git diff` = 0 行)。
+2. **凍結を先に置いた**: `research/Q044_FROZEN_PLAN.md` を commit **28bfeae**(**q044 の script が 1 本も無い時点**)、
+   判定 script `q044_verdict.py` を commit **47bf4fb**(**学習前・artifact 0 件**)。
+   **閾値・ラベル定義は結果を見た後に 1 つも変更していない。**
+3. **scope を 2 層に分けた**(凍結計画 §1-1): P 層 = `feature_cols` が `FEATURE_COLS` と完全一致する 2 artifact
+   = 3 アーム再学習 + 再現ゲート + 全指標 / S 層 = 33 列の会場別 22 artifact = census + D-SWAP のみ。
+   **再学習を 24 本に広げない**という線を先に引いた。
+4. **台帳を訂正した**: `MOTOR_DEPENDENCY_LEDGER` F-6 ① の「LGB 1着系 = 1 経路」は誤りで、実体は **24 artifact**。
+   **24/24 が壊れた 2 列を両方持ち、24/24 が `LIVE_ACTIVE`**(FINDINGS **P45**)。
+5. **HANDOFF の記載も訂正した**: 「30 分ごと cron が `latest.txt` を使う」は誤り。
+   30 分 cron(`build_kiryu_picks_today.py:146`)が読むのは **`data/models/kiryu/latest.txt`** で、
+   **週次再学習されるのは住之江 root のみ**。
+6. **再現ゲートを bit 一致で通した**(**PASS 8/8 × 2 artifact**)。
+   桐生 clean28 は **2026-06-07 の split 変更より前の産物**で、**行 index 版 split + カット 2026-05-03** でのみ再現。
+   **production の `src/model.py` は変更せず、研究 clone に旧版 split を逐語複製した**(NG-Q042 の P42 の 2 例目)。
+   「最新コードで再学習したもの」を old baseline 扱いしていない。
+7. **cross-venue 汚染 0.00% を住之江・桐生の両方で実測した**(推論で 0 と書いていない)。
+   誤りは cycle 跨ぎのみ = **ARM B′ 配置**。`motor_race_count_prior` の水増しは **6.83 倍 / 6.46 倍**・**9999 天井 0%**
+   = national(77 倍 / 63.2%)より**はるかに軽い**。
+8. **判定 = `LGB1_LIVE_REPAIR_REQUIRED`(+ `SEED_UNSTABLE`)** = 凍結した 4 ラベルのうち**最も重いもの**。
+   N2 / N4 が両 artifact で線超え、桐生は N1 も超え、住之江は D1〜D3 も超えた。
+9. **accuracy と identity を分離して報告した**(Owner 指令 §16)。
+   **精度は repair の根拠にならない**: 桐生 logloss −0.00166(採用線の半分)/ 住之江 +0.01112 かつ **3 seed で符号反転**。
+   **Hit@1 は logloss と逆向き**(住之江 +0.39pt / 桐生 −0.69pt)。
+10. **最大の発見は真因の性質だった**(FINDINGS **P43**)。
+    壊れた `motor_race_count_prior` は **日付との Spearman +0.9713 / +0.9785 = ほぼ純粋な時計**として働いていた。
+    だから **corrected にすると住之江の精度は落ちる**。
+    → 是正は「motor semantics の是正」+「**時間トレンドを明示的な特徴として入れ直す**」の 2 点セットで設計する。
+11. **ARM N(削除)を併走させたことで P40 に例外が付いた**: 動き方は corrected と同オーダーだが、
+    **精度への寄与は同じでない**(桐生 −0.0008 / 住之江 **+0.0191**)。**単純削除は住之江で損**なので却下候補。
+12. **repair trigger は発火したが実行していない**(Owner 指令 §17)。
+    `Q044_REPAIR_PROPOSAL.md` に案 R1〜R4 / candidate artifact 6 本(**research 領域のみ**)/ rollback / staging S1〜S8 まで。
+    **`data/models/` に q044 由来のファイルが 0 件であることを assert で機械確認した。**
+13. **推奨は案 R1**(`src/features.py` の group key 是正 → 既存の週次再学習に corrected モデルを作らせる)。
+    **ただし `src/features.py` は B2 と共有されているため R1 は Q-038 の判断を内包する** → **Q-045** として 1 本に統合起票。
+14. **封印窓の扱いを先に凍結した**(凍結計画 §5-4)。
+    住之江 LIVE artifact の **valid 6,609 行のうち 572 行(96 レース)が 2026-09-01〜09-12** だったため、
+    **主系列の判定は `*_SAFE`(2026-08-31 構造カット・封印窓 0 行を assert)で行い**、
+    `*_FULL` は再現ゲート専用として **production が既に publish 済みの 4 数値の照合のみ**に使った。
+    **封印窓の着順・配当・命中は 1 つも参照していない。**
+15. **監査の副産物として、motor バグより大きい LIVE 欠陥を 2 件発見した**(FINDINGS **P46**)。
+    **会場別 `features.parquet` 17 本が 2026-07-18〜24 で停止**しており(`build_features_all_venues.py` は
+    自動実行に載っていない)、**LENS は毎晩 288 レースを publish しているのに 17 会場 204 レースは
+    7 月下旬のレースの再掲載**だった。桐生 picks の 30 分 cron も `date=2026-07-24` を 1 日 28 回再生成していた。
+    → **Q-046** として起票。**本サイクルでは直していない**(production / 常駐ジョブの変更は承認必須)。
+16. **封印窓が週次 valid に飲み込まれている問題**(FINDINGS **P47**)→ **Q-047** として起票。
+17. **Semantics Integrity = YELLOW 維持 / Parity Integrity = GREEN 維持 /
+    `INC-2026-0912-MOTORSEMANTICS` = OPEN 維持(CLOSE 7 条件中 6)**。
+    **未測定 exposure は 0 を維持**したまま、経路 5 の実体が 1 → 24 artifact に訂正された。
+18. **Race Logic = LIMITED**。corrected artifact(q040 パネル / cmb1 P1 / **q044 ARM C**)を土台にする研究は可。
+    **LIVE 1着 model の予測値を土台にする研究は不可。**
+19. **新研究は 1 本も開始していない**(Owner 指令 §26)。
+    §1-h に **U-18〜U-22** を BACKLOG として記録しただけ。
+    **U-22(2 列のうちどちらが主因か未分離)は本サイクルの明示的な限界**として記録した。
 
 
 
@@ -2923,6 +3265,24 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - 事後発見は必ず「再登録→別期間確認」を経てから SUPPORTED に昇格(まくり筋方式)
 - 新仮説の追加は G0 事前登録(`artifacts/research/experiment_registry.jsonl`)とセットで行う
 
+---
+
+## §1-h. NG-Q044(LIVE LGB 1着系 motor 露出量)から出た仮説 — **BACKLOG。1 本も実験していない**
+
+起票: 2026-09-13(RES-2026-09-N)。**Owner の GO なしに実験を開始しない**(Owner 指令 §26)。
+
+| ID | 仮説 | 出所 | 検証方法(案) | 状態 |
+|---|---|---|---|---|
+| **U-18** | **明示的な単調時間特徴(`days_since_epoch` 等)を入れれば、motor 列を corrected にしても住之江の精度は落ちない。** 旧 `motor_race_count_prior` が担っていたのは時計の役割だけなので、それを正面から与えれば代替できる | FINDINGS **P43**(日付との Spearman +0.9713) | ARM C + `days_since_epoch` を 1 列追加した 4 番目のアームを住之江フレームで学習し、logloss が ARM O 水準へ戻るか見る。**時間特徴は外挿できないので valid 期間の扱いを先に凍結する** | ⬜未検証 |
+| **U-19** | **recency 重み付け(`half_life=365`)は単調時間特徴の代替になる。** 桐生が corrected で改善したのは重みで時間トレンドを吸収していたからで、住之江に同じ重みを入れれば corrected でも悪化しない | FINDINGS **P44** | 住之江フレームで `recency_half_life_days=365` を付けた ARM O / ARM C を学習し、Δlogloss の符号が桐生と揃うか見る。**production の住之江レシピは変更しない** | ⬜未検証 |
+| **U-20** | **単調時間特徴は決定木にとって leakage 隣接である。** 日付境界 split では valid 期間の時間値が学習範囲の外に出るため、木は最後のビンへ丸めるしかなく、見かけの valid 性能と実運用性能が乖離する | FINDINGS **P43** + `best_iter` 69 → 24 の落差 | 旧 `motor_race_count_prior` を含む / 含まないモデルで、**valid を時間的に遠い窓へずらしたときの劣化速度**を比較する | ⬜未検証 |
+| **U-21** | **会場別 22 artifact も再学習すれば corrected で符号が揃う。** S 層は D-SWAP でしか測っていないので、再学習したときの符号(改善 / 悪化)は recency 重みの有無で決まる | FINDINGS **P44** / S 層は未再学習 | 22 会場のうち **recency 重みの有無が異なる 2〜3 会場**だけを選んで再学習し、P44 の規則が予測どおりか確認する | ⬜未検証 |
+| **U-22** | **`motor_recent20_top2` 単体は corrected でも予測を動かさない。** 本サイクルは 2 列同時に差し替えたので、どちらが displacement の主因かを分離できていない | 本サイクルの設計上の限界 | 1 列ずつ差し替えた 2 つのアームを追加し、N1 / N4 への寄与を分解する | ⬜未検証 |
+
+> **U-22 は本サイクルの明示的な限界である。** 「2 列のうちどちらが効いたか」は測っていない。
+> ただし LGB diag からは **桐生で `motor_race_count_prior` が gain 4 位 / 380 split**、
+> `motor_recent20_top2` が 18 位 / 110 split なので、**主因は `motor_race_count_prior` 側という仮説**が立つ(未検証)。
+
 
 
 # ===== FINDINGS.md =====
@@ -3856,14 +4216,115 @@ LIVE の p1 artifact `lgbm_v1_20260531_020022` の記録値(n_train/calib/valid 
 レース内 softmax が正規化され、**p1 の分母が変わって best_iter が 112 → 174 にずれる**。
 **「同じ関数を同じ引数で呼ぶ」では足りず、「同じ順序で呼ぶ」まで一致させないと再現しない。**
 
+---
+
+### P43. **壊れた特徴が「別の有用な情報」として効いていることがある** — 意味の誤りを直すと精度が落ちる場合がある【**確定**(2026-09-13・NG-Q044)】
+
+`motor_race_count_prior` は契約上「その艇がいま積んでいる物理モーターの累積出走数」だが、
+旧実装(`group=["motor_no"]` / `window=9999`)では **日付との Spearman が +0.9713(住之江)/ +0.9785(桐生)**
+= **ほぼ純粋な単調時間インデックス**として振る舞っていた(corrected では +0.1159 / +0.0547 まで落ちる)。
+
+原因は構造的: モーター番号は会場ごとに固定の小集合(住之江 **71** / 桐生 **65**)なので、
+`motor_no` 単独 group の累積カウントは **「データセットが始まってから何走目か」にほぼ等しくなる**。
+
+これが 3 つの観測を同時に説明する:
+
+| 観測 | 説明 |
+|---|---|
+| gain 順位は 4〜18 位なのに **木の 72〜86%** がこの列を使う | 決定木にとって単調な時間軸は「時期別 base rate を切る」最良の軸。親条件の最頻値が **自分自身**(住之江 20 回 / 桐生 43 回)= 多段の時期バンド分割 |
+| corrected にすると**住之江は logloss +0.0111 悪化**・`best_iter` **69 → 24** | 時計を取り上げると唯一の単調な時間特徴を失う(`month` / `dow` / `race_period` は周期的で単調でない) |
+| corrected にすると**桐生は logloss −0.0017 改善** | 桐生は `recency_half_life_days=365` の指数減衰重みで**既に時間トレンドを別経路で扱っている**ので、時計を失っても損しない |
+
+**帰結**: 「意味が間違っている」と「役に立っていない」は別の判断である。
+契約違反は直すべきだが、**直した瞬間に失う情報を先に特定しておかないと精度が落ちる**。
+本件の正しい設計は「時間トレンドは時間トレンドとして明示的に入れる」ことで、
+**motor 列の誤りとして密輸させない**こと。単純削除(ARM N)は住之江で **+0.0191** 悪化するので却下候補。
+
+**P40 の例外**: P40 は「中立化アームが corrected と同オーダーに動くならその特徴はノイズ」としたが、
+**動き方が同じでも精度への寄与が同じとは限らない**。P40 は displacement の判定規則としては有効で、
+**「情報かノイズか」の結論には ARM N の精度差も併せて見る必要がある**。
+
+---
+
+### P44. **同じバグ・同じモデル族でも、学習レシピが 1 つ違うと修正の符号が変わる**【**確定**(2026-09-13・NG-Q044)】
+
+同一の壊れた 2 列・同一の `FEATURE_COLS` 28 列・同一の LightGBM params で、
+**住之江(均等重み)は corrected で logloss +0.0111 悪化、桐生(`recency_half_life_days=365`)は −0.0017 改善**。
+差は **recency 重み付けの有無だけ**(P43 の機構による)。
+
+さらに **Hit@1 は logloss と逆向きに動いた**: 住之江 **+0.39pt 改善** / 桐生 **−0.69pt 悪化**。
+
+**帰結**: NG-Q040 の **P38「同じ 2 列でも NN では効かず LGB では素直に効く」も、そのまま外挿できない。**
+**「LGB だから効く」ではなく「そのレシピだから効く」**。
+露出量は **artifact 単位 × レシピ単位**で測る。会場をまとめた平均は意味を持たない。
+
+---
+
+### P45. **「経路」は artifact 単位で数え直さないと桁を間違える**【**運用事実**(2026-09-13・NG-Q044)】
+
+`MOTOR_DEPENDENCY_LEDGER` F-6 ① は `src/model.py:FEATURE_COLS`(LGB 1着系)を **1 経路**として数えていた。
+実体は **24 artifact** で、**24/24 が壊れた 2 列を両方含み、24/24 が `LIVE_ACTIVE`** だった。
+
+| 層 | 定義 | 件数 |
+|---|---|---|
+| P | `feature_cols` が `FEATURE_COLS` と完全一致(28 列同順) | **2**(住之江 root / 桐生 clean28) |
+| S | `FEATURE_COLS` の上位集合(33 列)で壊れた 2 列を含む | **22**(会場別) |
+
+`FEATURE_COLS` を import する script は 1 つでも、
+**symlink が指す実体・学習時点・再学習されるかどうかは artifact ごとに違う**。
+本件では **週次再学習されるのは住之江 root 1 本だけ**で、他 23 本は手動学習時点のまま serve されていた。
+
+**P36「依存監査はファイル単位ではなく列単位で切る」の逆方向の落とし穴**:
+**列は共有でも artifact は共有ではない。** 依存監査は
+**①どの列を読むか(P36)②どの実体が serve されるか(本 finding)** の 2 軸で切る。
+
+---
+
+### P46. **exposure 監査には「入力の鮮度の停止」の検出がタダで付いてくる**【**方法論**(2026-09-13・NG-Q044)】
+
+motor semantics の露出量を測るために「何レースに効くか」の分母を数えた過程で、
+**本来の監査対象より大きい LIVE 欠陥**を 2 件拾った:
+
+- **会場別 `features.parquet` 24 本のうち 17 本が 2026-07-18〜24 で停止**していた。
+  `scripts/build_features_all_venues.py` は **cron / launchd のどこにも載っていない**。
+  それでも `nightly.sh` 手順 5 は毎晩 24 会場 × 12R = **288 レース**を LENS へ publish している
+  = **17 会場 204 レースは 7 月下旬の同じレースを再掲載し続けている**。
+- **桐生 picks の 30 分 cron は `date=2026-07-24` を 1 日 28 回再生成**していた(ログ 91 回すべて同じ日付)。
+
+**帰結**: 露出量監査のテンプレートに **「入力ファイルの mtime と date_max を必ず出す」**を入れる。
+「壊れた値がどれだけ予測を変えるか」より前に、**「その予測がいつのレースのものか」**が壊れていることがある。
+NG-Q042 の **P41(`LIVE_DORMANT`)は「エンジンが止まっている」形だったが、本件は「エンジンは動いていて入力が止まっている」形** = 別の失敗モード。
+
+---
+
+### P47. **本番の週次再学習は、封印窓を自分の valid 窓に飲み込んでいく**【**運用事実 + 規律**(2026-09-13・NG-Q044)】
+
+住之江 LIVE artifact `lgbm_v1_20260913_020022`(毎週日曜 02:00 再学習)の split を実測したところ:
+
+| split | 行数 | 期間 | 封印窓(2026-09-01〜)の行 |
+|---|---|---|---|
+| train | 74,268 | 2020-01-02〜2025-09-20 | **0** |
+| calib | 6,529 | 2025-09-21〜2026-02-27 | **0** |
+| **valid** | 6,609 | 2026-02-28〜**2026-09-12** | **572 行(96 レース)** |
+
+`valid_ratio=0.075` は**フレームの末尾 7.5%** を取るので、フレームが伸びるたび valid 窓が前進する。
+= **`best_iter`(76)と週次 valid metric は封印窓の着順に依存しており、
+この model family について封印窓は既に out-of-sample ではない。**
+
+**帰結**: **「封印」はデータを凍結するだけでは成立しない。** 学習窓の前進を止める運用がないと、
+自動再学習が勝手に封印窓を消費する。封印を宣言するときは
+**①どのフレームか ②どの学習ジョブの窓が前進するか ③その窓を止めるか valid を固定日付にするか**
+を同時に決める。
+(本サイクルでは judgement を `*_SAFE` アーム = 2026-08-31 構造カットで行い、封印窓の着順は 1 つも参照していない。)
+
 
 
 # ===== research_state.json =====
 
 ```json
 {
-  "updated_at": "2026-09-13T05:10:00",
-  "updated_by": "Claude / Owner 裁定 2026-09-13 Q-042 = GO (AUDIT / IMPACT MEASUREMENT ONLY) 完走 = RES-2026-09-M / NG-Q042",
+  "updated_at": "2026-09-13",
+  "updated_by": "Claude Opus 5 (RES-2026-09-N / NG-Q044)",
   "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
   "architecture_version": "v2.1",
   "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
@@ -3878,8 +4339,8 @@ LIVE の p1 artifact `lgbm_v1_20260531_020022` の記録値(n_train/calib/valid 
     "id": "b2f41_prod2026_prod3",
     "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
   },
-  "current_experiment": "NG-Q042 (done_primary)",
-  "current_experiment_note": "条件付き 2着3着エンジン (src/conditional_finish.py) の motor semantics 露出量測定。最終ラベル Q042_EXPOSURE_MATERIAL (+ SEED_UNSTABLE)・LIVE 判定 LIVE_DORMANT。production 無変更・live model 非切替・cached feature 無修復・holdout 非接触",
+  "current_experiment": "NG-Q044 (完走・LGB1_LIVE_REPAIR_REQUIRED)",
+  "current_experiment_note": "Owner 裁定 2026-09-13「RES-2026-09-N = GO / AUDIT・IMPACT MEASUREMENT ONLY」を実行し完走。src/model.py:FEATURE_COLS を使う LIVE LGB 1着系の motor 露出量を測定。**経路は 1 本ではなく 24 artifact で、24/24 が壊れた 2 列を両方持ち 24/24 が LIVE_ACTIVE**。判定 = LGB1_LIVE_REPAIR_REQUIRED (+ SEED_UNSTABLE) = 凍結 4 ラベルのうち最も重いもの。production 変更 0 行・live symlink 不変・cron 不変・cached feature 無修復・封印窓の着順は未参照。repair は plan / candidate / rollback / staging までで停止 (Owner の別 GO が必要)",
   "experiments": {
     "registry_path": "artifacts/research/experiment_registry.jsonl",
     "adopted": [
@@ -4614,7 +5075,7 @@ LIVE の p1 artifact `lgbm_v1_20260531_020022` の記録値(n_train/calib/valid 
       "n": 31,
       "item": "Q-043 kyotei: 条件付き 2着3着エンジン (src/conditional_finish.py) を「封印」するか「直してから再稼働」するか",
       "recommend": "(a) 封印 — 再稼働しない方針を明文化し LENS の学習版 2 列比較から 2026-05-27 の古いピックを外す (production の予測コードに一切触らずに実害を消せる)",
-      "status_20260913": "未裁定 (NG-Q042 = Q042_EXPOSURE_MATERIAL / LIVE_DORMANT。直すと 3連単 1 番手が 22.54% 入れ替わるが当たりやすさは変わらない)"
+      "status_20260913": "未裁定。**NG-Q044 により優先順位が確定: Q-046 > Q-045 > Q-043**。Q-043 は dormant な経路で誰も使っていない一方、LGB 1着系は LIVE_ACTIVE × 24 artifact × 毎晩 288 レース。ただし (a) 封印は production 非接触で安いため並行裁定可"
     },
     {
       "n": 1,
@@ -4798,6 +5259,24 @@ LIVE の p1 artifact `lgbm_v1_20260531_020022` の記録値(n_train/calib/valid 
       "item": "条件付き 2着3着エンジン (src/conditional_finish.py) の motor 露出量測定",
       "recommend": "GO (measurement only・修正しない・production 非変更)",
       "status_20260913": "未裁定 (NG-Q040 完了時に起票)"
+    },
+    {
+      "n": 32,
+      "item": "Q-045 kyotei: LIVE LGB 1着系 24 artifact の motor semantics を是正するか (案 R1 = src/features.py の group key 是正 → 既存の週次再学習に corrected モデルを作らせる)。**src/features.py は B2 と共有されるため Q-038 の判断を内包する**",
+      "recommend": "(a) GO。ただし Q-038 と 1 本に統合して裁定する。**R1 単独では features.parquet を 2 系統に分岐させない限り LGB 1着系だけを直せない**。精度改善は根拠にしない (桐生 −0.0017 / 住之江 +0.0111 で符号が逆) — 根拠は「契約と実装の意味を一致させる」こと。**時間トレンドを明示特徴として入れ直す設計 (U-18) を同時に決める**",
+      "status_20260913": "未裁定 (NG-Q044 で起票)"
+    },
+    {
+      "n": 33,
+      "item": "Q-046 kyotei: 会場別 features.parquet 17 本が 2026-07-18〜24 で停止している (build_features_all_venues.py が自動実行に載っていない)。LENS は毎晩 288 レース publish しているが 17 会場 204 レースは 7 月下旬のレースの再掲載である。直すか",
+      "recommend": "(a) GO・**motor 是正より優先**。motor バグは「288 レース中 24 レースで順位が違う」問題だが、本件は「17 会場 204 レースが 51 日前のレースそのもの」= 桁が違う。原因は単純 (cron 未登録)。**常駐ジョブの追加は承認必須のため AI 単独では実施しない**",
+      "status_20260913": "未裁定 (NG-Q044 で起票)"
+    },
+    {
+      "n": 34,
+      "item": "Q-047 kyotei: 週次再学習の valid 窓が封印期間 (2026-09-01〜10-31) へ前進しており、住之江 LIVE artifact の valid 6,609 行のうち 572 行 (96 レース) が封印窓の中にある。best_iter と週次 valid metric が封印窓の着順に依存している = この model family について封印窓は既に OOS ではない。どうするか",
+      "recommend": "(a) valid を固定日付 (2026-08-31 まで) に切る、または (b) 封印の対象から本 model family を外すと明文化する。**どちらでも良いが「封印しているつもりで消費している」状態を放置しない**。推奨 = (a)",
+      "status_20260913": "未裁定 (NG-Q044 で起票)"
     }
   ],
   "w2_directives_owner_20260904": {
@@ -5324,6 +5803,351 @@ LIVE の p1 artifact `lgbm_v1_20260531_020022` の記録値(n_train/calib/valid 
     "lane_report": "lane-reports/q042_conditional_motor_exposure_20260913.md (Owner 19 問の回答つき)",
     "safety": "production 8 ファイルの git diff = 0 行 / data/models の symlink と実体は無変更 / cached feature 26 本は無修復 / holdout 2026-09-01〜10-31 は構造カット + assert で非接触 (評価窓の実測 max = 2026-08-18)",
     "next_owner_decision": "Q-043 (条件付きエンジンを封印するか直すか。推奨 = 封印)"
+  },
+  "res_2026_09_n": {
+    "cycle": "RES-2026-09-N",
+    "date": "2026-09-13",
+    "experiment": "NG-Q044",
+    "owner_decision": "2026-09-13「RES-2026-09-N = GO」(AUDIT / IMPACT MEASUREMENT ONLY)",
+    "frozen_plan": {
+      "path": "research/Q044_FROZEN_PLAN.md",
+      "commit": "28bfeae",
+      "commit_condition": "q044 の script が 1 本も無い時点",
+      "verdict_script": "scripts/research/nextgen/q044_verdict.py",
+      "verdict_commit": "47bf4fb",
+      "verdict_condition": "学習前・artifact 0 件",
+      "thresholds_changed_after_results": false
+    },
+    "verdict": {
+      "label": "LGB1_LIVE_REPAIR_REQUIRED",
+      "suffix": [
+        "SEED_UNSTABLE"
+      ],
+      "per_artifact": {
+        "suminoe": "LGB1_LIVE_REPAIR_REQUIRED",
+        "kiryu": "LGB1_LIVE_REPAIR_REQUIRED"
+      },
+      "cycle_label_rule": "P 層の最も重いラベル (凍結計画 §11-1)",
+      "repair_trigger_fired": true,
+      "repair_executed": false
+    },
+    "scope_correction": {
+      "old_ledger_claim": "MOTOR_DEPENDENCY_LEDGER F-6 ①「src/model.py:FEATURE_COLS (LGB 1着系)」= 1 経路",
+      "measured": "24 artifact",
+      "tier_P": 2,
+      "tier_S": 22,
+      "with_both_broken_cols": 24,
+      "live_active": 24,
+      "P_artifacts": [
+        "data/models/latest.txt -> lgbm_v1_20260913_020022.txt (住之江・毎週日曜 02:00 自動再学習)",
+        "data/models/kiryu/latest.txt -> lgbm_v1_kiryu_clean28_20260607_031831.txt (桐生・再学習なし)"
+      ],
+      "handoff_correction": "「30 分ごと cron が data/models/latest.txt を使う」は誤り。30 分 cron (build_kiryu_picks_today.py:146) が読むのは data/models/kiryu/latest.txt。週次再学習されるのは住之江 root のみ",
+      "finding": "P45"
+    },
+    "liveness": {
+      "all_labels": "LIVE_ACTIVE (24/24)",
+      "publish_path": "nightly.sh 手順 5 = build_lens_data_all_venues.py:42-46 が毎晩 24 model をロードして 24 会場 × 12R = 288 レースを lens_all_venues.js へ publish (実測 2026-09-13 00:29)",
+      "second_path": "launchd com.kyotei-ai.signal-notify → daily_signal_notify.py:55 (会場ループ)",
+      "kiryu_30min": "refresh_kiryu_picks.sh (*/30 9-22 = 1 日 28 回) → kiryu_picks.html",
+      "weekly_retrain": "0 2 * * 0 → weekly_retrain.sh → run_train.py → src.model.main() (住之江 1 本・20 週連続成功)",
+      "fallback_model": "専用 fallback は無い。劣化分岐 3 件 (load_model(None) / temperature=1.0 無言 fallback / 不足 feature を 0 で fill)",
+      "on_update_failure": "set -e で save_model に到達せず latest.txt は前週のまま。アラート無し"
+    },
+    "exposure": {
+      "stored_equals_old_recompute": "不一致 0 行 (保存値 == 旧 semantics の機械証明)",
+      "suminoe": {
+        "affected_rows": 85070,
+        "affected_rows_pct": 95.93,
+        "affected_races": 14292,
+        "cross_venue_pct": 0.0,
+        "cross_cycle_pct": 5.62,
+        "self_share_pct": 94.38,
+        "mrt2_match_pct": 91.12,
+        "rcp_match_pct": 3.96,
+        "rcp_inflation": 6.83,
+        "ceiling_9999_pct": 0.0,
+        "group_old": 71,
+        "group_corrected": 543
+      },
+      "kiryu": {
+        "affected_rows": 74718,
+        "affected_rows_pct": 85.09,
+        "affected_races": 12456,
+        "cross_venue_pct": 0.0,
+        "cross_cycle_pct": 4.7,
+        "self_share_pct": 95.3,
+        "mrt2_match_pct": 92.61,
+        "rcp_match_pct": 14.92,
+        "rcp_inflation": 6.46,
+        "ceiling_9999_pct": 0.0,
+        "group_old": 65,
+        "group_corrected": 455
+      },
+      "S_tier_census": "22 会場も同形 (mrt2 一致率 90.59〜93.52% / 水増し 5.58〜7.06 倍) = ARM B′ 配置",
+      "note": "cross-venue = 0 は推論でなく実測。national (9.71% / 77 倍 / 天井 63.2%) より遥かに軽い"
+    },
+    "reproduction_gate": {
+      "status": "PASS 8/8 × 2 artifact・bit 一致",
+      "suminoe": {
+        "split": "date_boundary_current",
+        "cut": "2026-09-12",
+        "raw_max_abs_delta": 0.0,
+        "prob_max_abs_delta": 0.0,
+        "valid_logloss_exact": "0.33249257471172217"
+      },
+      "kiryu": {
+        "split": "row_index_historical (2026-06-07 以前)",
+        "cut": "2026-05-03",
+        "raw_max_abs_delta": 0.0,
+        "prob_max_abs_delta": 0.0,
+        "valid_logloss_exact": "0.3616727786012645",
+        "versioned_reproduction": true,
+        "note": "現行コードでは再現不能。production の src/model.py は変更せず研究 clone に旧版 split を逐語複製。features.parquet は 2026-07-24 に再生成されているが遡及ドリフトは無かった"
+      }
+    },
+    "displacement": {
+      "primary_arm": "ARM *_SAFE (2026-08-31 構造カット・holdout_rows_touched = 0 を assert)",
+      "primary_seed": 42,
+      "measurement_window": {
+        "suminoe": "1,029R 2026-02-09〜2026-08-18",
+        "kiryu": "1,013R 2026-02-07〜2026-07-23"
+      },
+      "N1_honmei_change": {
+        "suminoe": 0.01944,
+        "kiryu": 0.05824,
+        "line": 0.05
+      },
+      "N2_top2_set_change": {
+        "suminoe": 0.16424,
+        "kiryu": 0.2152,
+        "line": 0.1
+      },
+      "N3_mean_abs_dp": {
+        "suminoe": 0.01915,
+        "kiryu": 0.01682,
+        "line": 0.01
+      },
+      "N4_mean_tvd_p6": {
+        "suminoe": 0.05744,
+        "kiryu": 0.05046,
+        "line": 0.02
+      },
+      "N7_rank_perm_change": {
+        "suminoe": 0.57337,
+        "kiryu": 0.57256
+      },
+      "downstream_p1_only": {
+        "D1_p120_tvd": 0.06108,
+        "D2_trifecta_argmax": 0.11375,
+        "D3_top3_ticket_set": 0.185,
+        "n_races": 800,
+        "isolation": "配備済み P2/P3 固定・p1/winner_p1/second_p1 のみアーム差",
+        "vs_q042": "NG-Q042 の 22.54% (p1 + P2/P3 両方) の約半分が 1着モデル由来"
+      },
+      "dswap_24_artifacts": {
+        "n_races": 285,
+        "honmei_changed": 24,
+        "rate": 0.0842,
+        "mean_tvd": 0.0463,
+        "max_venue": "naruto 25.0%",
+        "note": "再学習なし。train/serve skew を自作するので修復案としては却下"
+      },
+      "seed_sensitivity": {
+        "suminoe_N1": [
+          0.01944,
+          0.01555,
+          0.0068
+        ],
+        "kiryu_N1": [
+          0.05824,
+          0.07404,
+          0.06417
+        ],
+        "suminoe_A1": [
+          0.011116,
+          -0.023744,
+          0.000532
+        ],
+        "kiryu_A1": [
+          -0.00166,
+          -0.001064,
+          -0.003147
+        ],
+        "SEED_UNSTABLE": "suminoe (A1 の符号が 3 seed で反転)",
+        "kiryu_N1_all_seeds_cross_line": true
+      }
+    },
+    "accuracy_separate": {
+      "rule": "§16 = accuracy と identity は別判定。精度は repair の根拠にしない",
+      "A1_logloss_delta": {
+        "suminoe": 0.011116,
+        "kiryu": -0.00166,
+        "adoption_line": 0.003
+      },
+      "A4_hit_at_1_delta": {
+        "suminoe": 0.00389,
+        "kiryu": -0.00691
+      },
+      "note": "Hit@1 は logloss と逆向き。住之江は best_iter 69→24・T 1.2→1.0・ECE 0.0217→0.0434。桐生は best_iter 57→57・T 1.2→1.2"
+    },
+    "arm_N_neutralize": {
+      "suminoe": {
+        "N1": 0.0214,
+        "N4": 0.0652,
+        "A1": 0.019133
+      },
+      "kiryu": {
+        "N1": 0.074,
+        "N4": 0.0625,
+        "A1": -0.000815
+      },
+      "conclusion": "P40 に例外が付いた。動き方は corrected と同オーダーだが精度への寄与は同じでない。単純削除は住之江で +0.019 悪化 = 却下候補"
+    },
+    "root_cause_nature": {
+      "finding": "P43",
+      "discovery": "壊れた motor_race_count_prior は日付との Spearman +0.9713 (住之江) / +0.9785 (桐生) = ほぼ純粋な単調時間インデックスだった (corrected では +0.1159 / +0.0547)",
+      "mechanism": "モーター番号が会場ごとの固定小集合 (住之江 71 / 桐生 65) なので motor_no 単独 group の累積カウントは「データセット開始から何走目か」にほぼ等しくなる",
+      "implication": "この incident は「精度を損なっている bug」ではなく「契約と実装の意味がずれている bug」。是正は motor semantics の是正 + 時間トレンドを明示的な特徴として入れ直すの 2 点セットで設計する"
+    },
+    "lgb_diagnostic": {
+      "suminoe": {
+        "motor_recent20_top2": {
+          "gain_share_pct": 0.992,
+          "gain_rank": "15/28",
+          "trees_using": "51/69 (73.9%)",
+          "mean_depth": 6.14,
+          "splits": 165
+        },
+        "motor_race_count_prior": {
+          "gain_share_pct": 1.093,
+          "gain_rank": "8/28",
+          "trees_using": "57/69 (82.6%)",
+          "mean_depth": 7.52,
+          "splits": 216
+        }
+      },
+      "kiryu": {
+        "motor_recent20_top2": {
+          "gain_share_pct": 1.216,
+          "gain_rank": "18/28",
+          "trees_using": "41/57 (71.9%)",
+          "mean_depth": 7.0,
+          "splits": 110
+        },
+        "motor_race_count_prior": {
+          "gain_share_pct": 4.189,
+          "gain_rank": "4/28",
+          "trees_using": "49/57 (86.0%)",
+          "mean_depth": 7.97,
+          "splits": 380
+        }
+      },
+      "upstream_parent_mode": "自分自身 (住之江 20 回 / 桐生 43 回) = 多段の時期バンド分割",
+      "rule": "importance だけで severity を判定していない (診断専用)"
+    },
+    "closure_scan": {
+      "incident": "INC-2026-0912-MOTORSEMANTICS",
+      "status": "OPEN",
+      "close_conditions_met": "6 / 7",
+      "unresolved_exposure": 4,
+      "live_unresolved": 3,
+      "dormant_unresolved": 1,
+      "research_unresolved": 0,
+      "unmeasured_exposure": 0,
+      "classification": {
+        "production_B2": "measured & managed",
+        "research_B2": "corrected",
+        "e10_p1_proxy": "corrected",
+        "conditional_p2_p3": "dormant",
+        "lgb_1st_family_24_artifacts": "measured & managed",
+        "cached_feature_files": "measured & managed"
+      }
+    },
+    "integrity": {
+      "parity": "GREEN",
+      "semantics": "YELLOW",
+      "conflict_with_existing_definition": false,
+      "remaining_to_green": [
+        "Q-038 production B2 cutover",
+        "Q-045 LGB 1着系の正式修復",
+        "Q-043 条件付きエンジンの封印 or 修復",
+        "cached feature の corrected 化"
+      ]
+    },
+    "race_logic_gate": {
+      "verdict": "LIMITED",
+      "allowed": [
+        "q040/p1_residual_panel__corrected_motor_uid__e10p1__rev1__20260913.parquet",
+        "cmb1/cmb1_P1_bundle.pt",
+        "q044/candidates/q044_*_armC_seed42_safe.txt"
+      ],
+      "forbidden": [
+        "data/models/latest.txt / data/models/<venue>/latest.txt の予測値",
+        "src/conditional_finish.py の出力・条件付き残差・住之江 GATE PASS",
+        "lens_all_venues.js / predictions_data.js の AI 予測値"
+      ]
+    },
+    "operational_impact_outcome_independent": {
+      "nightly_2330": "24 会場 × 12R = 288 レース / 24 model ロード / 1 日 1 回",
+      "kiryu_30min": "1 日 28 回 × 12R",
+      "weekly_retrain": "週 1 回・住之江 1 本",
+      "sealed_holdout_outcomes_referenced": false
+    },
+    "side_findings_bigger_than_audit_target": {
+      "finding": "P46",
+      "B": "会場別 features.parquet 24 本のうち 17 本が 2026-07-18〜24 で停止。build_features_all_venues.py は cron / launchd のどこにも載っていない。LENS は毎晩 288 レース publish しているが 17 会場 204 レースは 7 月下旬のレースの再掲載",
+      "C": "桐生 picks の 30 分 cron が date=2026-07-24 を 1 日 28 回再生成 (ログ 91 回すべて同じ日付)",
+      "A": "週次再学習の valid 6,609 行のうち 572 行 (96 レース) が 2026-09-01〜09-12 = この model family について封印窓は既に OOS ではない (P47)",
+      "raised_as": [
+        "Q-046 (B / C)",
+        "Q-047 (A)"
+      ],
+      "fixed_this_cycle": false
+    },
+    "findings": [
+      "P43",
+      "P44",
+      "P45",
+      "P46",
+      "P47"
+    ],
+    "hypotheses_backlog_only": [
+      "U-18",
+      "U-19",
+      "U-20",
+      "U-21",
+      "U-22"
+    ],
+    "known_limits": "①S 層 22 artifact は再学習していない ②2 列のうちどちらが主因かを分離していない (U-22) ③D-SWAP は各会場 1 日分 (10〜12R) で率の分散が大きい ④住之江の D-SWAP は 2026-08-18 で測った (LENS が出している 2026-09-13 は封印窓の中なので触っていない)",
+    "artifacts": [
+      "artifacts/research/nextgen/q044/Q044_LIVENESS.json",
+      "artifacts/research/nextgen/q044/Q044_EXPOSURE.json",
+      "artifacts/research/nextgen/q044/Q044_REPRO_GATE.json",
+      "artifacts/research/nextgen/q044/Q044_DISPLACEMENT.json",
+      "artifacts/research/nextgen/q044/Q044_LGB_DIAG.json",
+      "artifacts/research/nextgen/q044/Q044_VERDICT.json",
+      "artifacts/research/nextgen/q044/Q044_CLOSURE_SCAN.json",
+      "artifacts/research/nextgen/q044/Q044_REPAIR_CANDIDATES.json",
+      "artifacts/research/nextgen/q044/Q044_REPAIR_PROPOSAL.md",
+      "artifacts/research/nextgen/q044/candidates/ (6 booster・research only)"
+    ],
+    "lane_report": "lane-reports/q044_lgb1st_motor_exposure_20260913.md (Owner 20 問の回答つき)",
+    "safety": {
+      "production_diff_lines": 0,
+      "live_symlink_changed": false,
+      "cron_changed": false,
+      "cached_features_repaired": 0,
+      "data_models_q044_files": 0,
+      "holdout_outcomes_referenced": false,
+      "new_research_started": false
+    },
+    "next_owner_decision": [
+      "Q-045 (R1 = src/features.py の group key 是正・Q-038 を内包)",
+      "Q-046 (会場別 features 17 本の停止)",
+      "Q-047 (封印窓が週次 valid に飲み込まれている問題)",
+      "Q-043 (条件付きエンジンの封印 or 修復・持ち越し)"
+    ]
   }
 }
 ```
