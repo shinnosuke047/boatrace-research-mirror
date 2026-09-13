@@ -625,6 +625,55 @@ commit `9e39b83`。**本番の動きは 9/12 01:16 の時点ですでに直っ�
 
 (棄却理由の全文と内部 ID = HYPOTHESES.md §5 / 今回の詳細 = lane-reports/{va1_venue_attack_residual,q029_weather_provenance_audit}_20260912.md / 会場ごとの地図 = research/VENUE_LOGIC_ATLAS.md)
 
+
+---
+
+## RES-2026-09-O / Q-046 完走(2026-09-13)— `FRESHNESS_REPAIRED`
+
+**種別: 研究ではない。LIVE 運用障害の修復**(INC-2026-0913-FEATURESTALE)。
+
+- **何が起きていたか**: 会場別 `features.parquet` が **17 会場で 2026-07-18〜24 に停止**し、
+  **51 日間** LENS が古いレースを publish し続けていた。**raw は正常**(national は 2026-09-12 まで生存)。
+- **primary root cause = scheduler 登録漏れ**。24 会場版の parse / feature script が
+  **crontab 0 件 / launchd 0 件 / system cron 0 件**。7 会場だけ生きていたのは
+  **WAKE 6 会場シグナル(09:15)の副作用**と**住之江 nightly 専用経路**という別の仕組みによる。
+- **本質は feature 生成ではなく前段の per-venue parse の停止**(stale source のまま再生成しても行数不変)。
+- **secondary = consumer の fail-open**(freshness 検査ゼロ)+ **無音**(実行されていないので例外もアラートも出ない)。
+
+### 結果(機械確認済み)
+
+| 項目 | 結果 |
+|---|---|
+| freshness | **FRESH 24/24**(修復前 7/24 → Stage A 後 9/24 → Stage B 後 **24/24**) |
+| 取り込み | 事故中に未取込だった **5,649 レース → 全件 features に存在・欠落 0** |
+| 回復行数 | **+34,702 行** |
+| S1〜S9 gate | 全会場 **PASS**・**S9 motor 不一致 0**(= Q-045 を混ぜていない機械証明) |
+| 冪等性 | 既に FRESH だった 9 会場は再生成後 **sha256 完全一致** |
+| negative control | **5/5 DETECTED_BLOCKED**(control 会場は allowed のまま = 偽陽性なし) |
+| consumer fail-closed | 故障注入 **2/2 PASS**(stale 会場は payload から消え、**前回値で補完されない**) |
+| 二重実行 | lock で排除を実証(2 本目は rc=3 で何も書かず退出) |
+| rollback | **24/24 復元可能**(sha256 + 読み出し検証済み) |
+| 桐生 stale loop | 対象日が **2026-07-24 → 2026-09-10** へ前進(28 回/日 × 50 日の同一 race 再生成が解消) |
+| LENS stale rows | **204 行が fresh 出力で自然置換**(破壊的 delete は不要だった) |
+
+### 恒久化したもの
+
+`nightly.sh` 手順 3.1(24 会場 atomic refresh)/ 3.2(status artifact)。
+consumer 2 本に **fail-closed guard**。**Fresh → publish / Stale → BLOCK**。
+`artifacts/ops/feature_freshness_status.json` に
+venue / raw / feature / status / **last_successful_refresh_at** / **last_error** / generated_at を常設。
+
+### 混ぜなかったもの
+
+**production model・motor semantics・feature 列・betting logic は 1 行も変更していない。**
+**sealed holdout を研究評価に使っていない**(logloss / hit rate / ROI / calibration / payout を 1 つも算出していない)。
+9 月データは **LIVE 運用の入力として**取り込んだだけ。Q-045 / Q-047 とは分離。
+
+### 次の 1 本
+
+**Q-045(LIVE LGB 1着系 24 artifact の motor semantics 是正)= Owner 裁定待ち。**
+Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の次段へ。
+
 ---
 # §16 サマリ層(機械生成 — 編集しない・正本は下部の連結全文)
 生成日: 2026-09-13 / 生成元: research_state.json + experiment_registry.jsonl + NEXT_ACTIONS.md + DECISION_LOG.md + DATA_STATUS.md + FINDINGS.md
@@ -637,17 +686,17 @@ commit `9e39b83`。**本番の動きは 9/12 01:16 の時点ですでに直っ�
 
 ## 2. Active Research(実行中・待機中)
 - 実行中の実験: NG-Q044 (完走・LGB1_LIVE_REPAIR_REQUIRED)(Owner 裁定 2026-09-13「RES-2026-09-N = GO / AUDIT・IMPACT MEASUREMENT ONLY」を実行し完走。src/model.py:FEATURE_COLS を使う LIVE LGB 1着…)
-- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・27733/49968 ページ・残り目安 3.03 日)
+- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・30893/49968 ページ・残り目安 2.6 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-CMB1**(2026-09-12・done_primary・—): production の学習条件は完全再現 (正規化統計 41/41 列が相対差 0.00e+00・学習行数 2,017,260 が契約記録値と一致)。corrected 版は意味論的に正しく (7 検査 PASS・同日先行なし parity 0 行) production smoke も通るが、**予測改善は ΔNLL −0.000678 (採用線 0.003 の 1/4) で 3 seed の符号が揃わない**のに **3連単 argmax は 12…
 - **NG-MR1**(2026-09-12・done_primary・—): MS3 が作らなかった motor-free base (ARM N) を初めて作り、正しい物理個体キーで測り直した。corrected motor には単独の予測価値が実在する (両 fold で CI が 0 を跨がず 3 seed 同符号) が採用線 0.003 に届かず (−0.0024)、当日展示を併用すると純増分は CI が 0 を含む。展示による吸収は 48〜68% で完全ではない。model-free には持続的な個体差が明確に存在 (z…
 - **NG-Q040**(2026-09-13・done_primary・—): E10 P1 代理モデルにも同じ motor bug が実在した (BOAT_COLS 26 列のうち 2 列・6.7 年 / 2,134,383 行 / 356,100 レース)。正しい物理個体キーで作り直すと代理モデルは素直に良くなった (logloss −0.00057 / AUC +0.0010・6 年すべて改善) が、残差の順位はほぼ動かず (Spearman 0.99598・符号反転 0.163%)、6 研究すべてで verdict ラベルは…
 - **NG-Q042**(2026-09-13・done_primary・—): 
 - **NG-Q044**(2026-09-13・done_primary・—): 
+- **NG-Q046**(2026-09-13・done・—): 
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-13 05:19(**Owner 裁定 2026-09-13「RES-2026-09-N = GO / AUDIT ONLY」完走 = RES-2026-09-N / NG-Q044**。**最終ラベル `LGB1_LIVE_REPAIR_REQUIRED`**) ## 今サイクルで確定したこと(RES-2026-09-N / NG-Q044) - **最終ラベル = `LGB1_LIVE_REPAIR_REQUIRED`(+ `SEED_UNSTABLE`)= 凍結 4 ラベルのうち最も重いもの。** **repair trigger は発火したが実行していない**(production 変更 0 行・Owner の別 GO が必要)。 - **経路は 1 本ではなく 24 artifact だった**(`MOTOR_DEPENDENCY_LEDGER` F-6 ① の訂正・**FINDINGS P45**)。 **24/24 が壊れた 2 列を両方持ち、24/24 が `LIVE_A…
@@ -1373,6 +1422,42 @@ NG-Q042 の **P41(`LIVE_DORMANT`)は「エンジンが止まっている」形�
 を同時に決める。
 (本サイクルでは judgement を `*_SAFE` アーム = 2026-08-31 構造カットで行い、封印窓の着順は 1 つも参照していない。)
 
+
+---
+
+## P48 — 「動いている」と「登録されている」は別。7/24 の生存が 17/24 の停止を隠していた
+
+**観測**(INC-2026-0913-FEATURESTALE / Q-046):
+24 会場版の per-venue parse・feature script は**存在したが、cron にも launchd にも 1 件も登録されていなかった**。
+それでも 7 会場が新鮮だったのは、**別目的のジョブの副作用**で動いていたから:
+
+| 生きていた会場 | 動いていた理由 |
+|---|---|
+| 6 会場(amagasaki / toda / tamagawa / edogawa / biwako / tokoname) | **WAKE シグナル通知**(launchd 09:15)の `update_data()` が `VENUES` をハードコードして parse+build_features を**副作用で**実行 |
+| 住之江 | `nightly.sh` 手順 2/3 の**専用**経路 |
+
+**帰結 1 — 部分的な生存は、全体の健全性の証拠にならない。**
+「LENS に 24 会場が出ている」「7 会場は最新だ」は、**残り 17 会場が 51 日止まっていること**と両立していた。
+ダッシュボードに数字が出ていることは、その数字が新しいことを意味しない。
+
+**帰結 2 — 副作用で動いている依存は、意図した依存より壊れやすい。**
+6 会場が新鮮だったのは設計ではなく偶然で、WAKE 側の `VENUES` を 1 行削れば黙って止まる。
+
+**帰結 3 — fail-open な consumer は、障害を「正常な出力」に翻訳してしまう。**
+24 会場すべてで `latest_lens_date == latest_feature_date` だった。
+LENS はバグっていたのではなく、**古い入力を正直に publish していた**。
+入力の鮮度を検査しない限り、出力を見ても障害は見えない。
+
+**帰結 4 — 鮮度の契約は「今日から何日前か」では書けない。**
+会場は毎日開催しないので、日数ベースの lag は正常(marugame の最終開催 2026-08-28)と
+異常(kiryu が 07-24 で停止)を区別できない。
+成立する不変条件は **`venue_feature_max_date >= venue_raw_max_date`** =
+「入手できている raw を全部消化したか」。開催スケジュールに依存しない。
+
+**対策として実装したもの**: nightly への登録 / fail-closed guard / negative control 5 ケース /
+lock による二重実行排除 / `last_successful_refresh_at` と `last_error` を含む常設 status artifact。
+(**関連**: P46 = 本件の初期観測。Q-046 = 修復サイクル。)
+
 ---
 
 
@@ -1495,6 +1580,55 @@ NG-Q042 の **P41(`LIVE_DORMANT`)は「エンジンが止まっている」形�
 ## 更新ルール(2026-09-04 Owner 指示で制定)
 
 コード・実験・研究状態を更新したら、**Artifact だけでなく /research/ 配下の本ファイル群と research_state.json を必ず同期する**。他のAI・人間はまずここを読む。
+
+
+---
+
+## RES-2026-09-O / Q-046 完走(2026-09-13)— `FRESHNESS_REPAIRED`
+
+**種別: 研究ではない。LIVE 運用障害の修復**(INC-2026-0913-FEATURESTALE)。
+
+- **何が起きていたか**: 会場別 `features.parquet` が **17 会場で 2026-07-18〜24 に停止**し、
+  **51 日間** LENS が古いレースを publish し続けていた。**raw は正常**(national は 2026-09-12 まで生存)。
+- **primary root cause = scheduler 登録漏れ**。24 会場版の parse / feature script が
+  **crontab 0 件 / launchd 0 件 / system cron 0 件**。7 会場だけ生きていたのは
+  **WAKE 6 会場シグナル(09:15)の副作用**と**住之江 nightly 専用経路**という別の仕組みによる。
+- **本質は feature 生成ではなく前段の per-venue parse の停止**(stale source のまま再生成しても行数不変)。
+- **secondary = consumer の fail-open**(freshness 検査ゼロ)+ **無音**(実行されていないので例外もアラートも出ない)。
+
+### 結果(機械確認済み)
+
+| 項目 | 結果 |
+|---|---|
+| freshness | **FRESH 24/24**(修復前 7/24 → Stage A 後 9/24 → Stage B 後 **24/24**) |
+| 取り込み | 事故中に未取込だった **5,649 レース → 全件 features に存在・欠落 0** |
+| 回復行数 | **+34,702 行** |
+| S1〜S9 gate | 全会場 **PASS**・**S9 motor 不一致 0**(= Q-045 を混ぜていない機械証明) |
+| 冪等性 | 既に FRESH だった 9 会場は再生成後 **sha256 完全一致** |
+| negative control | **5/5 DETECTED_BLOCKED**(control 会場は allowed のまま = 偽陽性なし) |
+| consumer fail-closed | 故障注入 **2/2 PASS**(stale 会場は payload から消え、**前回値で補完されない**) |
+| 二重実行 | lock で排除を実証(2 本目は rc=3 で何も書かず退出) |
+| rollback | **24/24 復元可能**(sha256 + 読み出し検証済み) |
+| 桐生 stale loop | 対象日が **2026-07-24 → 2026-09-10** へ前進(28 回/日 × 50 日の同一 race 再生成が解消) |
+| LENS stale rows | **204 行が fresh 出力で自然置換**(破壊的 delete は不要だった) |
+
+### 恒久化したもの
+
+`nightly.sh` 手順 3.1(24 会場 atomic refresh)/ 3.2(status artifact)。
+consumer 2 本に **fail-closed guard**。**Fresh → publish / Stale → BLOCK**。
+`artifacts/ops/feature_freshness_status.json` に
+venue / raw / feature / status / **last_successful_refresh_at** / **last_error** / generated_at を常設。
+
+### 混ぜなかったもの
+
+**production model・motor semantics・feature 列・betting logic は 1 行も変更していない。**
+**sealed holdout を研究評価に使っていない**(logloss / hit rate / ROI / calibration / payout を 1 つも算出していない)。
+9 月データは **LIVE 運用の入力として**取り込んだだけ。Q-045 / Q-047 とは分離。
+
+### 次の 1 本
+
+**Q-045(LIVE LGB 1着系 24 artifact の motor semantics 是正)= Owner 裁定待ち。**
+Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の次段へ。
 
 
 
@@ -1912,6 +2046,55 @@ NG-T3D4(4 券種 FAIL → route B・Market Gate 閉鎖)/ tail 可視化 / 乖離
 - 保存のみ: シナリオ Generator 大型 / GAT(2 重の否定で棚上げ)/ Race Simulator / Portfolio Optimizer 本番化 / 穴シナリオ Gate 数値化 / Historical Replay 最小試作(Market Gate 再開時)/ Venue clustering(silhouette 0.195)/ **Venue Logic(説明層としてのみ・VA1 で Prediction Edge から降格)**
 
 
+---
+
+## RES-2026-09-O / Q-046 完走(2026-09-13)— `FRESHNESS_REPAIRED`
+
+**種別: 研究ではない。LIVE 運用障害の修復**(INC-2026-0913-FEATURESTALE)。
+
+- **何が起きていたか**: 会場別 `features.parquet` が **17 会場で 2026-07-18〜24 に停止**し、
+  **51 日間** LENS が古いレースを publish し続けていた。**raw は正常**(national は 2026-09-12 まで生存)。
+- **primary root cause = scheduler 登録漏れ**。24 会場版の parse / feature script が
+  **crontab 0 件 / launchd 0 件 / system cron 0 件**。7 会場だけ生きていたのは
+  **WAKE 6 会場シグナル(09:15)の副作用**と**住之江 nightly 専用経路**という別の仕組みによる。
+- **本質は feature 生成ではなく前段の per-venue parse の停止**(stale source のまま再生成しても行数不変)。
+- **secondary = consumer の fail-open**(freshness 検査ゼロ)+ **無音**(実行されていないので例外もアラートも出ない)。
+
+### 結果(機械確認済み)
+
+| 項目 | 結果 |
+|---|---|
+| freshness | **FRESH 24/24**(修復前 7/24 → Stage A 後 9/24 → Stage B 後 **24/24**) |
+| 取り込み | 事故中に未取込だった **5,649 レース → 全件 features に存在・欠落 0** |
+| 回復行数 | **+34,702 行** |
+| S1〜S9 gate | 全会場 **PASS**・**S9 motor 不一致 0**(= Q-045 を混ぜていない機械証明) |
+| 冪等性 | 既に FRESH だった 9 会場は再生成後 **sha256 完全一致** |
+| negative control | **5/5 DETECTED_BLOCKED**(control 会場は allowed のまま = 偽陽性なし) |
+| consumer fail-closed | 故障注入 **2/2 PASS**(stale 会場は payload から消え、**前回値で補完されない**) |
+| 二重実行 | lock で排除を実証(2 本目は rc=3 で何も書かず退出) |
+| rollback | **24/24 復元可能**(sha256 + 読み出し検証済み) |
+| 桐生 stale loop | 対象日が **2026-07-24 → 2026-09-10** へ前進(28 回/日 × 50 日の同一 race 再生成が解消) |
+| LENS stale rows | **204 行が fresh 出力で自然置換**(破壊的 delete は不要だった) |
+
+### 恒久化したもの
+
+`nightly.sh` 手順 3.1(24 会場 atomic refresh)/ 3.2(status artifact)。
+consumer 2 本に **fail-closed guard**。**Fresh → publish / Stale → BLOCK**。
+`artifacts/ops/feature_freshness_status.json` に
+venue / raw / feature / status / **last_successful_refresh_at** / **last_error** / generated_at を常設。
+
+### 混ぜなかったもの
+
+**production model・motor semantics・feature 列・betting logic は 1 行も変更していない。**
+**sealed holdout を研究評価に使っていない**(logloss / hit rate / ROI / calibration / payout を 1 つも算出していない)。
+9 月データは **LIVE 運用の入力として**取り込んだだけ。Q-045 / Q-047 とは分離。
+
+### 次の 1 本
+
+**Q-045(LIVE LGB 1着系 24 artifact の motor semantics 是正)= Owner 裁定待ち。**
+Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の次段へ。
+
+
 
 # ===== DECISION_LOG.md =====
 
@@ -2157,6 +2340,23 @@ NG-T3D4(4 券種 FAIL → route B・Market Gate 閉鎖)/ tail 可視化 / 乖離
 19. **新研究は 1 本も開始していない**(Owner 指令 §26)。
     §1-h に **U-18〜U-22** を BACKLOG として記録しただけ。
     **U-22(2 列のうちどちらが主因か未分離)は本サイクルの明示的な限界**として記録した。
+
+
+---
+
+### 2026-09-13 — Q-046 = STAGED GO(LIVE feature freshness の復旧と fail-closed 化)
+
+- **決定**: 会場別 features の停止(17 会場 / 51 日)を **LIVE 運用障害として修復**する。研究サイクルではない。
+- **凍結**: `research/Q046_FROZEN_PLAN.md`(commit `16f37b8` = production / cron / launchd / consumer **0 行変更**の時点で凍結)。
+  freshness contract・allowed lag・fail-closed 条件・repair scope・verification gate・closure 条件は**結果を見てから変更しない**。
+- **判定**: **`FRESHNESS_REPAIRED`**(§12 closure gate 12 項目すべて成立)。
+- **根拠**: FRESH 24/24 / 5,649 レース取り込み・欠落 0 / negative control 5/5 /
+  consumer 故障注入 2/2 / 二重実行排除 実証 / rollback 24/24 復元可能 / LIVE 経路で end-to-end 確認。
+- **混ぜなかったもの(Owner 指令 §17)**: motor semantics(Q-045)/ B2・LightGBM の重み /
+  feature 列 / sealed holdout policy(Q-047)/ model selection / betting logic。
+  **S9 検査が「motor 2 列が旧 semantics のまま」を毎回機械確認**し、全会場で不一致 0 を確認した。
+- **封印窓の扱い(Owner 指令 §18)**: 9 月データを **LIVE 運用の入力として**取り込んだ。
+  **研究評価(logloss / hit rate / ROI / calibration / payout)は 1 つも算出していない。** Q-047 とは分離。
 
 
 
@@ -4318,13 +4518,49 @@ NG-Q042 の **P41(`LIVE_DORMANT`)は「エンジンが止まっている」形�
 (本サイクルでは judgement を `*_SAFE` アーム = 2026-08-31 構造カットで行い、封印窓の着順は 1 つも参照していない。)
 
 
+---
+
+## P48 — 「動いている」と「登録されている」は別。7/24 の生存が 17/24 の停止を隠していた
+
+**観測**(INC-2026-0913-FEATURESTALE / Q-046):
+24 会場版の per-venue parse・feature script は**存在したが、cron にも launchd にも 1 件も登録されていなかった**。
+それでも 7 会場が新鮮だったのは、**別目的のジョブの副作用**で動いていたから:
+
+| 生きていた会場 | 動いていた理由 |
+|---|---|
+| 6 会場(amagasaki / toda / tamagawa / edogawa / biwako / tokoname) | **WAKE シグナル通知**(launchd 09:15)の `update_data()` が `VENUES` をハードコードして parse+build_features を**副作用で**実行 |
+| 住之江 | `nightly.sh` 手順 2/3 の**専用**経路 |
+
+**帰結 1 — 部分的な生存は、全体の健全性の証拠にならない。**
+「LENS に 24 会場が出ている」「7 会場は最新だ」は、**残り 17 会場が 51 日止まっていること**と両立していた。
+ダッシュボードに数字が出ていることは、その数字が新しいことを意味しない。
+
+**帰結 2 — 副作用で動いている依存は、意図した依存より壊れやすい。**
+6 会場が新鮮だったのは設計ではなく偶然で、WAKE 側の `VENUES` を 1 行削れば黙って止まる。
+
+**帰結 3 — fail-open な consumer は、障害を「正常な出力」に翻訳してしまう。**
+24 会場すべてで `latest_lens_date == latest_feature_date` だった。
+LENS はバグっていたのではなく、**古い入力を正直に publish していた**。
+入力の鮮度を検査しない限り、出力を見ても障害は見えない。
+
+**帰結 4 — 鮮度の契約は「今日から何日前か」では書けない。**
+会場は毎日開催しないので、日数ベースの lag は正常(marugame の最終開催 2026-08-28)と
+異常(kiryu が 07-24 で停止)を区別できない。
+成立する不変条件は **`venue_feature_max_date >= venue_raw_max_date`** =
+「入手できている raw を全部消化したか」。開催スケジュールに依存しない。
+
+**対策として実装したもの**: nightly への登録 / fail-closed guard / negative control 5 ケース /
+lock による二重実行排除 / `last_successful_refresh_at` と `last_error` を含む常設 status artifact。
+(**関連**: P46 = 本件の初期観測。Q-046 = 修復サイクル。)
+
+
 
 # ===== research_state.json =====
 
 ```json
 {
   "updated_at": "2026-09-13",
-  "updated_by": "Claude Opus 5 (RES-2026-09-N / NG-Q044)",
+  "updated_by": "Claude Opus 5 (RES-2026-09-O / Q-046 = LIVE feature freshness repair)",
   "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
   "architecture_version": "v2.1",
   "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
@@ -5270,7 +5506,8 @@ NG-Q042 の **P41(`LIVE_DORMANT`)は「エンジンが止まっている」形�
       "n": 33,
       "item": "Q-046 kyotei: 会場別 features.parquet 17 本が 2026-07-18〜24 で停止している (build_features_all_venues.py が自動実行に載っていない)。LENS は毎晩 288 レース publish しているが 17 会場 204 レースは 7 月下旬のレースの再掲載である。直すか",
       "recommend": "(a) GO・**motor 是正より優先**。motor バグは「288 レース中 24 レースで順位が違う」問題だが、本件は「17 会場 204 レースが 51 日前のレースそのもの」= 桁が違う。原因は単純 (cron 未登録)。**常駐ジョブの追加は承認必須のため AI 単独では実施しない**",
-      "status_20260913": "未裁定 (NG-Q044 で起票)"
+      "status_20260913": "未裁定 (NG-Q044 で起票)",
+      "status_resolved_20260913": "**裁定済・完了**。Owner 裁定 2026-09-13「Q-046 = STAGED GO」→ Stage A/B/C 完走・判定 FRESHNESS_REPAIRED。FRESH 24/24・negative control 5/5・consumer fail-closed・scheduler 接続済み。常駐ジョブ (nightly.sh 手順 3.1/3.2) の追加は Owner の明示 GO に基づく"
     },
     {
       "n": 34,
@@ -6148,6 +6385,50 @@ NG-Q042 の **P41(`LIVE_DORMANT`)は「エンジンが止まっている」形�
       "Q-047 (封印窓が週次 valid に飲み込まれている問題)",
       "Q-043 (条件付きエンジンの封印 or 修復・持ち越し)"
     ]
+  },
+  "res_2026_09_o": {
+    "cycle": "RES-2026-09-O",
+    "experiment_id": "NG-Q046",
+    "kind": "LIVE 運用障害の修復 (研究ではない)",
+    "incident": "INC-2026-0913-FEATURESTALE",
+    "verdict": "FRESHNESS_REPAIRED",
+    "frozen_plan": "research/Q046_FROZEN_PLAN.md (commit 16f37b8)",
+    "root_cause_primary": "E = scheduler 登録漏れ (24 会場版 parse/feature が crontab・launchd・system cron のいずれにも無い)",
+    "root_cause_secondary": "D = consumer fail-open / G = 無音",
+    "why_7_alive": "WAKE 6 会場シグナル (launchd 09:15) の副作用 + 住之江 nightly 専用経路",
+    "essence": "止まっていたのは feature 生成ではなく前段の per-venue parse",
+    "contract": "venue_feature_max_date >= venue_raw_max_date (開催スケジュール非依存)",
+    "results": {
+      "freshness": "FRESH 24/24",
+      "races_ingested": 5649,
+      "races_missing": 0,
+      "rows_recovered": 34702,
+      "gates": "S1-S9 全会場 PASS / S9 motor 不一致 0",
+      "idempotency": "既 FRESH 9 会場は再生成後 sha256 完全一致",
+      "negative_control": "5/5 DETECTED_BLOCKED",
+      "consumer_guard": "故障注入 2/2 PASS",
+      "double_run": "lock で排除を実証 (2 本目 rc=3)",
+      "rollback": "24/24 復元可能",
+      "kiryu_stale_loop": "対象日 2026-07-24 -> 2026-09-10 へ前進",
+      "lens_stale_rows": "204 行が fresh 出力で自然置換 (破壊的 delete 不要)"
+    },
+    "scope_discipline": {
+      "production_model_changed": false,
+      "motor_semantics_changed": false,
+      "feature_cols_changed": false,
+      "betting_logic_changed": false,
+      "sealed_holdout_used_for_research_eval": false,
+      "note": "9 月データは LIVE 運用の入力として取り込んだのみ。outcome 指標を 1 つも算出していない"
+    },
+    "known_gaps": [
+      "daily_signal_notify.py (WAKE 所有) は同じ lock を取らないので、手動同時起動時の同時 write は構造的には防げていない (10 時間離れており冪等)",
+      "guard の raw 正本は nightly 手順 8 更新のため手順 5 時点では 1 晩古い (契約上 RAW_MAX_LAG_DAYS=2 の内側)",
+      "会場別 features の motor 2 列は旧 semantics のまま = ARM B' 配置は未解消 (Q-045 の仕事)"
+    ],
+    "new_findings": [
+      "P48"
+    ],
+    "next": "Q-045 (Owner 裁定待ち)"
   }
 }
 ```
