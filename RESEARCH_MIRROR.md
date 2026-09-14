@@ -17,6 +17,40 @@
 - 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/q035_prior_parity_20260912.md`(今回)と `lane-reports/sia_v1_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
 - 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
 
+## §0. 2026-09-15 — Q-048 Stage B = **`Q048_STAGE_B_PASS`**(桐生 1 経路のみ)
+
+Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」を実行。
+**桐生の LIVE model は ARM C(是正 motor semantics)へ切り替わった。**
+住之江 / S-tier 22 本 / B2 / conditional / 他会場は**触っていない**。
+
+| 項目 | 値 |
+|---|---|
+| pointer | `lgbm_v1_kiryu_clean28_20260607_031831.txt` → **`lgbm_v1_kiryu_armC_20260915_034928.txt`** |
+| features | legacy `8cf27a2d…` → **physical `af9a5778…`** |
+| S9 gate(physical) | **PASS**(物理キー再計算と不一致 **0 行** / 旧キーとは **76,662 行**差 = 空振りでない) |
+| live smoke | **8 / 8 PASS** |
+| identity check | **PASS**(shadow と **abs_diff = 0.0**) |
+| rollback drill | **PASS**(ARM C → legacy → ARM C。再適用が **bit 一致**) |
+| production-critical test | **42 本 PASS** |
+
+| ID | 問い | 状態 |
+|---|---|---|
+| **Q-048 Stage B** | 桐生 1 経路の cutover | **完了 `Q048_STAGE_B_PASS`**。裁定不要 |
+| **Q-050(新規)** | **Stage D をどこまで広げるか** | **裁定待ち**。下記の 3 系統は影響構造が違うので**別々に**決めてほしい |
+| Q-047 | 封印期間が毎週の検証に食われている | 持ち越し |
+| Q-043 | 止まっている 2着3着エンジンを封印するか | 持ち越し |
+| Q-038 | B2 を是正版へ差し替えるか | 持ち越し(`DO_NOT_CUTOVER` 維持) |
+
+### Q-050 — 次に広げる対象(3 系統・別々に裁定してほしい)
+
+| 系統 | 本数 | 画面の変化(実測 or 見込み) | 追加で要ること | 推奨 |
+|---|---|---|---|---|
+| **① 住之江 root** | 1 | **1着本命 2.27%**(shadow 実測済) | nightly 手順 2/3 が所有するため build 経路が桐生と違う。**週次自動再学習との整合**が要る | **(a) 次に GO**。shadow 済・影響が一番小さい |
+| **② S-tier 22 会場** | 22 | **未測定**(shadow を各会場で取る必要あり) | **22 本すべて未再学習**。33 列 superset で桐生と schema が違う | **(b) まず 2〜3 会場で shadow を取ってから**。一括はしない |
+| **③ B2(production runtime r5)** | 1 | — | `DO_NOT_CUTOVER`(G-A4 FAIL)が覆っていない。**Q-038 の再審が先** | **(c) 今回は動かさない** |
+
+**桐生が PASS したことは ②③ の根拠にならない**(影響構造が違う)。
+
 ## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048)
 
 **Q-049 = `Q049_READY`(closure gate G-1〜G-8 すべて PASS)。**
@@ -784,21 +818,21 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: RES-2026-09-Q (Q-049 = Q049_READY / Q-048 = Stage A 完了・Stage B 未実行)(Q-049 完了。Q-048 は cutover 実行のみ Owner 承認待ち。production 無変更 (default=legacy / physical_builds=[]))
-- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・41943/49968 ページ・残り目安 1.09 日)
+- 実行中の実験: RES-2026-09-Q (Q-049 = Q049_READY / Q-048 Stage B = Q048_STAGE_B_PASS・桐生のみ)(桐生 = ARM C / physical で LIVE 稼働。他は全部 legacy。Stage C/D は Q-050 の裁定待ち)
+- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・42053/49968 ページ・残り目安 1.08 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-Q042**(2026-09-13・done_primary・—): 
 - **NG-Q044**(2026-09-13・done_primary・—): 
 - **NG-Q046**(2026-09-13・done・—): 
 - **NG-Q045**(2026-09-14・done・—): 
 - **NG-Q049**(2026-09-15・done・—): 
+- **NG-Q048B**(2026-09-15・done・—): 
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-14(**Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**) ## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048) **Q-049 = `Q049_READY`(closure gate G-1〜G-8 すべて PASS)。** **Q-048 = 計画凍結・候補同定・test・shadow 実測・smoke まで完了。`cutover は未実行`(実行 guard が遮断。Owner の明示承認待ち)。** **production は 1 行も変わっていない**(`MOTOR_SEMANTICS_DEFAULT = legacy` / `physical_builds = []` / pointer 24 本すべて cutover 前のまま)。 ### 最優先 —…
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-14(**Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**) ## §0. 2026-09-15 — Q-048 Stage B = **`Q048_STAGE_B_PASS`**(桐生 1 経路のみ) Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」を実行。 **桐生の LIVE model は ARM C(是正 motor semantics)へ切り替わった。** 住之江 / S-tier 22 本 / B2 / conditional / 他会場は**触っていない**。 | 項目 | 値 | |---|---| | pointer | `lgbm_v1_kiryu_clean28_20260607_031831.txt` → **`lgbm_v1_kir…
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -880,6 +914,7 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - #32 Q-045 kyotei: LIVE LGB 1着系 24 artifact の motor semantics を是正するか (案 R1 = src/features.py の group key 是正 → 既存の週次再学習に corrected モデルを…(推奨: (a) GO。ただし Q-038 と 1 本に統合して裁定する。**R1 単独では features.parquet を 2 系統に分岐させない限り LGB …)
 - #33 Q-046 kyotei: 会場別 features.parquet 17 本が 2026-07-18〜24 で停止している (build_features_all_venues.py が自動実行に載っていない)。LENS は毎晩 288 レース publi…(推奨: (a) GO・**motor 是正より優先**。motor バグは「288 レース中 24 レースで順位が違う」問題だが、本件は「17 会場 204 レースが…)
 - #34 Q-047 kyotei: 週次再学習の valid 窓が封印期間 (2026-09-01〜10-31) へ前進しており、住之江 LIVE artifact の valid 6,609 行のうち 572 行 (96 レース) が封印窓の中にある。best_i…(推奨: (a) valid を固定日付 (2026-08-31 まで) に切る、または (b) 封印の対象から本 model family を外すと明文化する。**ど…)
+- #38 Q-050 kyotei: Stage D をどこまで広げるか(①住之江 root / ②S-tier 22 会場 / ③B2)(推奨: **①だけ先に GO**(shadow 実測済 1着本命 2.27%・影響最小)。②は先に 2〜3 会場で shadow を取ってから。③は据置(Q-038 …)
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
@@ -1688,6 +1723,16 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 - 前々回更新: 2026-09-10 11:50(Ticket-Space 完走・P0 復旧・T3D3 設計)
 - 本ファイルは Canonical Research State の入口。機械可読版 = `research_state.json`。人間向け表示 = 研究コンソール(Artifact 494f0be1… — 本ファイル群から生成される view であり正本ではない)
 
+## §0. 2026-09-15 — Q-048 Stage B = `Q048_STAGE_B_PASS`(桐生 1 経路のみ)
+
+- **LIVE 状態**: 桐生 = **ARM C / physical**。**他はすべて legacy**(既定 `legacy` / allowlist = `["kiryu"]`)
+- **成果物**: `scripts/ops/q048_identity_check.py` / `artifacts/ops/{q048_stage_b_verdict,q048_identity_check_kiryu,q048_rollback_drill,q048_smoke_after}.json`
+- **test**: production-critical **42 本 PASS**
+- **新 findings**: **P54**(安全ゲートは意図した変更も弾く)/ **P55**(exit 0 は置換成功を意味しない)
+- **新 incident**: `INC-2026-0915-STAGEB-SKEW` = **CLOSED**(同一セッション内で検出・rollback・是正)
+- **次**: **Q-050**(Stage D の範囲。①住之江 root / ②S-tier 22 / ③B2 を別々に裁定)
+
+
 ## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048)
 
 **Q-049 = `Q049_READY`(closure gate G-1〜G-8 すべて PASS)。**
@@ -1861,6 +1906,41 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
 最新更新: 2026-09-14(**Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**)
+
+## §0. 2026-09-15 — Q-048 Stage B = **`Q048_STAGE_B_PASS`**(桐生 1 経路のみ)
+
+Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」を実行。
+**桐生の LIVE model は ARM C(是正 motor semantics)へ切り替わった。**
+住之江 / S-tier 22 本 / B2 / conditional / 他会場は**触っていない**。
+
+| 項目 | 値 |
+|---|---|
+| pointer | `lgbm_v1_kiryu_clean28_20260607_031831.txt` → **`lgbm_v1_kiryu_armC_20260915_034928.txt`** |
+| features | legacy `8cf27a2d…` → **physical `af9a5778…`** |
+| S9 gate(physical) | **PASS**(物理キー再計算と不一致 **0 行** / 旧キーとは **76,662 行**差 = 空振りでない) |
+| live smoke | **8 / 8 PASS** |
+| identity check | **PASS**(shadow と **abs_diff = 0.0**) |
+| rollback drill | **PASS**(ARM C → legacy → ARM C。再適用が **bit 一致**) |
+| production-critical test | **42 本 PASS** |
+
+### 最優先 — 次の 1 本
+
+**Q-050 の裁定**(Stage D をどこまで広げるか。①住之江 root / ②S-tier 22 / ③B2 を**別々に**)。
+推奨 = **①だけ先に GO**(shadow 実測済 2.27%・影響が最小)。②は先に 2〜3 会場の shadow を取る。③は据置。
+
+### AI 単独で進められるもの(承認不要)
+
+- 桐生の監視: 明朝の nightly 後に `PYTHONPATH=. .venv/bin/python scripts/ops/q048_smoke.py --label daily` を回し、
+  rollback trigger(§19)が 1 つも立っていないことを確認する
+- 毎晩 `scripts/ops/motor_cycle_maintain.py` が周期テーブルを維持(Q-049・接続済)
+
+### 異常時の手順(1 行)
+
+`sh scripts/ops/q048_rollback.sh kiryu` — pointer / allowlist / features を cutover 前へ戻す(往復実証済)。
+
+### 持ち越し
+
+Q-047 / Q-043 / Q-041 / Q-038 / G-A3 の食い違い / Q-036 / Q-006 / Q-007 a〜d
 
 ## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048)
 
@@ -2473,6 +2553,31 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 | 2026-09-11 | VENUE-V0(Venue Logic Research v0) | **VENUE_PARTIAL** | 16 チャネル中 **1 本のみ**が事前登録 6 条件を通過 = 旗艦 `T1 4→1`(全国 −1.153pp/SD・桐生 −2.47 〜 芦屋 −0.43・I²=0.60・置換 p=0.005・前後期 ρ=+0.75)。受益側は全国共通(I²≤0.13)。**24 会場ぶんの Venue 埋め込みは作らない** | registry VENUE-V0 done_primary / lane-reports/venue_logic_v0_20260911.md |
 | 2026-09-11 | 「天候が会場差を説明した」の取り下げ | **自己訂正(報告前)** | 会場気象 meta-regression は旗艦 τ² を 92% 減らしたが、**ランダム共変量プラセボでも平均 95% 減**(p=0.653)。n=24 の meta-regression では答えられない。プラセボを置かなければ誤報告していた → 規律として FINDINGS P18 に昇格 | venue_v0_supp.json / FINDINGS P18 |
 | 2026-09-11 | K 由来気象の LEAKAGE_COLS 未登録 | **Owner 裁定へ起票(Q-029)** | `src/model.py` の `LEAKAGE_COLS` に K 由来気象 4 列が無く `FEATURE_COLS` にそのまま入っている。**production の挙動に関わるため AI 単独で触らない** | FINDINGS P17 / DECISION_QUEUE Q-029 |
+
+## §0. 2026-09-15 — Q-048 Stage B = **`Q048_STAGE_B_PASS`**(桐生 1 経路のみ)
+
+Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」を実行。
+**桐生の LIVE model は ARM C(是正 motor semantics)へ切り替わった。**
+住之江 / S-tier 22 本 / B2 / conditional / 他会場は**触っていない**。
+
+| 項目 | 値 |
+|---|---|
+| pointer | `lgbm_v1_kiryu_clean28_20260607_031831.txt` → **`lgbm_v1_kiryu_armC_20260915_034928.txt`** |
+| features | legacy `8cf27a2d…` → **physical `af9a5778…`** |
+| S9 gate(physical) | **PASS**(物理キー再計算と不一致 **0 行** / 旧キーとは **76,662 行**差 = 空振りでない) |
+| live smoke | **8 / 8 PASS** |
+| identity check | **PASS**(shadow と **abs_diff = 0.0**) |
+| rollback drill | **PASS**(ARM C → legacy → ARM C。再適用が **bit 一致**) |
+| production-critical test | **42 本 PASS** |
+
+| 日付 | ID | 裁定 | 内容 |
+|---|---|---|---|
+| 2026-09-15 | Q-048 Stage B | **GO(範囲限定)** | Owner 裁定「Stage B = GO。**桐生 1 経路のみ**。住之江 / S-tier 22 / B2 / conditional / 他会場へは展開しない」 |
+| 2026-09-15 | Stage B 初回 | **ROLLED_BACK** | Q-046 の S9 gate が physical features の置換を阻止(**ゲートは正しく動作**)。cutover script が exit==0 を成功と誤読し pointer だけ動いた → 即 rollback・完全復元を確認 |
+| 2026-09-15 | S9 gate | **設計変更** | `S9_motor_semantics_unchanged` → **`S9_motor_semantics_matches_declared_mode`**。allowlist 外は従来どおり旧キー一致、allowlist 内は**物理キー一致 + 旧キーとの差が実在すること**。**弱めていない**(空振り切替の検出を追加) |
+| 2026-09-15 | cutover 成功判定 | **設計変更** | `exit == 0` → **`status == REFRESHED` かつ features sha256 変化 かつ failed gate 無し**。回帰テスト 2 本を追加 |
+| 2026-09-15 | Q-048 Stage B | **PASS = `Q048_STAGE_B_PASS`** | 桐生 pointer を ARM C へ。live smoke 8/8・identity check PASS(shadow と abs_diff 0.0)・rollback drill PASS(往復が bit 一致) |
+| 2026-09-15 | Stage C/D | **保留** | Owner 指示により**自動進行しない**。住之江 / S-tier 22 / B2 は影響構造が違うため個別裁定 |
 
 ## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048)
 
@@ -3223,6 +3328,15 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - 正直ラベルの規約: 小標本は「逸話」、確定オッズ由来は「diagnostic」、事後発見は「再登録要」と必ず付記。数値は出典ファイルから転記(捏造禁止・無い値は「記録なし」)
 - 分類: **UNTESTED**(未検証)/ **TESTING**(事前登録済みで検証枠にある)/ **SUPPORTED**(支持)/ **PARTIALLY SUPPORTED**(部分支持)/ **REJECTED**(否定・同一形の再提案禁止)
 
+## §0. 2026-09-15 — Q-048 Stage B = `Q048_STAGE_B_PASS`
+
+| ID | 仮説 | 判定 |
+|---|---|---|
+| **U-27** | 段階切替の allowlist を入れれば、既存の feature 検査はそのまま通る | **否定**。Q-046 の S9 は「motor semantics が変わっていないこと」を**無条件**に要求しており、意図した切替も弾いた(**P54**)。ゲート側を宣言モード対応にする必要がある |
+| **U-28** | `refresh_all_venue_features.py` の exit code 0 は置換成功を意味する | **否定**。1 会場 GATE_FAILED でも exit 0(**P55**)。成功判定は `status==REFRESHED` + sha256 変化で書く |
+| **U-29** | 同じ入力・同じ recipe なら ARM C の学習は決定的に再現する | **支持**。rollback drill で ARM C → legacy → ARM C を往復し、**model / features とも bit 一致** |
+
+
 ## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048)
 
 **Q-049 = `Q049_READY`(closure gate G-1〜G-8 すべて PASS)。**
@@ -3876,6 +3990,45 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - 主な出典: `docs/ARCHITECTURE_FREEZE_v2.1.md` / `lane-reports/nextgen_audit_20260903.md` / `lane-reports/hansei_sg_kiryu_20260903.md` / `lane-reports/e10_externality_20260904.md` / `docs/experiments/structured_order_model/results_summary.md` / `docs/MODEL_STRATEGY.md` / `artifacts/research/experiment_registry.jsonl` / `docs/ANALYSIS_BACKLOG.md`
 - 書式: 各発見は必ず3問に答える — **【分かったこと】結局何が分かったか /【予測に効くか】未来の予測に効くか /【市場】市場は既に知っているか**
 - 正直ラベルの規約: 小標本は「n=◯逸話」、確定オッズ由来の数値は「diagnostic(診断用・ROI主張不可)」を必ず付ける。無い値は「記録なし」と書く
+
+## §0. 2026-09-15 — Q-048 Stage B = **`Q048_STAGE_B_PASS`**(桐生 1 経路のみ)
+
+Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」を実行。
+**桐生の LIVE model は ARM C(是正 motor semantics)へ切り替わった。**
+住之江 / S-tier 22 本 / B2 / conditional / 他会場は**触っていない**。
+
+| 項目 | 値 |
+|---|---|
+| pointer | `lgbm_v1_kiryu_clean28_20260607_031831.txt` → **`lgbm_v1_kiryu_armC_20260915_034928.txt`** |
+| features | legacy `8cf27a2d…` → **physical `af9a5778…`** |
+| S9 gate(physical) | **PASS**(物理キー再計算と不一致 **0 行** / 旧キーとは **76,662 行**差 = 空振りでない) |
+| live smoke | **8 / 8 PASS** |
+| identity check | **PASS**(shadow と **abs_diff = 0.0**) |
+| rollback drill | **PASS**(ARM C → legacy → ARM C。再適用が **bit 一致**) |
+| production-critical test | **42 本 PASS** |
+
+### 新しい発見
+
+**P54 — 安全ゲートは「意図した変更」も等しく弾く。段階切替を入れるならゲート側も宣言対応にしないと詰む**【確定・2026-09-15・Q-048 Stage B】
+
+- 【分かったこと】Q-046 が入れた `S9_motor_semantics_unchanged` は「motor semantics が変わっていないこと」を
+  **無条件**に要求していた。これは Q-045 の混入を防ぐ正しい設計だったが、Q-048 の段階切替は
+  **意図的に motor semantics を変える**ため、同じゲートが**永久に切替を阻止する**。
+  Stage B 初回はここで GATE_FAILED になった(= ゲートは正しく働いた)。
+- 【予測に効くか】効かない。**運用設計の発見**。ゲートは「変わっていないこと」ではなく
+  **「宣言したモードと一致していること」**を見るべき。後者に変えると、
+  「意図した切替なのに空振りしている」というもう 1 つの失敗まで検出できる(実際に追加した)。
+- 【市場】無関係。
+
+**P55 — `exit code 0` は「その会場が置換された」ことを意味しない**【運用事実・2026-09-15・Q-048 Stage B】
+
+- 【分かったこと】`refresh_all_venue_features.py` は 1 会場が GATE_FAILED でも
+  **他会場を止めないために exit 0 を返す**。Stage B 初回はこれを成功と読み、
+  **features が legacy のままなのに pointer だけ ARM C へ動かして train/serve skew を作った**
+  (即座に検出・rollback・復元を確認)。
+- 【予測に効くか】効かない。**成功判定は「そのオブジェクトが実際に変わったか」で書く**という教訓。
+  `status == REFRESHED` かつ **sha256 が変化** かつ failed gate 無し、の 3 点に変更した。
+- 【市場】無関係。
 
 ## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048)
 
@@ -5076,7 +5229,7 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 ```json
 {
  "updated_at": "2026-09-15",
- "updated_by": "Claude (RES-2026-09-Q)",
+ "updated_by": "Claude (RES-2026-09-Q Stage B)",
  "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
  "architecture_version": "v2.1",
  "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
@@ -5091,8 +5244,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "id": "b2f41_prod2026_prod3",
   "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
  },
- "current_experiment": "RES-2026-09-Q (Q-049 = Q049_READY / Q-048 = Stage A 完了・Stage B 未実行)",
- "current_experiment_note": "Q-049 完了。Q-048 は cutover 実行のみ Owner 承認待ち。production 無変更 (default=legacy / physical_builds=[])",
+ "current_experiment": "RES-2026-09-Q (Q-049 = Q049_READY / Q-048 Stage B = Q048_STAGE_B_PASS・桐生のみ)",
+ "current_experiment_note": "桐生 = ARM C / physical で LIVE 稼働。他は全部 legacy。Stage C/D は Q-050 の裁定待ち",
  "experiments": {
   "registry_path": "artifacts/research/experiment_registry.jsonl",
   "adopted": [
@@ -5378,7 +5531,9 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "P20 wind_dir_code の train/serve skew で 2026-09-05 以降の本番予測が実測 ΔNLL +0.04447 劣化 (採用線の約 15 倍)・1 着予測の入替 14.84% (Q-029 監査の副産物 → Q-030)",
   "P21 研究の Raw-B2 参照 (p2 replica) が K 由来 post-race 気象で学習されていた。残差系の全実験に同じ留保が付く (→ Q-031 / NG-REF1)",
   "P52 410 日の期限切れ guard は遅行指標であり、交換〜guard 発動の窓では前周期の履歴が新品モーターに黙って混入する (→ Q-049 で PENDING_BOUNDARY を新設)",
-  "P53 cutover で画面が変わる量の主因は motor 是正ではなく model の古さだった (桐生: 再学習だけで 13.89% / 是正だけで 9.72%)"
+  "P53 cutover で画面が変わる量の主因は motor 是正ではなく model の古さだった (桐生: 再学習だけで 13.89% / 是正だけで 9.72%)",
+  "P54 安全ゲートは「意図した変更」も等しく弾く。段階切替を入れるならゲートを「変わっていないこと」から「宣言モードと一致すること」へ変える必要がある",
+  "P55 refresh_all_venue_features.py の exit code 0 は「その会場が置換された」ことを意味しない (1 会場 GATE_FAILED でも 0)"
  ],
  "rejected_findings": [
   "選手の動的状態 (直近 k 走 − 自己ベースライン系 6 本) は B2 残差を説明する → 否定 (NG-PDS1・well-powered null・増分上限 0.00013 = 採用線の 1/23)。静的 latent (B2H REJECT) に続き動的も否定 = 選手個人の情報路線は閉鎖",
@@ -5830,7 +5985,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "item": "Q-048 kyotei: motor semantics 是正候補 (ARM C) を production へ切り替えるか",
    "recommend": "(a) GO。ただし予告してから (案 R1 = src/features.py の既定を physical にし週次再学習に作らせる)",
    "status_20260914": "未裁定。**Q-049 とセットで裁定すべき**。根拠は精度ではなく契約と実装の一致 (§17)。画面の 1着本命は住之江 1.9% / 桐生 8.7% 入れ替わる",
-   "status_20260915": "**裁定済・実行のみ未了**。Stage A 完走 (Q048_CUTOVER_PLAN 凍結 / 候補同定 / production-critical test 39 本 PASS / preflight PASS / shadow 実測 桐生 6.94%・住之江 2.27% / smoke(before) PASS / rollback script + sandbox 往復)。**Stage B の実行が guard に遮断されたため Owner の明示的な実行承認が要る**。pointer は 1 本も動いていない"
+   "status_20260915": "**裁定済・実行のみ未了**。Stage A 完走 (Q048_CUTOVER_PLAN 凍結 / 候補同定 / production-critical test 39 本 PASS / preflight PASS / shadow 実測 桐生 6.94%・住之江 2.27% / smoke(before) PASS / rollback script + sandbox 往復)。**Stage B の実行が guard に遮断されたため Owner の明示的な実行承認が要る**。pointer は 1 本も動いていない",
+   "status_20260915b": "**Stage B 完了 = `Q048_STAGE_B_PASS`**(桐生 1 経路のみ)。pointer lgbm_v1_kiryu_clean28_20260607_031831 → lgbm_v1_kiryu_armC_20260915_034928。live smoke 8/8・identity check PASS(shadow と abs_diff 0.0)・rollback drill PASS(往復 bit 一致)。初回は S9 gate に阻まれ pointer だけ動く skew を作ったが即 rollback・完全復元し、S9 を宣言モード対応へ強化 + 成功判定を修正 + 回帰テスト追加のうえ再実行した。**Stage C/D は自動進行せず Q-050 で別途裁定**"
   },
   {
    "n": 37,
@@ -6046,6 +6202,13 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "item": "Q-047 kyotei: 週次再学習の valid 窓が封印期間 (2026-09-01〜10-31) へ前進しており、住之江 LIVE artifact の valid 6,609 行のうち 572 行 (96 レース) が封印窓の中にある。best_iter と週次 valid metric が封印窓の着順に依存している = この model family について封印窓は既に OOS ではない。どうするか",
    "recommend": "(a) valid を固定日付 (2026-08-31 まで) に切る、または (b) 封印の対象から本 model family を外すと明文化する。**どちらでも良いが「封印しているつもりで消費している」状態を放置しない**。推奨 = (a)",
    "status_20260913": "未裁定 (NG-Q044 で起票)"
+  },
+  {
+   "n": 38,
+   "item": "Q-050 kyotei: Stage D をどこまで広げるか(①住之江 root / ②S-tier 22 会場 / ③B2)",
+   "recommend": "**①だけ先に GO**(shadow 実測済 1着本命 2.27%・影響最小)。②は先に 2〜3 会場で shadow を取ってから。③は据置(Q-038 の再審が先)",
+   "reason": "桐生 PASS は ②③ の根拠にならない。①は build 経路が nightly 手順 2/3 所有で週次自動再学習との整合が要る。②は 22 本すべて未再学習で 33 列 superset。③は DO_NOT_CUTOVER が覆っていない",
+   "status_20260915": "未裁定 (Q-048 Stage B 完了後に起票)"
   }
  ],
  "w2_directives_owner_20260904": {
