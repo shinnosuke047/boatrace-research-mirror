@@ -1,5 +1,5 @@
 # KYOTEI-AI RESEARCH MIRROR(外部AI共有用・読み取り専用)
-生成日: 2026-09-14 / 正本: kyotei-ai リポジトリ /research/ 配下(本ファイルはその連結コピー)
+生成日: 2026-09-15 / 正本: kyotei-ai リポジトリ /research/ 配下(本ファイルはその連結コピー)
 注意: 数値の正直ルール(小標本=断定禁止・確定オッズ由来=diagnostic)を前提に読むこと。本文書には市場の歪みの所在(研究エッジ)が含まれる — 取り扱いは Owner(shin)の指示に従う。
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
@@ -16,6 +16,33 @@
 - 前々回更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
 - 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/q035_prior_parity_20260912.md`(今回)と `lane-reports/sia_v1_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
 - 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
+
+## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048)
+
+**Q-049 = `Q049_READY`(closure gate G-1〜G-8 すべて PASS)。**
+**Q-048 = 計画凍結・候補同定・test・shadow 実測・smoke まで完了。`cutover は未実行`(実行 guard が遮断。Owner の明示承認待ち)。**
+**production は 1 行も変わっていない**(`MOTOR_SEMANTICS_DEFAULT = legacy` / `physical_builds = []` / pointer 24 本すべて cutover 前のまま)。
+
+| ID | 問い | 状態 |
+|---|---|---|
+| **Q-049** | 交換日の表を自動で追記する仕組みを入れるか | **GO → 完了(`Q049_READY`)**。裁定不要 |
+| **Q-048** | 是正版を本番に切り替えるか | **GO 済。ただし実行が guard に止められた。** `sh` 1 本ぶんの**実行承認**だけが要る(下記) |
+| Q-047 | 封印期間が毎週の検証に食われている | 持ち越し(Owner 指示 §25 により今回変更しない) |
+| Q-043 | 止まっている 2着3着エンジンを封印するか | 持ち越し(Owner 指示 §24 により今回触らない) |
+| Q-038 | B2 を是正版へ差し替えるか | 持ち越し(`DO_NOT_CUTOVER` 維持。ARM T-B2 の再審材料あり) |
+
+### いま Owner に要るもの(1 つだけ)
+
+**Q-048 Stage B の実行承認。** コマンドは 1 本:
+
+```
+PYTHONPATH=. .venv/bin/python scripts/ops/q048_cutover.py --venues kiryu
+```
+
+- 何が起きるか: 桐生の features を是正版で作り直し、是正版で学習した model へ pointer を張り替える
+- 画面の変化: 桐生の **1着本命が 100 レース中 約 7 レースで入れ替わる**(実測 6.94%)
+- 戻し方: `sh scripts/ops/q048_rollback.sh kiryu`(allowlist を空へ + pointer 復元 + features 再生成)
+- **住之江・他 22 会場は動かない**(Stage D は桐生の live smoke が clean になってから)
 
 ## 0. 今回(2026-09-14)— **直し方そのものが間違っていた。直す対象は 1 列だった**
 
@@ -748,7 +775,7 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 
 ---
 # §16 サマリ層(機械生成 — 編集しない・正本は下部の連結全文)
-生成日: 2026-09-14 / 生成元: research_state.json + experiment_registry.jsonl + NEXT_ACTIONS.md + DECISION_LOG.md + DATA_STATUS.md + FINDINGS.md
+生成日: 2026-09-15 / 生成元: research_state.json + experiment_registry.jsonl + NEXT_ACTIONS.md + DECISION_LOG.md + DATA_STATUS.md + FINDINGS.md
 
 ## 1. Current Production(現在の本番)
 - Best = Baseline = **`b2f41_prod2026_prod3`**(オッズ入力なし)
@@ -757,21 +784,21 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: なし(なし。RES-2026-09-P / NG-Q045 完走 = Q045_REPAIR_READY。AI 単独で進められる作業は残っていない (cutover = Q-048 / 常駐ジョブ変更 = Q-049 はどちらも承認必須))
-- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・33713/49968 ページ・残り目安 2.21 日)
+- 実行中の実験: RES-2026-09-Q (Q-049 = Q049_READY / Q-048 = Stage A 完了・Stage B 未実行)(Q-049 完了。Q-048 は cutover 実行のみ Owner 承認待ち。production 無変更 (default=legacy / physical_builds=[]))
+- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・41943/49968 ページ・残り目安 1.09 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-Q040**(2026-09-13・done_primary・—): E10 P1 代理モデルにも同じ motor bug が実在した (BOAT_COLS 26 列のうち 2 列・6.7 年 / 2,134,383 行 / 356,100 レース)。正しい物理個体キーで作り直すと代理モデルは素直に良くなった (logloss −0.00057 / AUC +0.0010・6 年すべて改善) が、残差の順位はほぼ動かず (Spearman 0.99598・符号反転 0.163%)、6 研究すべてで verdict ラベルは…
 - **NG-Q042**(2026-09-13・done_primary・—): 
 - **NG-Q044**(2026-09-13・done_primary・—): 
 - **NG-Q046**(2026-09-13・done・—): 
 - **NG-Q045**(2026-09-14・done・—): 
+- **NG-Q049**(2026-09-15・done・—): 
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-14(**Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**) ## 今サイクルで確定したこと(RES-2026-09-P / NG-Q045) - **最終ラベル = `Q045_REPAIR_READY`。lgb_candidate = `C`(corrected motor only)。** **cutover は実施していない**(§0-2 で禁止・Owner の別 GO = **Q-048**)。 - **是正対象は実質 1 列だった**(ablation M1 / M2 で分離)。住之江 seed42 で **M2(`motor_race_count_prior` 単独)+0.011249 ≒ C 全体 +0.011116 / M1(`motor_recent20_top2` 単独)−0.000723…
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-14(**Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**) ## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048) **Q-049 = `Q049_READY`(closure gate G-1〜G-8 すべて PASS)。** **Q-048 = 計画凍結・候補同定・test・shadow 実測・smoke まで完了。`cutover は未実行`(実行 guard が遮断。Owner の明示承認待ち)。** **production は 1 行も変わっていない**(`MOTOR_SEMANTICS_DEFAULT = legacy` / `physical_builds = []` / pointer 24 本すべて cutover 前のまま)。 ### 最優先 —…
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -1661,6 +1688,21 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 - 前々回更新: 2026-09-10 11:50(Ticket-Space 完走・P0 復旧・T3D3 設計)
 - 本ファイルは Canonical Research State の入口。機械可読版 = `research_state.json`。人間向け表示 = 研究コンソール(Artifact 494f0be1… — 本ファイル群から生成される view であり正本ではない)
 
+## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048)
+
+**Q-049 = `Q049_READY`(closure gate G-1〜G-8 すべて PASS)。**
+**Q-048 = 計画凍結・候補同定・test・shadow 実測・smoke まで完了。`cutover は未実行`(実行 guard が遮断。Owner の明示承認待ち)。**
+**production は 1 行も変わっていない**(`MOTOR_SEMANTICS_DEFAULT = legacy` / `physical_builds = []` / pointer 24 本すべて cutover 前のまま)。
+
+- **cycle**: `RES-2026-09-Q`(Q-049 → Q-048)。Q-049 = **完了**、Q-048 = **Stage A 完了 / Stage B 未実行**
+- **成果物**: `research/Q049_FROZEN_PLAN.md` / `research/Q048_CUTOVER_PLAN.md` / `src/motor_cycle.py` /
+  `scripts/ops/{motor_cycle_maintain,q049_gate,q048_shadow,q048_smoke,q048_cutover}.py` /
+  `scripts/ops/q048_rollback.sh` / `tests/{test_motor_cycle_lifecycle,test_q048_cutover_rollback}.py` /
+  `configs/{motor_cycle_registry.json,motor_cycle_audit.jsonl,motor_semantics_rollout.json}` /
+  `artifacts/ops/{q049_gate,q048_shadow_kiryu,q048_shadow_suminoe,q048_smoke_before,q048_cutover_manifest,q048_closure_scan}.json`
+- **test**: production-critical **39 本 PASS**(motor semantics 11 / cycle lifecycle 16 / cutover rollback 5 / leakage guard 7)
+- **未了**: Q-048 Stage B〜D(cutover 実行)。**Owner の明示承認が要る**
+
 ## 現在の研究フェーズ
 
 **2026-09-13 05:19: 今そこで動いている LightGBM 1着モデルを測った(LIVE exposure measurement)。**
@@ -1819,6 +1861,27 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
 最新更新: 2026-09-14(**Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**)
+
+## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048)
+
+**Q-049 = `Q049_READY`(closure gate G-1〜G-8 すべて PASS)。**
+**Q-048 = 計画凍結・候補同定・test・shadow 実測・smoke まで完了。`cutover は未実行`(実行 guard が遮断。Owner の明示承認待ち)。**
+**production は 1 行も変わっていない**(`MOTOR_SEMANTICS_DEFAULT = legacy` / `physical_builds = []` / pointer 24 本すべて cutover 前のまま)。
+
+### 最優先 — 次の 1 本
+
+1. **Q-048 Stage B の実行承認**(`scripts/ops/q048_cutover.py --venues kiryu`)。**AI 単独では実行できない**
+2. Stage C = 実行直後の live smoke(`scripts/ops/q048_smoke.py --label after`)
+3. Stage D = 住之江 root → S-tier 22 会場へ順次展開(Stage C が clean になってから)
+
+### AI 単独で進められるもの(承認不要)
+
+- 毎晩 `scripts/ops/motor_cycle_maintain.py` が走り、交換周期テーブルを自動で維持する(接続済)
+- 丸亀の再開待ち(**2026-10-18 まで 33 日**)。再開日に reset 痕跡が出れば自動追記される
+
+### 持ち越し
+
+Q-047 / Q-043 / Q-041 / Q-038 / G-A3 の食い違い / Q-036 / Q-006 / Q-007 a〜d
 
 ## 今サイクルで確定したこと(RES-2026-09-P / NG-Q045)
 
@@ -2410,6 +2473,25 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 | 2026-09-11 | VENUE-V0(Venue Logic Research v0) | **VENUE_PARTIAL** | 16 チャネル中 **1 本のみ**が事前登録 6 条件を通過 = 旗艦 `T1 4→1`(全国 −1.153pp/SD・桐生 −2.47 〜 芦屋 −0.43・I²=0.60・置換 p=0.005・前後期 ρ=+0.75)。受益側は全国共通(I²≤0.13)。**24 会場ぶんの Venue 埋め込みは作らない** | registry VENUE-V0 done_primary / lane-reports/venue_logic_v0_20260911.md |
 | 2026-09-11 | 「天候が会場差を説明した」の取り下げ | **自己訂正(報告前)** | 会場気象 meta-regression は旗艦 τ² を 92% 減らしたが、**ランダム共変量プラセボでも平均 95% 減**(p=0.653)。n=24 の meta-regression では答えられない。プラセボを置かなければ誤報告していた → 規律として FINDINGS P18 に昇格 | venue_v0_supp.json / FINDINGS P18 |
 | 2026-09-11 | K 由来気象の LEAKAGE_COLS 未登録 | **Owner 裁定へ起票(Q-029)** | `src/model.py` の `LEAKAGE_COLS` に K 由来気象 4 列が無く `FEATURE_COLS` にそのまま入っている。**production の挙動に関わるため AI 単独で触らない** | FINDINGS P17 / DECISION_QUEUE Q-029 |
+
+## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048)
+
+**Q-049 = `Q049_READY`(closure gate G-1〜G-8 すべて PASS)。**
+**Q-048 = 計画凍結・候補同定・test・shadow 実測・smoke まで完了。`cutover は未実行`(実行 guard が遮断。Owner の明示承認待ち)。**
+**production は 1 行も変わっていない**(`MOTOR_SEMANTICS_DEFAULT = legacy` / `physical_builds = []` / pointer 24 本すべて cutover 前のまま)。
+
+| 日付 | ID | 裁定 | 内容 |
+|---|---|---|---|
+| 2026-09-15 | Q-049 | **GO** | Owner 裁定「Q-049 = GO。**Q-048 の HARD PREREQUISITE**」 |
+| 2026-09-15 | Q-048 | **GO(条件付き)** | 同「Q-048 = GO。ただし Q-049 が closure gate を通らなければ cutover 禁止」 |
+| 2026-09-15 | Q-049 closure | **PASS = `Q049_READY`** | G-1〜G-8 すべて PASS(`artifacts/ops/q049_gate.json`) |
+| 2026-09-15 | Q-049 §3 | **設計決定** | status に **`PENDING_BOUNDARY` を新設**。410 日 guard は遅行指標で、交換から guard 発動までの窓が silent contamination になる(**P52**) |
+| 2026-09-15 | Q-049 §3 | **設計決定** | 中立化の範囲を非対称にする。STALE = 会場全行(Q-045 の凍結挙動を維持)/ PENDING = **候補日以降の行のみ**(それより前は割り当てが変わらないため捨てない) |
+| 2026-09-15 | Q-049 §4-2 | **設計決定** | 自動追記は **HIGH 確度のみ**(`zfrac>=0.90 & mean<5.0` が 2 開催日以上)。AMBIGUOUS は追記せず fail-closed。較正根拠 = 6.7 年 × 24 会場で**誤検出 0**、137 境界の replay で**日付ずれ 0** |
+| 2026-09-15 | Q-049 §2 | **設計決定** | 正本を `configs/motor_cycle_boundaries.json` 1 本に固定し、writer を `scripts/ops/motor_cycle_maintain.py` のみにする。schema は**変えない**(既存 reader を壊さない)。OCC + atomic replace + append-only audit |
+| 2026-09-15 | Q-048 §11-2 | **設計決定** | **既定を physical にしない。** build 単位 allowlist(`configs/motor_semantics_rollout.json`)で切り替える。既定変更は 23 artifact を一斉に train/serve skew にする = 却下済みの案 R2 の自作になるため |
+| 2026-09-15 | Q-048 §12 | **設計決定** | cutover 対象 = LGB 1着系 P 層 2 本のみ。B2 / S-tier 22 / 条件付きエンジン / ARM T は**今回入れない** |
+| 2026-09-15 | Q-048 Stage B | **未実行(BLOCKED)** | 実行 guard が production deploy を遮断。**pointer は 1 本も動いていない。Owner の明示承認待ち** |
 
 ## 未裁定(open)— 裁定が出たら上表へ追記する
 
@@ -3141,6 +3223,19 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - 正直ラベルの規約: 小標本は「逸話」、確定オッズ由来は「diagnostic」、事後発見は「再登録要」と必ず付記。数値は出典ファイルから転記(捏造禁止・無い値は「記録なし」)
 - 分類: **UNTESTED**(未検証)/ **TESTING**(事前登録済みで検証枠にある)/ **SUPPORTED**(支持)/ **PARTIALLY SUPPORTED**(部分支持)/ **REJECTED**(否定・同一形の再提案禁止)
 
+## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048)
+
+**Q-049 = `Q049_READY`(closure gate G-1〜G-8 すべて PASS)。**
+**Q-048 = 計画凍結・候補同定・test・shadow 実測・smoke まで完了。`cutover は未実行`(実行 guard が遮断。Owner の明示承認待ち)。**
+**production は 1 行も変わっていない**(`MOTOR_SEMANTICS_DEFAULT = legacy` / `physical_builds = []` / pointer 24 本すべて cutover 前のまま)。
+
+| ID | 仮説 | 判定 |
+|---|---|---|
+| **U-23** | 交換周期テーブルの陳腐化は 410 日 guard で防げる | **否定**。guard は遅行指標。交換〜guard 発動の窓が無防備(**P52**)。対策 = `PENDING_BOUNDARY` |
+| **U-24** | フリート平均 `motor_2rate` の 0 化で交換日を自動判定できる | **支持**。6.7 年 × 24 会場で**誤検出 0**、137 境界の replay で**日付ずれ 0**、検出 130 / 137(未検出 7 は 2023 のデータ欠測) |
+| **U-25** | production の画面が変わる主因は motor 是正である | **否定**。桐生では**再学習だけで 13.89%** 動き、**是正だけでは 9.72%**(**P53**) |
+| **U-26** | 既定を physical にすれば cutover は完了する | **否定**。LIVE 24 artifact のうち週次自動再学習は 1 本だけ。既定変更は 23 本を train/serve skew にする(却下済み案 R2 の自作)。対策 = build 単位 allowlist |
+
 ---
 
 ## 一覧表(30秒版 — shin の感覚はどこまで確認されたか)
@@ -3781,6 +3876,35 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - 主な出典: `docs/ARCHITECTURE_FREEZE_v2.1.md` / `lane-reports/nextgen_audit_20260903.md` / `lane-reports/hansei_sg_kiryu_20260903.md` / `lane-reports/e10_externality_20260904.md` / `docs/experiments/structured_order_model/results_summary.md` / `docs/MODEL_STRATEGY.md` / `artifacts/research/experiment_registry.jsonl` / `docs/ANALYSIS_BACKLOG.md`
 - 書式: 各発見は必ず3問に答える — **【分かったこと】結局何が分かったか /【予測に効くか】未来の予測に効くか /【市場】市場は既に知っているか**
 - 正直ラベルの規約: 小標本は「n=◯逸話」、確定オッズ由来の数値は「diagnostic(診断用・ROI主張不可)」を必ず付ける。無い値は「記録なし」と書く
+
+## §0. 2026-09-15 — RES-2026-09-Q(Q-049 → Q-048)
+
+**Q-049 = `Q049_READY`(closure gate G-1〜G-8 すべて PASS)。**
+**Q-048 = 計画凍結・候補同定・test・shadow 実測・smoke まで完了。`cutover は未実行`(実行 guard が遮断。Owner の明示承認待ち)。**
+**production は 1 行も変わっていない**(`MOTOR_SEMANTICS_DEFAULT = legacy` / `physical_builds = []` / pointer 24 本すべて cutover 前のまま)。
+
+### 新しい発見
+
+**P52 — 「期限切れ guard」は遅行指標であり、それだけでは意味の誤りを防げない**【確定・2026-09-15・Q-049】
+
+- 【分かったこと】Q-045 が置いた 410 日 grace guard は「テーブルが古びた日」に発動する。
+  しかし**物理的な交換は、その日よりずっと前に起きる**。丸亀の実測では交換は毎年 9 月
+  (2023-09-25 / 2024-09-26 / 2025-09-03)で、guard 発動予定は **2026-10-18**。
+  その間の数週間、**新品モーターが前周期の履歴を引き継いだまま黙って serve される**。
+- 【予測に効くか】効く。ただし効き方は「精度が上がる」ではなく「**間違った履歴が混入する窓を閉じる**」。
+  対策として検出ベースの先行 guard(`PENDING_BOUNDARY`)を新設した。
+- 【市場】市場は既に知っている(交換日は公表情報)。ここは edge ではなく**衛生**の話。
+
+**P53 — 画面が変わる量の主因は「意味の是正」ではなく「model が古いこと」だった**【確定・2026-09-15・Q-048 shadow】
+
+- 【分かったこと】桐生 72 レースの shadow で 1着本命の入替率を 3 通りに分解した:
+  ①LIVE(2026-06-07 学習)→ ARM C = **6.94%** ②同日学習の ARM O → ARM C(**是正だけ**)= **9.72%**
+  ③LIVE → 同日学習の ARM O(**再学習だけ**)= **13.89%**。
+  **再学習だけで動く量(13.89%)のほうが、是正だけで動く量(9.72%)より大きい。**
+  住之江 132 レースでは ①2.27% ②3.03% と、どちらもさらに小さい。
+- 【予測に効くか】「是正したから当たるようになる」とは**言えない**(outcome は §21 により一切見ていない)。
+  言えるのは「画面の変化を『motor 是正のせい』と一括りにすると誤読になる」こと。
+- 【市場】無関係。**報告の作法**に関する発見。
 
 ---
 
@@ -4951,8 +5075,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 
 ```json
 {
- "updated_at": "2026-09-14",
- "updated_by": "Claude (RES-2026-09-P / NG-Q045)",
+ "updated_at": "2026-09-15",
+ "updated_by": "Claude (RES-2026-09-Q)",
  "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
  "architecture_version": "v2.1",
  "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
@@ -4967,8 +5091,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "id": "b2f41_prod2026_prod3",
   "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
  },
- "current_experiment": null,
- "current_experiment_note": "なし。RES-2026-09-P / NG-Q045 完走 = Q045_REPAIR_READY。AI 単独で進められる作業は残っていない (cutover = Q-048 / 常駐ジョブ変更 = Q-049 はどちらも承認必須)",
+ "current_experiment": "RES-2026-09-Q (Q-049 = Q049_READY / Q-048 = Stage A 完了・Stage B 未実行)",
+ "current_experiment_note": "Q-049 完了。Q-048 は cutover 実行のみ Owner 承認待ち。production 無変更 (default=legacy / physical_builds=[])",
  "experiments": {
   "registry_path": "artifacts/research/experiment_registry.jsonl",
   "adopted": [
@@ -5252,7 +5376,9 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "P18 (2026-09-11・VENUE-V0 補助診断): n=24 の meta-regression では『天候が会場差を説明したか』に答えられない。旗艦 τ² は 92% 減るがランダム共変量プラセボでも平均 95% 減 (p=0.653)。同種分析にはプラセボ併記を義務化",
   "P19 会場差は B2 残差に残っていない + 理想的に知れても採用線に届かない (NG-VA1 2026-09-12): 残差 τ=0・Q p=0.744・I²=0.000・frozen 順位との ρ=−0.143。oracle 上限の venue 増分 0.000225 (frozen dev) / 0.000861 (会場自由・過学習フロア 0.000804) / cross-fit 0.000144 = 採用線の 1/13〜1/21。model-side λ=1.072±0.270 (p=0.00065) = B2 の予測が会場差をほぼ再現済み。国全体の攻撃→イン被害は残差に生存 (−0.934±0.204・exh120 後も −0.904±0.203 = 展示層は吸収しない) だが national 単独の上限も 0.000381。**留保: 残差スロープ経路は検出力不足 (SE(γ)=0.475・99% CI が +0.97 まで届く)。凍結時に宣言し G6 を NULL 阻止ゲートとして定義したため機械判定は PARTIAL**",
   "P20 wind_dir_code の train/serve skew で 2026-09-05 以降の本番予測が実測 ΔNLL +0.04447 劣化 (採用線の約 15 倍)・1 着予測の入替 14.84% (Q-029 監査の副産物 → Q-030)",
-  "P21 研究の Raw-B2 参照 (p2 replica) が K 由来 post-race 気象で学習されていた。残差系の全実験に同じ留保が付く (→ Q-031 / NG-REF1)"
+  "P21 研究の Raw-B2 参照 (p2 replica) が K 由来 post-race 気象で学習されていた。残差系の全実験に同じ留保が付く (→ Q-031 / NG-REF1)",
+  "P52 410 日の期限切れ guard は遅行指標であり、交換〜guard 発動の窓では前周期の履歴が新品モーターに黙って混入する (→ Q-049 で PENDING_BOUNDARY を新設)",
+  "P53 cutover で画面が変わる量の主因は motor 是正ではなく model の古さだった (桐生: 再学習だけで 13.89% / 是正だけで 9.72%)"
  ],
  "rejected_findings": [
   "選手の動的状態 (直近 k 走 − 自己ベースライン系 6 本) は B2 残差を説明する → 否定 (NG-PDS1・well-powered null・増分上限 0.00013 = 採用線の 1/23)。静的 latent (B2H REJECT) に続き動的も否定 = 選手個人の情報路線は閉鎖",
@@ -5703,13 +5829,15 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "n": 36,
    "item": "Q-048 kyotei: motor semantics 是正候補 (ARM C) を production へ切り替えるか",
    "recommend": "(a) GO。ただし予告してから (案 R1 = src/features.py の既定を physical にし週次再学習に作らせる)",
-   "status_20260914": "未裁定。**Q-049 とセットで裁定すべき**。根拠は精度ではなく契約と実装の一致 (§17)。画面の 1着本命は住之江 1.9% / 桐生 8.7% 入れ替わる"
+   "status_20260914": "未裁定。**Q-049 とセットで裁定すべき**。根拠は精度ではなく契約と実装の一致 (§17)。画面の 1着本命は住之江 1.9% / 桐生 8.7% 入れ替わる",
+   "status_20260915": "**裁定済・実行のみ未了**。Stage A 完走 (Q048_CUTOVER_PLAN 凍結 / 候補同定 / production-critical test 39 本 PASS / preflight PASS / shadow 実測 桐生 6.94%・住之江 2.27% / smoke(before) PASS / rollback script + sandbox 往復)。**Stage B の実行が guard に遮断されたため Owner の明示的な実行承認が要る**。pointer は 1 本も動いていない"
   },
   {
    "n": 37,
    "item": "Q-049 kyotei: 交換周期境界テーブルの自動追記 (append-only) を入れるか",
    "recommend": "(a) GO。nightly に 1 手順追加",
-   "status_20260914": "未裁定。入れないと 2026-10-18 に丸亀の motor 2 列が中立化される (Q-048 を GO した場合)"
+   "status_20260914": "未裁定。入れないと 2026-10-18 に丸亀の motor 2 列が中立化される (Q-048 を GO した場合)",
+   "status_20260915": "**裁定済・完了**。Owner 裁定 2026-09-15「Q-049 = GO / Q-048 の HARD PREREQUISITE」→ closure gate G-1〜G-8 全 PASS = `Q049_READY`。正本 1 本化 + 検出 (誤検出 0 / 日付ずれ 0) + PENDING/STALE/UNKNOWN/REGISTRY の 4 段 fail-closed + append-only 監査 + rollback 実証 + nightly 手順 3.3/8a・weekly 監査へ接続。production 出力は sha256 一致で無変化"
   },
   {
    "n": 31,
