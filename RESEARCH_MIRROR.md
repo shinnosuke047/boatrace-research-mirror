@@ -1,5 +1,5 @@
 # KYOTEI-AI RESEARCH MIRROR(外部AI共有用・読み取り専用)
-生成日: 2026-09-15 / 正本: kyotei-ai リポジトリ /research/ 配下(本ファイルはその連結コピー)
+生成日: 2026-09-18 / 正本: kyotei-ai リポジトリ /research/ 配下(本ファイルはその連結コピー)
 注意: 数値の正直ルール(小標本=断定禁止・確定オッズ由来=diagnostic)を前提に読むこと。本文書には市場の歪みの所在(研究エッジ)が含まれる — 取り扱いは Owner(shin)の指示に従う。
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
@@ -16,6 +16,41 @@
 - 前々回更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
 - 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/q035_prior_parity_20260912.md`(今回)と `lane-reports/sia_v1_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
 - 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
+
+## §0. 2026-09-18 — Q-050 ①住之江 root = **`Q050_SUMINOE_READY`**(cutover は未実行)
+
+Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)は HOLD**」を完遂。
+**production は 1 つも変えていない**(既定 `legacy` / `physical_builds=["kiryu"]` / 住之江 pointer `lgbm_v1_20260913_020022` 不動)。
+
+| 住之江固有の 3 問題 | 解消 |
+|---|---|
+| A. build 経路が allowlist を見ない | `src.features.main()` が `rollout_mode_for("suminoe")` を見る |
+| B. 住之江だけ S1〜S9 ゲート外 | `scripts/ops/q050_suminoe_features.py`(atomic build + S1〜S9)。**Q-046 の 24 会場設計は未変更** |
+| C. weekly retrain が無人で pointer を戻す | 再学習直後に `assert_model_matches_build` で検証し、食い違えば **pointer を自動復旧** |
+
+### 画面がどう変わるか(住之江 156 レース・**outcome 不使用**)
+
+| 指標 | ① LIVE → ARM C(実際に変わる量) | ② 是正だけ | ③ 再学習だけ |
+|---|---|---|---|
+| **1着本命の入替** | **2.56%**(4 / 156) | 1.92% | 3.85% |
+| 上位 2 艇の集合が変わる | **10.90%** | 11.54% | 11.54% |
+| 6 艇分布の TVD(平均) | **0.0700** | 0.0579 | 0.0450 |
+| 3連単 120 通りの TVD(平均) | **0.1670** | 0.1467 | 0.0835 |
+| **3連単 1番手の入替** | **28.21%** | 27.56% | 27.56% |
+| 3連単 上位 3 点の集合が変わる | **50.64%** | 54.49% | 48.08% |
+
+**桐生(6.94%)より 1着本命の変化は小さい**(2.56%)。ただし 3連単の並びは 28% のレースで 1 番手が入れ替わる。
+
+| ID | 問い | 状態 |
+|---|---|---|
+| **Q-050 ① 前半** | 住之江固有経路の修復 + recipe 再現 + shadow | **完了 `Q050_SUMINOE_READY`**。裁定不要 |
+| **Q-050 ① Task 7** | 住之江の**実 cutover** | **実行承認待ち**。`scripts/ops/q048_cutover.py --venues suminoe` / 戻し `sh scripts/ops/q048_rollback.sh suminoe` |
+| Q-050 ② S-tier 22 | — | 未着手(別プラン。22 本すべて未再学習) |
+| Q-050 ③ B2 | — | 据置(`DO_NOT_CUTOVER` 未撤回・Q-038 の再審が先) |
+| Q-047 / Q-043 / Q-038 ほか | — | 持ち越し |
+
+**Task 7 の実行前に決めてほしいこと**: 住之江の学習窓を **`<= 2026-08-31`**(桐生 Stage B と同じ・封印窓を触らない)に
+するか、**production 同等の全期間**にするか。前者は封印に忠実だが 2 週間ぶん新しいデータを捨てる。**推奨 = 前者**。
 
 ## §0. 2026-09-15 — Q-048 Stage B = **`Q048_STAGE_B_PASS`**(桐生 1 経路のみ)
 
@@ -809,7 +844,7 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 
 ---
 # §16 サマリ層(機械生成 — 編集しない・正本は下部の連結全文)
-生成日: 2026-09-15 / 生成元: research_state.json + experiment_registry.jsonl + NEXT_ACTIONS.md + DECISION_LOG.md + DATA_STATUS.md + FINDINGS.md
+生成日: 2026-09-18 / 生成元: research_state.json + experiment_registry.jsonl + NEXT_ACTIONS.md + DECISION_LOG.md + DATA_STATUS.md + FINDINGS.md
 
 ## 1. Current Production(現在の本番)
 - Best = Baseline = **`b2f41_prod2026_prod3`**(オッズ入力なし)
@@ -818,21 +853,21 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: RES-2026-09-Q (Q-049 = Q049_READY / Q-048 Stage B = Q048_STAGE_B_PASS・桐生のみ)(桐生 = ARM C / physical で LIVE 稼働。他は全部 legacy。Stage C/D は Q-050 の裁定待ち)
-- 自走ジョブ: 部品層化バックフィル PID 12667(status=running・42053/49968 ページ・残り目安 1.08 日)
+- 実行中の実験: RES-2026-09-Q (Q-049 完了 / Q-048 Stage B 完了 / Q-050 前半 = Q050_SUMINOE_READY)(住之江は切替可能な構造になったが cutover 自体は Owner HOLD。桐生のみ ARM C で LIVE 稼働)
+- 自走ジョブ: 部品層化バックフィル PID None(status=aborted・47062/49968 ページ・残り目安 0.4 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-Q044**(2026-09-13・done_primary・—): 
 - **NG-Q046**(2026-09-13・done・—): 
 - **NG-Q045**(2026-09-14・done・—): 
 - **NG-Q049**(2026-09-15・done・—): 
 - **NG-Q048B**(2026-09-15・done・—): 
+- **NG-Q050A**(2026-09-18・done・—): 
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-14(**Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**) ## §0. 2026-09-15 — Q-048 Stage B = **`Q048_STAGE_B_PASS`**(桐生 1 経路のみ) Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」を実行。 **桐生の LIVE model は ARM C(是正 motor semantics)へ切り替わった。** 住之江 / S-tier 22 本 / B2 / conditional / 他会場は**触っていない**。 | 項目 | 値 | |---|---| | pointer | `lgbm_v1_kiryu_clean28_20260607_031831.txt` → **`lgbm_v1_kir…
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-14(**Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**) ## §0. 2026-09-18 — Q-050 ①住之江 root = **`Q050_SUMINOE_READY`**(cutover は未実行) Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)は HOLD**」を完遂。 **production は 1 つも変えていない**(既定 `legacy` / `physical_builds=["kiryu"]` / 住之江 pointer `lgbm_v1_20260913_020022` 不動)。 | 住之江固有の 3 問題 | 解消 | |---|---| | A. build 経路が allowlist を見ない…
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -1723,6 +1758,26 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 - 前々回更新: 2026-09-10 11:50(Ticket-Space 完走・P0 復旧・T3D3 設計)
 - 本ファイルは Canonical Research State の入口。機械可読版 = `research_state.json`。人間向け表示 = 研究コンソール(Artifact 494f0be1… — 本ファイル群から生成される view であり正本ではない)
 
+## §0. 2026-09-18 — Q-050 ①住之江 root = **`Q050_SUMINOE_READY`**(cutover は未実行)
+
+Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)は HOLD**」を完遂。
+**production は 1 つも変えていない**(既定 `legacy` / `physical_builds=["kiryu"]` / 住之江 pointer `lgbm_v1_20260913_020022` 不動)。
+
+| 住之江固有の 3 問題 | 解消 |
+|---|---|
+| A. build 経路が allowlist を見ない | `src.features.main()` が `rollout_mode_for("suminoe")` を見る |
+| B. 住之江だけ S1〜S9 ゲート外 | `scripts/ops/q050_suminoe_features.py`(atomic build + S1〜S9)。**Q-046 の 24 会場設計は未変更** |
+| C. weekly retrain が無人で pointer を戻す | 再学習直後に `assert_model_matches_build` で検証し、食い違えば **pointer を自動復旧** |
+
+- **cycle**: `RES-2026-09-Q`。Q-049 完了 / Q-048 Stage B(桐生)完了 / **Q-050 ① 前半完了 = `Q050_SUMINOE_READY`**
+- **LIVE 状態**: 桐生のみ ARM C(physical)。**他はすべて legacy**(既定 `legacy` / allowlist `["kiryu"]`)
+- **新規**: `scripts/ops/{q050_suminoe_features,q050_retrain_guard,q050_recipe_reproduction,q048_rollback_lib}.py` /
+  `tests/test_q050_suminoe_cutover.py`(39 本)/
+  `artifacts/ops/{q050_recipe_reproduction,q050_suminoe_verdict,q048_shadow_suminoe}.json`
+- **test**: production-critical **82 passed**
+- **新 findings**: **P56**(shadow はレシピまで揃える)/ **P57**(再現性と決定性は別の保証)
+- **次**: **Task 7(住之江の実 cutover)の実行承認**
+
 ## §0. 2026-09-15 — Q-048 Stage B = `Q048_STAGE_B_PASS`(桐生 1 経路のみ)
 
 - **LIVE 状態**: 桐生 = **ARM C / physical**。**他はすべて legacy**(既定 `legacy` / allowlist = `["kiryu"]`)
@@ -1906,6 +1961,38 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
 最新更新: 2026-09-14(**Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**)
+
+## §0. 2026-09-18 — Q-050 ①住之江 root = **`Q050_SUMINOE_READY`**(cutover は未実行)
+
+Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)は HOLD**」を完遂。
+**production は 1 つも変えていない**(既定 `legacy` / `physical_builds=["kiryu"]` / 住之江 pointer `lgbm_v1_20260913_020022` 不動)。
+
+| 住之江固有の 3 問題 | 解消 |
+|---|---|
+| A. build 経路が allowlist を見ない | `src.features.main()` が `rollout_mode_for("suminoe")` を見る |
+| B. 住之江だけ S1〜S9 ゲート外 | `scripts/ops/q050_suminoe_features.py`(atomic build + S1〜S9)。**Q-046 の 24 会場設計は未変更** |
+| C. weekly retrain が無人で pointer を戻す | 再学習直後に `assert_model_matches_build` で検証し、食い違えば **pointer を自動復旧** |
+
+### 最優先 — 次の 1 本
+
+**Task 7(住之江の実 cutover)の実行承認。** AI 側の準備は終わっている。
+
+```
+PYTHONPATH=. .venv/bin/python scripts/ops/q048_cutover.py --venues suminoe
+```
+- 画面: 1着本命が **2.56%**(156 レース中 4 レース)、3連単 1番手が **28.21%** 入れ替わる
+- 戻し: `sh scripts/ops/q048_rollback.sh suminoe`(**会場単位。桐生は動かない**ことを sandbox で実証済み)
+- **併せて決めてほしい**: 学習窓を `<= 2026-08-31` にするか全期間にするか(推奨 = 前者)
+
+### AI 単独で進められるもの(承認不要)
+
+- 毎朝 nightly 後に `PYTHONPATH=. .venv/bin/python scripts/ops/q048_smoke.py --label daily` で桐生を監視
+- 次の weekly retrain(**2026-09-20 日 02:00**)後に `artifacts/ops/q050_retrain_guard.json` を確認。
+  住之江は legacy のままなので素通りするはず
+
+### 持ち越し
+
+Q-050 ②(S-tier 22・別プラン)/ ③(B2・据置)/ Q-047 / Q-043 / Q-041 / Q-038 / G-A3 / Q-036 / Q-006 / Q-007 a〜d
 
 ## §0. 2026-09-15 — Q-048 Stage B = **`Q048_STAGE_B_PASS`**(桐生 1 経路のみ)
 
@@ -2553,6 +2640,25 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 | 2026-09-11 | VENUE-V0(Venue Logic Research v0) | **VENUE_PARTIAL** | 16 チャネル中 **1 本のみ**が事前登録 6 条件を通過 = 旗艦 `T1 4→1`(全国 −1.153pp/SD・桐生 −2.47 〜 芦屋 −0.43・I²=0.60・置換 p=0.005・前後期 ρ=+0.75)。受益側は全国共通(I²≤0.13)。**24 会場ぶんの Venue 埋め込みは作らない** | registry VENUE-V0 done_primary / lane-reports/venue_logic_v0_20260911.md |
 | 2026-09-11 | 「天候が会場差を説明した」の取り下げ | **自己訂正(報告前)** | 会場気象 meta-regression は旗艦 τ² を 92% 減らしたが、**ランダム共変量プラセボでも平均 95% 減**(p=0.653)。n=24 の meta-regression では答えられない。プラセボを置かなければ誤報告していた → 規律として FINDINGS P18 に昇格 | venue_v0_supp.json / FINDINGS P18 |
 | 2026-09-11 | K 由来気象の LEAKAGE_COLS 未登録 | **Owner 裁定へ起票(Q-029)** | `src/model.py` の `LEAKAGE_COLS` に K 由来気象 4 列が無く `FEATURE_COLS` にそのまま入っている。**production の挙動に関わるため AI 単独で触らない** | FINDINGS P17 / DECISION_QUEUE Q-029 |
+
+## §0. 2026-09-18 — Q-050 ①住之江 root = **`Q050_SUMINOE_READY`**(cutover は未実行)
+
+Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)は HOLD**」を完遂。
+**production は 1 つも変えていない**(既定 `legacy` / `physical_builds=["kiryu"]` / 住之江 pointer `lgbm_v1_20260913_020022` 不動)。
+
+| 住之江固有の 3 問題 | 解消 |
+|---|---|
+| A. build 経路が allowlist を見ない | `src.features.main()` が `rollout_mode_for("suminoe")` を見る |
+| B. 住之江だけ S1〜S9 ゲート外 | `scripts/ops/q050_suminoe_features.py`(atomic build + S1〜S9)。**Q-046 の 24 会場設計は未変更** |
+| C. weekly retrain が無人で pointer を戻す | 再学習直後に `assert_model_matches_build` で検証し、食い違えば **pointer を自動復旧** |
+
+| 日付 | ID | 裁定 | 内容 |
+|---|---|---|---|
+| 2026-09-18 | Q-050 ① | **GO(範囲限定)** | Owner 裁定「住之江 root = GO。ただし **Task 1〜6 + Task 8 まで。Task 7 = 実 cutover は HOLD**」 |
+| 2026-09-18 | T3/T4 設計 | **設計変更** | 周期テーブルの drift 判定を**会場単位**にする。Q-049 の maintainer が別会場の境界を毎晩追記するため、**ファイル全体 sha では全 model が誤検出**になる(実測) |
+| 2026-09-18 | T4 provenance | **設計決定(案 D)** | 桐生 ARM C は Task 3 より前の save_model で保存され `cycle_boundaries` を持たない。**記録済み sha を内容アドレスとして backup から解決**し、比較は会場単位。A(model 再保存)= 桐生不可侵で却下 / B(xfail)= 事実を隠すので却下 / C(全体 sha 容認)= 誤検出で却下 |
+| 2026-09-18 | T6 | **旧 shadow 値を破棄** | 住之江の 2.27% は `recency=365` で測っていたが LIVE は recency なし。**production recipe を再現(8/8 一致)してから測り直し**、i) LIVE→ARM C = **2.56%** を新しい予告値とする(**P56**) |
+| 2026-09-18 | Q-050 前半 | **PASS = `Q050_SUMINOE_READY`** | 住之江固有の 3 問題を解消 / 再現ゲート REPRODUCED / shadow 再測定 / 会場単位 rollback を実証 / test 82 passed / production 無変更 |
 
 ## §0. 2026-09-15 — Q-048 Stage B = **`Q048_STAGE_B_PASS`**(桐生 1 経路のみ)
 
@@ -3328,6 +3434,23 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - 正直ラベルの規約: 小標本は「逸話」、確定オッズ由来は「diagnostic」、事後発見は「再登録要」と必ず付記。数値は出典ファイルから転記(捏造禁止・無い値は「記録なし」)
 - 分類: **UNTESTED**(未検証)/ **TESTING**(事前登録済みで検証枠にある)/ **SUPPORTED**(支持)/ **PARTIALLY SUPPORTED**(部分支持)/ **REJECTED**(否定・同一形の再提案禁止)
 
+## §0. 2026-09-18 — Q-050 ①住之江 root = **`Q050_SUMINOE_READY`**(cutover は未実行)
+
+Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)は HOLD**」を完遂。
+**production は 1 つも変えていない**(既定 `legacy` / `physical_builds=["kiryu"]` / 住之江 pointer `lgbm_v1_20260913_020022` 不動)。
+
+| 住之江固有の 3 問題 | 解消 |
+|---|---|
+| A. build 経路が allowlist を見ない | `src.features.main()` が `rollout_mode_for("suminoe")` を見る |
+| B. 住之江だけ S1〜S9 ゲート外 | `scripts/ops/q050_suminoe_features.py`(atomic build + S1〜S9)。**Q-046 の 24 会場設計は未変更** |
+| C. weekly retrain が無人で pointer を戻す | 再学習直後に `assert_model_matches_build` で検証し、食い違えば **pointer を自動復旧** |
+
+| ID | 仮説 | 判定 |
+|---|---|---|
+| **U-30** | 特徴量を揃えれば shadow は是正の影響だけを測れる | **否定**。学習レシピ(recency の有無)が揃っていないと、レシピ差が是正の影響として出る(**P56**)。3連単 1番手で 7.7pp の差 |
+| **U-31** | LIVE model は research clone で再現できない(データが動いているため) | **否定**。`date <= 2026-09-12` で切ると行数が一致し、**8 指標が下位ビットまで再現**できた |
+| **U-32** | 住之江の切替影響は桐生と同程度 | **否定**。1着本命は桐生 6.94% に対し住之江 **2.56%**。ただし 3連単 1番手は 28.21% と小さくない |
+
 ## §0. 2026-09-15 — Q-048 Stage B = `Q048_STAGE_B_PASS`
 
 | ID | 仮説 | 判定 |
@@ -3990,6 +4113,40 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 - 主な出典: `docs/ARCHITECTURE_FREEZE_v2.1.md` / `lane-reports/nextgen_audit_20260903.md` / `lane-reports/hansei_sg_kiryu_20260903.md` / `lane-reports/e10_externality_20260904.md` / `docs/experiments/structured_order_model/results_summary.md` / `docs/MODEL_STRATEGY.md` / `artifacts/research/experiment_registry.jsonl` / `docs/ANALYSIS_BACKLOG.md`
 - 書式: 各発見は必ず3問に答える — **【分かったこと】結局何が分かったか /【予測に効くか】未来の予測に効くか /【市場】市場は既に知っているか**
 - 正直ラベルの規約: 小標本は「n=◯逸話」、確定オッズ由来の数値は「diagnostic(診断用・ROI主張不可)」を必ず付ける。無い値は「記録なし」と書く
+
+## §0. 2026-09-18 — Q-050 ①住之江 root = **`Q050_SUMINOE_READY`**(cutover は未実行)
+
+Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)は HOLD**」を完遂。
+**production は 1 つも変えていない**(既定 `legacy` / `physical_builds=["kiryu"]` / 住之江 pointer `lgbm_v1_20260913_020022` 不動)。
+
+| 住之江固有の 3 問題 | 解消 |
+|---|---|
+| A. build 経路が allowlist を見ない | `src.features.main()` が `rollout_mode_for("suminoe")` を見る |
+| B. 住之江だけ S1〜S9 ゲート外 | `scripts/ops/q050_suminoe_features.py`(atomic build + S1〜S9)。**Q-046 の 24 会場設計は未変更** |
+| C. weekly retrain が無人で pointer を戻す | 再学習直後に `assert_model_matches_build` で検証し、食い違えば **pointer を自動復旧** |
+
+### 新しい発見
+
+**P56 — shadow は「学習レシピ」まで production に合わせないと、レシピ差を是正の影響として報告してしまう**【確定・2026-09-18・Q-050 T6】
+
+- 【分かったこと】住之江の旧 shadow 値「1着本命 2.27%」は `recency_half_life=365` で学習して測ったが、
+  **LIVE 住之江は recency なし(均等重み)**(`weekly_retrain.sh` が `run_train.py` をオプション無しで呼ぶ)。
+  レシピを揃えると **2.56%(4/156)**。1着本命は ±1 レースしか動かず**指標として小さすぎて安定しない**が、
+  下流は大きく動いた: 3連単 1番手の入替率は **365 で 35.90% / None で 28.21%(7.7pp 差)**、
+  top-2 集合の入替は 16.03% → 10.90%。**最も汚染されていたのは「再学習だけ」の系統**で、
+  旧 run は LIVE(recency なし)と ARM O(recency 365)を比べていたため 43.18% → 揃えると **27.56%**。
+- 【予測に効くか】効かない。**測り方の発見**。「同一条件で比較する」は特徴量だけでなく**学習レシピまで**含む。
+- 【市場】無関係。
+
+**P57 — 「再現できること」は「決定的であること」と別の保証で、両方を別々に確かめる必要がある**【運用事実・2026-09-18・Q-050 T6】
+
+- 【分かったこと】LIVE 住之江 model を research clone で再現し、`n_train` / `n_calib` / `n_valid` /
+  `best_iter` / `temperature` / `valid_logloss` / `valid_auc` / `valid_top1_hit_rate` の **8 項目が下位ビットまで一致**
+  (`date <= 2026-09-12` で dropna 後 87,406 行 = LIVE が見た行数)。
+  加えて**同一入力で 2 回学習して `model_to_string()` の sha256 が一致**することも別途確認した。
+  前者は「入力を復元できた」、後者は「レシピに隠れた乱数が無い」。**どちらか一方では候補比較の土台にならない。**
+- 【予測に効くか】効かない。**比較の前提条件**の話。
+- 【市場】無関係。
 
 ## §0. 2026-09-15 — Q-048 Stage B = **`Q048_STAGE_B_PASS`**(桐生 1 経路のみ)
 
@@ -5228,8 +5385,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 
 ```json
 {
- "updated_at": "2026-09-15",
- "updated_by": "Claude (RES-2026-09-Q Stage B)",
+ "updated_at": "2026-09-18",
+ "updated_by": "Claude (RES-2026-09-Q / Q-050 前半)",
  "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
  "architecture_version": "v2.1",
  "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
@@ -5244,8 +5401,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "id": "b2f41_prod2026_prod3",
   "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
  },
- "current_experiment": "RES-2026-09-Q (Q-049 = Q049_READY / Q-048 Stage B = Q048_STAGE_B_PASS・桐生のみ)",
- "current_experiment_note": "桐生 = ARM C / physical で LIVE 稼働。他は全部 legacy。Stage C/D は Q-050 の裁定待ち",
+ "current_experiment": "RES-2026-09-Q (Q-049 完了 / Q-048 Stage B 完了 / Q-050 前半 = Q050_SUMINOE_READY)",
+ "current_experiment_note": "住之江は切替可能な構造になったが cutover 自体は Owner HOLD。桐生のみ ARM C で LIVE 稼働",
  "experiments": {
   "registry_path": "artifacts/research/experiment_registry.jsonl",
   "adopted": [
@@ -5533,7 +5690,9 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "P52 410 日の期限切れ guard は遅行指標であり、交換〜guard 発動の窓では前周期の履歴が新品モーターに黙って混入する (→ Q-049 で PENDING_BOUNDARY を新設)",
   "P53 cutover で画面が変わる量の主因は motor 是正ではなく model の古さだった (桐生: 再学習だけで 13.89% / 是正だけで 9.72%)",
   "P54 安全ゲートは「意図した変更」も等しく弾く。段階切替を入れるならゲートを「変わっていないこと」から「宣言モードと一致すること」へ変える必要がある",
-  "P55 refresh_all_venue_features.py の exit code 0 は「その会場が置換された」ことを意味しない (1 会場 GATE_FAILED でも 0)"
+  "P55 refresh_all_venue_features.py の exit code 0 は「その会場が置換された」ことを意味しない (1 会場 GATE_FAILED でも 0)",
+  "P56 shadow は学習レシピ (recency の有無) まで production に合わせないと、レシピ差を是正の影響として報告してしまう",
+  "P57 「再現できること」と「決定的であること」は別の保証で、両方を別々に確かめる必要がある"
  ],
  "rejected_findings": [
   "選手の動的状態 (直近 k 走 − 自己ベースライン系 6 本) は B2 残差を説明する → 否定 (NG-PDS1・well-powered null・増分上限 0.00013 = 採用線の 1/23)。静的 latent (B2H REJECT) に続き動的も否定 = 選手個人の情報路線は閉鎖",
@@ -6208,7 +6367,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "item": "Q-050 kyotei: Stage D をどこまで広げるか(①住之江 root / ②S-tier 22 会場 / ③B2)",
    "recommend": "**①だけ先に GO**(shadow 実測済 1着本命 2.27%・影響最小)。②は先に 2〜3 会場で shadow を取ってから。③は据置(Q-038 の再審が先)",
    "reason": "桐生 PASS は ②③ の根拠にならない。①は build 経路が nightly 手順 2/3 所有で週次自動再学習との整合が要る。②は 22 本すべて未再学習で 33 列 superset。③は DO_NOT_CUTOVER が覆っていない",
-   "status_20260915": "未裁定 (Q-048 Stage B 完了後に起票)"
+   "status_20260915": "未裁定 (Q-048 Stage B 完了後に起票)",
+   "status_20260918": "**前半完了 = `Q050_SUMINOE_READY`**(Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO / Task 7 = 実 cutover は HOLD」)。住之江固有の 3 問題(build 経路が allowlist 非対応 / S1-S9 ゲート外 / weekly retrain の無人 pointer 張り替え)をすべて解消。production recipe を 8/8 で再現したうえで shadow を測り直し、**旧 2.27% を破棄して 2.56% を新しい予告値**とした。会場単位 rollback を sandbox で往復実証。test 82 passed・production 無変更。**残るは Task 7 の実行承認のみ**"
   }
  ],
  "w2_directives_owner_20260904": {
