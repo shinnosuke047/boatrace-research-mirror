@@ -4,7 +4,9 @@
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
 
-- 更新: **2026-09-18 15:36**(Owner 裁定「**Q-050 Task 7 = GO / 学習窓 <= 2026-08-31**」の実行後 = **`Q050_SUMINOE_CUTOVER_PASS`**)
+- 更新: **2026-09-18 17:20**(Owner 裁定「**Q-051 a = β / b = Batch 0 + pilot gate GO・cutover 禁止 / c = WAKE 据置**」の実行後 = **`Q051_BATCH1_READY`**・**Q-052** 待ち)
+- 前回更新: **2026-09-18 16:19**(Owner 裁定「**Q-050 ② = PLAN GO**」の実行後 = 計画提出・**Q-051** 待ち)
+- 前回更新: **2026-09-18 15:36**(Owner 裁定「**Q-050 Task 7 = GO / 学習窓 <= 2026-08-31**」の実行後 = **`Q050_SUMINOE_CUTOVER_PASS`**)
 - 前回更新: **2026-09-14 01:00**(Owner 裁定「**Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER**」の実行後 = **RES-2026-09-P / NG-Q045**)
 - 前回更新: **2026-09-13 15:30**(Q-046 = `FRESHNESS_REPAIRED`)
 - 更新: **2026-09-13 05:19**(Owner 裁定「**RES-2026-09-N = GO / AUDIT ONLY**」の実行後 = **RES-2026-09-N / NG-Q044**)
@@ -17,6 +19,42 @@
 - 前々回更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
 - 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/q035_prior_parity_20260912.md`(今回)と `lane-reports/sia_v1_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
 - 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
+
+## §0. 2026-09-18 17:20 — Q-051 Batch 0 + pilot = **`Q051_BATCH1_READY`**(大村・蒲郡は切替可能な状態。切替はしていない)
+
+Owner 裁定 Q-051「a = β(桐生と同じ clean 28 列)/ b = コード + pilot 2 会場の gate まで GO・**本番切替は禁止** / c = WAKE 6 会場は据置」を実行。
+**本番は 1 つも変えていない**(24 会場の model pointer と features、allowlist、既定 legacy、crontab、launchd がすべて実測で不変)。
+
+### 何が分かったか(人間向け)
+
+- **古い 33 列 model は 2 会場とも「同じものをもう一度作れる」**: 4 か月前の学習を現行コードで再現したら、指標も木の本数も予測値も bit 単位で一致した。「再現不能」は残り 13 会場の話で、この 2 本の土台は崩れていない
+- **新しい clean 28 列の候補は 2 会場とも作れた**(物理モーター semantics・周期テーブル内蔵・来歴 24 項目・2 回作っても同じ sha)。**pointer は動かしていない**
+- **画面はかなり変わる**(9 月 144 レースで測定・当たり外れは見ていない): 1着本命が **大村 5.6% / 蒲郡 14.6%**、上位 2 艇の組が 49% / 39%、3連単の 1 番手が **約 69%**、買い目上位 3 点の組が **約 85%** のレースで入れ替わる
+- **その変化の 7〜8 割は「モーター是正」ではなく「レース後にしか分からない列(進入・ST)を捨てたこと」**: 旧 model は LENS の再現表示でレース後の情報を読んで予測していた。是正だけの変化は桐生・住之江と同程度(p6 TVD 0.04〜0.06)
+- gate 14 項目は 2 会場とも全部 PASS。会場単位の rollback を sandbox で往復(大村だけ戻しても蒲郡・桐生・住之江は不変)
+- WAKE 6 会場の 09:15 経路には「allowlist に入った会場を legacy で上書きしない」guard と gated 経路を**実装だけ**した(launchd の挙動は変えていない)
+
+### いま決めてほしいこと(**Q-052**)
+
+- **大村 + 蒲郡の本番切替 GO / NO-GO**。判断材料 = 上の変化量を許容するか(AI は「許容線」を後付けしない)。GO なら切替 → smoke ×4 → identity check → 本番 rollback 往復 → 翌朝・翌晩の smoke まで一気に行い STOP。NO-GO なら候補は staging のまま
+- 持ち越し: Q-050 ③ B2 据置 / Q-047 / Q-043 / Q-041 / Q-038 / G-A3 / Q-036 / Q-006 / Q-007 a〜d
+
+## §0. 2026-09-18 16:19 — Q-050 ② S-tier 22 = **計画提出・Q-051 裁定待ち**(read-only 監査のみ)
+
+Owner 裁定「Q-050 ② = PLAN GO(計画作成・read-only 監査のみ。実装・再学習・cutover 禁止)」を実行。**production は 1 つも変えていない。**
+計画 = `docs/superpowers/plans/2026-09-18-q050-s-tier22-migration.md` / Owner 16 問 = `lane-reports/q050_stier22_plan_20260918.md` / 裁定 = **Q-051**(`~/ai-ops-os/portfolio/DECISION_QUEUE.md`)。
+
+- **22 本は同一 recipe だが P 層とは別系統**: 33 列 = 28 列 + `exhibition_time / approach / st / exhibition_rank_in_race / exhibition_diff_from_best`。現行コードはこの 5 列を leakage として拒否するので **同じ系統を再生産できない**(WAKE 8/4 実測: gain の 50.2% が approach)
+- **LIVE_ACTIVE 22 / 22**。WAKE 6 会場は 09:15 `daily_signal_notify.py` が allowlist を見ずに legacy で features を上書き(cutover 前に要修正)
+- 再現性: 行数一致 9 / 不一致 13。Class **A 22 / B 0 / C 0 / D 22**
+- **pilot = omura + gamagori**(予備 shimonoseki)。Batch 0(コード 8 点・production 無接触)+ Batch 1〜4(2 / 8 / 6 / WAKE 6)
+- Pre-Cutover Gate 14 項目(桐生・住之江 root の anchor 照合 #11 / WAKE untouched #12 を追加)。rollback は既存 lib で会場単位
+
+### いま決めてほしいこと(Q-051・3 段)
+
+- **a** 系統: 推奨 **β = 桐生と同じ clean 28 列**(α = 33 列 leaky 維持 / γ = 据置)
+- **b** Batch 0 + pilot omura・gamagori の gate まで GO(cutover は別 GO)
+- **c** WAKE 6 会場の 09:15 経路: 推奨 = Batch 1〜3 の間は据置(実装 + テストのみ)
 
 ## §0. 2026-09-18 15:36 — Q-050 Task 7 = **`Q050_SUMINOE_CUTOVER_PASS`**(住之江 root が ARM C / physical で LIVE)
 
@@ -893,21 +931,21 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: RES-2026-09-Q (Q-049 完了 / Q-048 Stage B 完了 / Q-050 Task 7 = Q050_SUMINOE_CUTOVER_PASS)(住之江は切替可能な構造になったが cutover 自体は Owner HOLD。桐生のみ ARM C で LIVE 稼働)
+- 実行中の実験: RES-2026-09-R (Q-051 Batch 0 + pilot omura/gamagori Pre-Cutover Gate = Q051_BATCH1_READY)(pilot 2 会場は cutover-ready (候補 staged・gate 15/15・legacy 33 列 REPRODUCED・rollback drill 7/7) だが production cutover は Owne…)
 - 自走ジョブ: 部品層化バックフィル PID None(status=aborted・47062/49968 ページ・残り目安 0.4 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-Q045**(2026-09-14・done・—): 
 - **NG-Q049**(2026-09-15・done・—): 
 - **NG-Q048B**(2026-09-15・done・—): 
 - **NG-Q050A**(2026-09-18・done・—): 
 - **NG-Q050-T7**(2026-09-18・done_primary・—): 
+- **NG-Q051-B0**(2026-09-18・done_primary・—): 
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-18 15:36(**Q-050 Task 7 = `Q050_SUMINOE_CUTOVER_PASS`**。旧: 2026-09-14 **Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**) ## §0. 2026-09-18 15:36 — Q-050 Task 7 = **`Q050_SUMINOE_CUTOVER_PASS`**(住之江 root が ARM C / physical で LIVE) Owner 裁定 2026-09-18「**Task 7 = GO / 住之江 root ARM C cutover = GO / 学習窓 = `outcome_date <= 2026-08-31`**」を実行。 **住之江 root の LIVE model は ARM C(是正 motor sema…
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-18 17:20(**Q-051 Batch 0 + pilot gate = `Q051_BATCH1_READY`・Q-052 待ち**。旧: 2026-09-18 16:19 Q-050 ② 計画提出 / 2026-09-18 15:36 **Q-050 Task 7 = `Q050_SUMINOE_CUTOVER_PASS`**。旧: 2026-09-14 **Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**) ## §0. 2026-09-18 17:20 — Q-051 Batch 0 + pilot gate = **`Q051_BATCH1_READY`**(cutover 未実行・production 無変更) Owner 裁定 Q-051(a = β / b = gate まで GO / c…
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -990,19 +1028,20 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - #33 Q-046 kyotei: 会場別 features.parquet 17 本が 2026-07-18〜24 で停止している (build_features_all_venues.py が自動実行に載っていない)。LENS は毎晩 288 レース publi…(推奨: (a) GO・**motor 是正より優先**。motor バグは「288 レース中 24 レースで順位が違う」問題だが、本件は「17 会場 204 レースが…)
 - #34 Q-047 kyotei: 週次再学習の valid 窓が封印期間 (2026-09-01〜10-31) へ前進しており、住之江 LIVE artifact の valid 6,609 行のうち 572 行 (96 レース) が封印窓の中にある。best_i…(推奨: (a) valid を固定日付 (2026-08-31 まで) に切る、または (b) 封印の対象から本 model family を外すと明文化する。**ど…)
 - #38 Q-050 kyotei: Stage D をどこまで広げるか(①住之江 root / ②S-tier 22 会場 / ③B2)(推奨: **①だけ先に GO**(shadow 実測済 1着本命 2.27%・影響最小)。②は先に 2〜3 会場で shadow を取ってから。③は据置(Q-038 …)
+- #39 Q-052 kyotei: Q-051 Batch 1 = omura + gamagori の production cutover GO / NO-GO(推奨: Owner 判断 (AI は総変位の許容線を後付けしない)。GO なら q048_cutover.py --venues omura,gamagori → s…)
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-14 | §8-3 ADOPTION GATE | **候補 = C** — A-1 を住之江 2/3 seed・桐生 3/3 seed で満たす。T は住之江 1/3 で FAIL → A-3 により C
-- 2026-09-14 | §9 S-tier 22 artifact | **全再学習しない** — 24/24 が schema 互換であることを確認。互換 = 再学習なしでも動くが、それは D-SWAP なので採用しない
-- 2026-09-14 | §22 LIVE smoke | **入力のみ** — 9 月入力で住之江 120R / 桐生 72R / 戸田 96R の予測生成を確認。**outcome 指標は 1 つも算出していない**
-- 2026-09-14 | §19 Semantics Integrity | **YELLOW** — repair candidate は成立したが LIVE cutover 前。§0-2 で cutover を禁止しているため本サイクルの上限が YELLOW
-- 2026-09-18 | Q-050 Task 7(住之江 root cutover) | **GO**(Owner) — 住之江 root を ARM C / physical へ切り替える。学習窓 = `outcome_date <= 2026-08-31`(推奨案を採用)。S-tier 22 /…
-- 2026-09-18 | Q-050 Task 7 Pre-Cutover Gate | **PASS 18/18** — Q049_READY / 住之江 VALID / freshness 24/24 / S1〜S9 physical dry-run / recipe 固定 / rollback …
 - 2026-09-18 | Q-050 Task 7 cutover | **PASS = `Q050_SUMINOE_CUTOVER_PASS`** — pointer → `lgbm_v1_suminoe_armC_20260918_153428` / features physical / smoke 8/8 / identi…
 - 2026-09-18 | Q-050 Task 8 rollback drill(実 production) | **PASS** — ARM C → LEGACY(切替前と完全一致)→ ARM C(bit 一致)。桐生 3 段階不変
 - 2026-09-18 | weekly retrain provenance(P58) | **是正(cutover 前)** — `save_model` が環境変数のみから semantics を書き、cron では legacy と記録 → guard が逆向きに戻す構造。`root_build_sem…
 - 2026-09-18 | Semantics Integrity | **YELLOW(据置)** — LGB P 層 2 本は physical。S-tier 22 / B2 / conditional / cached が残る。INC 7/8
+- 2026-09-18 | Q-051 a / b / c(S-tier 22 migration) | **GO(Owner)**: a = β clean28 / b = Batch 0 + pilot omura・gamagori の gate まで(**cutover 禁止**)/ c = WAKE 6 据置(実装 + テストのみ) — 33 列 leaky 系統を production 再学習しない。再現可能・意味的に正しい系統へ安全に移せるかを 2 会場で実証してから Batch 1 の実 cutover を…
+- 2026-09-18 | Q-051 gate #4(a) legacy 33 列再現(omura / gamagori) | **REPRODUCED ×2** — research-only trainer(cbfd4b1 33 列・train_all_venues 逐語)で 5 指標・木数・valid 行 raw 予測 max\
+- 2026-09-18 | Q-051 pilot Pre-Cutover Gate(14 項目・結果前に固定) | **PASS 15/15 ×2 = `Q051_PILOT_READY`** — 候補 `lgbm_v1_omura_armC_20260918_171534` / `lgbm_v1_gamagori_armC_20260918_171558`(physica…
+- 2026-09-18 | Q-051 rollback drill(sandbox・会場単位) | **PASS 7/7** — omura だけ戻して gamagori / 桐生 / 住之江 不変・再適用 bit 一致・戻し先欠損は不動
+- 2026-09-18 | Q-051 Batch 1 verdict | **`Q051_BATCH1_READY`**(cutover は未実行) — 総変位 LIVE33→C28 = 1着本命 5.56% / 14.58%・p6 TVD 0.132 / 0.149・3連単1番手 69.4% / 68.8%(144R・outco…
+- 2026-09-18 | Semantics Integrity | **YELLOW(据置)** — pilot 2 本は cutover-ready だが LIVE は legacy。INC 7/8
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -1781,7 +1820,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 
 # RESEARCH_STATUS — 研究状態の正本
 
-- 最新更新: **2026-09-18 15:36**(更新者: Claude / Owner 裁定 2026-09-18「**Q-050 Task 7 = GO / 住之江 root ARM C cutover = GO / 学習窓 = `outcome_date <= 2026-08-31`**」完走 = **RES-2026-09-Q / Q-050 Task 7**。**最終ラベル `Q050_SUMINOE_CUTOVER_PASS`**。**①住之江 root の LIVE model が ARM C へ切り替わった**: `lgbm_v1_20260913_020022` → **`lgbm_v1_suminoe_armC_20260918_153428`**(recency なし / seed 42 / `date <= 2026-08-31`・実データ最終学習日 08-18 / n_train 73,771・best_iter 24・T 1.0 = Task 6 shadow の ARM C と同一 identity)。features も physical `ca43ec04…`(S9 物理キー不一致 0 / 旧キーと 9,150 / 86,006 行差)。**②live smoke 8/8 × 4 回・identity check PASS(1着本命 4/156 = 2.56% / 3連単1番手 44/156 = 28.21% / p120 TVD 0.1670 = shadow と abs_diff 0.0)・consumer exit 0**。**③rollback drill を実 production で往復**(ARM C → LEGACY = 切替前と完全一致 → ARM C = bit 一致)。**桐生は 3 段階すべて不変**。**④weekly retrain の穴を cutover 前に発見・是正(P58)**: `save_model` の provenance が環境変数のみ由来で cron では legacy と記録され、Task 5 の guard が逆向きに pointer を戻す構造だった → `src/model.py:root_build_semantics` で allowlist の宣言モードを載せる。sandbox で `run_train.py` 経路を実走し physical 維持 + 食い違い時の自動復旧を実証。**⑤Q-049 lifecycle**: 別会場の境界追記で住之江・桐生とも DRIFT 誤判定なし(global sha は合否条件にしていない)。**⑥test 85 passed**。**⑦封印窓 outcome 0 件**。**Semantics Integrity = YELLOW 継続 / INC 7/8 据置**(残 = S-tier 22 / B2 / conditional / cached)。**Q-050 ②③ には展開していない**)
+- 最新更新: **2026-09-18 17:20**(更新者: Claude / Owner 裁定 2026-09-18「**Q-051 a = β clean28 / b = Batch 0 + pilot omura・gamagori の gate まで GO・cutover 禁止 / c = WAKE 6 据置**」完走 = **RES-2026-09-R / NG-Q051-B0**。**最終ラベル `Q051_BATCH1_READY`**(omura / gamagori = `Q051_PILOT_READY` 15/15)。**①Batch 0 コード 8 点**(承認範囲の正本 `q051_scope.py` / 33 列 research-only trainer / shadow 7 面 / cutover の recipe 裁定表 + provenance 24 キー + `--candidate-only --determinism` / 09:15 経路の allowlist guard + gated 経路(plist 不変)/ `train_all_venues` の allowlist guard / gate script / rollback drill / tests 13 + scope 2)。**②legacy 33 列を 2 会場とも bit 一致で再現**(5 指標・木数・raw 予測 max|Δ| 0.0・決定性・cut 05-01 = **P59**)。**③clean28 候補を staging に作成**(`lgbm_v1_omura_armC_20260918_171534` / `lgbm_v1_gamagori_armC_20260918_171558`・physical / inline / recency 365 / `<= 2026-08-31`・2 回学習 + 別プロセス + shadow C28 の sha 一致)。**④shadow 7 面(144R × 2・outcome 不使用)**: 総変位 LIVE33→C28 = 1着本命 **5.56% / 14.58%**・p6 TVD **0.132 / 0.149**・p120 TVD 0.269 / 0.242・3連単1番手 69.4% / 68.8%。**semantics 単独は p6 TVD 0.04〜0.06(桐生・住之江と同オーダー)で、系統効果(leak 5 列除去 + recipe)が 7〜8 割 = P60**。**⑤Pre-Cutover Gate 14 項目 = 15/15 × 2**(S1〜S9 physical PASS・negative control 2 方向・LENS staging・24 会場 untouched・anchor 不変)。**⑥rollback drill sandbox 7/7**。**⑦production は 1 つも変えていない・cutover 未実行・S-tier 残り 20 本へ進んでいない**。次 = **Q-052**(Batch 1 cutover GO。総変位の許容は Owner 判断)。人間向け = research/OWNER_VIEW.md)
+- 前回更新: **2026-09-18 15:36**(更新者: Claude / Owner 裁定 2026-09-18「**Q-050 Task 7 = GO / 住之江 root ARM C cutover = GO / 学習窓 = `outcome_date <= 2026-08-31`**」完走 = **RES-2026-09-Q / Q-050 Task 7**。**最終ラベル `Q050_SUMINOE_CUTOVER_PASS`**。**①住之江 root の LIVE model が ARM C へ切り替わった**: `lgbm_v1_20260913_020022` → **`lgbm_v1_suminoe_armC_20260918_153428`**(recency なし / seed 42 / `date <= 2026-08-31`・実データ最終学習日 08-18 / n_train 73,771・best_iter 24・T 1.0 = Task 6 shadow の ARM C と同一 identity)。features も physical `ca43ec04…`(S9 物理キー不一致 0 / 旧キーと 9,150 / 86,006 行差)。**②live smoke 8/8 × 4 回・identity check PASS(1着本命 4/156 = 2.56% / 3連単1番手 44/156 = 28.21% / p120 TVD 0.1670 = shadow と abs_diff 0.0)・consumer exit 0**。**③rollback drill を実 production で往復**(ARM C → LEGACY = 切替前と完全一致 → ARM C = bit 一致)。**桐生は 3 段階すべて不変**。**④weekly retrain の穴を cutover 前に発見・是正(P58)**: `save_model` の provenance が環境変数のみ由来で cron では legacy と記録され、Task 5 の guard が逆向きに pointer を戻す構造だった → `src/model.py:root_build_semantics` で allowlist の宣言モードを載せる。sandbox で `run_train.py` 経路を実走し physical 維持 + 食い違い時の自動復旧を実証。**⑤Q-049 lifecycle**: 別会場の境界追記で住之江・桐生とも DRIFT 誤判定なし(global sha は合否条件にしていない)。**⑥test 85 passed**。**⑦封印窓 outcome 0 件**。**Semantics Integrity = YELLOW 継続 / INC 7/8 据置**(残 = S-tier 22 / B2 / conditional / cached)。**Q-050 ②③ には展開していない**)
 - 前回更新: **2026-09-14**(更新者: Claude / Owner 裁定 2026-09-13「**Q-045 = GO。ただし STAGED REPAIR / NO DIRECT CUTOVER**」完走 = **RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`・lgb_candidate = `C`(corrected motor only)**。**①是正対象は実質 1 列だった** — ablation で `motor_race_count_prior` 単独が精度差のほぼ全部(住之江 seed42 で M2 +0.011249 ≒ C 全体 +0.011116 / M1 −0.000723)。**ただし displacement は 2 列とも同オーダー**(住之江 M1 1.72% / M2 1.99% / C 1.90%・桐生 M1 6.58% / M2 7.95% / C 8.68%)= **§1-h U-22 CLOSED**(前半支持・後半反証)。**②NG-Q044 から引き継いだ対策案(時間トレンドを明示特徴として入れ直す = §1-h U-18)は REJECT** — ARM T(`days_since_epoch` 1 列追加)は両会場で ARM C より悪化(住之江 −0.0014 / +0.0085 / +0.0053・桐生 +0.0018 / +0.0026 / +0.0055)。**理由は構造的**: valid 窓で `days_since_epoch` は**レース内 unique = 1.00**(6 艇とも同値)で **race 内 softmax に原理的に寄与できない**・かつ学習範囲外(住之江 train_max 2079 → valid_min 2231)。桐生では **gain 5 位 4.01% / 318 split** まで使われたのに valid は悪化 = 学習窓の時期を覚えただけ(**FINDINGS P49**)。**旧列が効いていたのは「時計だから」ではなくレース内で艇を並べる順序の方**。**③P43 の日付相関を再現**(旧 count × 日付 Spearman +0.9711 / +0.9787・corrected +0.1221 / +0.0838)。**④§10 の Critical Question は定量化できない** — `clock_recovery_ratio` が定義できたのは住之江 seed42 の 1 セルだけで **1.127**。住之江は ARM O 自体が seed で **0.3299〜0.3503(幅 0.020)** 振れ、**採用線 0.003 の 7 倍のノイズ**。**⑤3 ゲートすべて PASS**: SEMANTIC **12/12**(golden 11 本 + I-1〜I-5)/ PARITY **3/3**(**P-0 NO-OP は parquet の sha256 まで一致**・B2 7 シナリオ **max|Δ| = 0.0**・LGB は serve に motor 再計算が無い構造的 parity)/ ROLLBACK(**sandbox で実際に戻して復元を確認**・model pointer 24 / feature file 34 / scheduler を manifest 化)。**preflight も PASS**。**⑥S-tier 24 artifact は全部 schema 互換**(再学習なしでも動く = **D-SWAP なので採用しない**)。**全再学習していない**。**⑦新しい運用依存**: 交換周期テーブルが 410 日超で stale → 該当会場の motor 2 列を中立化。**丸亀 2026-10-18(残り 35 日)/ 唐津 10-20 / 宮島 12-03**・現在発動 0 → **Q-049**。**⑧封印窓は不使用**(主系列 `date <= 2026-08-31` 構造カット。9 月は smoke の入力のみで outcome 指標ゼロ)。**⑨production は 1 行も変えていない** — `src/features.py` は flag 化のみで既定 `legacy`、出力は変更前コードと sha256 まで一致。新 findings = **P49** / **P50**。**cutover は Q-048 / Q-049 の裁定待ち**)
 - 前回更新: **2026-09-13 05:19**(更新者: Claude / Owner 裁定 2026-09-13「**RES-2026-09-N = GO。ただし AUDIT / IMPACT MEASUREMENT ONLY**」完走 = **RES-2026-09-N / NG-Q044**。**最終ラベル `LGB1_LIVE_REPAIR_REQUIRED`(+ `SEED_UNSTABLE`)= 凍結 4 ラベルのうち最も重いもの**。**①経路は 1 本ではなく 24 artifact だった**(`MOTOR_DEPENDENCY_LEDGER` F-6 ① の訂正 = FINDINGS **P45**)。P 層 2(`feature_cols` が `FEATURE_COLS` と完全一致する 28 列 = 住之江 root `lgbm_v1_20260913_020022`「**今朝 02:00 に再学習された実体**」/ 桐生 `lgbm_v1_kiryu_clean28_20260607_031831`)+ S 層 22(33 列の上位集合 = 会場別)。**24/24 が壊れた 2 列を両方持ち、24/24 が `LIVE_ACTIVE`**。`nightly.sh` 手順 5(`build_lens_data_all_venues.py:42-46`)が**毎晩 24 model をロードして 24 会場 × 12R = 288 レース**を `lens_all_venues.js` へ publish(実測 2026-09-13 00:29 再生成)。**②HANDOFF の記載も訂正**: 30 分 cron(`build_kiryu_picks_today.py:146`)が読むのは **`data/models/kiryu/latest.txt`** で、**週次再学習されるのは住之江 root のみ**(他 23 artifact は手動学習時点のまま serve)。**③再現ゲート PASS 8/8 × 2 artifact・bit 一致**(raw score / 確率の `max_abs_delta` **0.0**・`valid_logloss` は 0.33249257471172217 / 0.3616727786012645 まで exact)。**桐生は 2026-06-07 の split 変更より前の産物**で、**行 index 版 split + カット 2026-05-03** でのみ再現 = versioned reproduction(production の `src/model.py` は変更せず研究 clone に旧版 split を逐語複製。`features.parquet` は 2026-07-24 に再生成されているが**遡及ドリフトは無かった**)。**④cross-venue 汚染は住之江・桐生とも実測 0.00%**(構造的ゼロ)・cross-cycle 5.62% / 4.70%・窓 20 件中の本物 **94.38% / 95.30%**・`motor_recent20_top2` 一致率 **91.12% / 92.61%**・`motor_race_count_prior` 水増し **6.83 倍 / 6.46 倍**・**9999 天井 0%** = national(9.71% / 10.94% / 77 倍 / 63.2%)より**はるかに軽い ARM B′ 配置**。保存列 == 旧 semantics の自前再計算(**不一致 0 行**)。**⑤displacement(主系列 = ARM *_SAFE / seed 42 / 封印窓 0 行を assert・住之江 1,029R / 桐生 1,013R)**: **N1 1着本命入替 住之江 1.94% / 桐生 5.82%**(線 5.0%)・**N2 top-2 セット 16.42% / 21.52%**(線 10.0%)・N3 mean|Δp| 0.01915 / 0.01682(線 0.010)・**N4 p6 TVD 0.05744 / 0.05046**(線 0.020)・N7 順位並び入替 **57.34% / 57.26%**。**⑥3連単まで伝播(配備済み P2/P3 を固定し p1 のみアーム差 = 1着モデル単独の寄与・住之江 800R)**: **D1 p120 TVD 0.0611 / D2 3連単 argmax 11.38% / D3 top-3 券種セット 18.50%** = NG-Q042 の 22.54%(p1 + P2/P3 両方 corrected)の**約半分が 1着モデル由来**。**⑦D-SWAP(再学習なし・24 artifact)**: **285 レース中 24 レース(8.42%)で 1着本命が入れ替わる**(平均 TVD 0.0463・最大 naruto 25.0%)。**ただし train/serve skew を自作するので修復案としては却下**。**⑧精度は repair の根拠にならない(§16 の分離を厳守)**: A1 logloss Δ = **桐生 −0.00166**(改善・採用線 0.003 の半分・3 seed 一致)/ **住之江 +0.01112**(悪化)かつ **3 seed で符号反転**(+0.0111 / −0.0237 / +0.0005)= `SEED_UNSTABLE`。**Hit@1 は logloss と逆向き**(住之江 +0.39pt / 桐生 −0.69pt)。住之江は `best_iter` **69 → 24**・T 1.2 → 1.0・ECE 0.0217 → **0.0434**。**⑨最大の発見は真因の性質**(FINDINGS **P43**): **壊れた `motor_race_count_prior` は日付との Spearman +0.9713(住之江)/ +0.9785(桐生) = ほぼ純粋な単調時間インデックスとして働いていた**(corrected では +0.1159 / +0.0547)。モーター番号が会場ごとの固定小集合(71 / 65)なので `motor_no` 単独 group の累積カウントが「データセット開始から何走目か」にほぼ等しくなる。→ **gain は 4〜18 位なのに木の 72〜86% が使い平均深さ 6.1〜8.0**、親条件の最頻値が**自分自身**(20 / 43 回)= 多段の時期バンド分割。**この incident は「精度を損なう bug」ではなく「契約と実装の意味がずれている bug」であり、直すと住之江では精度が落ちる**。**⑩ARM N(削除)で P40 に例外が付いた**: 動き方は corrected と同オーダー(住之江 N1 2.14% / 桐生 7.40%)だが**精度への寄与は同じでない**(桐生 −0.0008 / **住之江 +0.0191**)→ **単純削除は住之江で損 = 却下候補**。**⑪同じバグでもレシピが 1 つ違うと修正の符号が変わる**(**P44**。桐生は `recency_half_life_days=365` で時間トレンドを別処理している)→ **P38「LGB では素直に効く」も外挿できない**。**⑫repair trigger は発火したが実行していない**: `Q044_REPAIR_PROPOSAL.md` に案 R1〜R4 / candidate 6 本(**research 領域のみ**)/ rollback 5 手順 / staging S1〜S8。**`data/models/` に q044 由来 0 件を assert で機械確認**。**推奨 = 案 R1**(`src/features.py` の group key 是正 → 既存の週次再学習に corrected モデルを作らせる)だが**`src/features.py` は B2 と共有されるため R1 は Q-038 の判断を内包する** → **Q-045**。**⑬監査の副産物として motor バグより大きい LIVE 欠陥を 2 件発見**(**P46**): **会場別 `features.parquet` 24 本のうち 17 本が 2026-07-18〜24 で停止**(`build_features_all_venues.py` は自動実行に載っていない)= **LENS は毎晩 288 レース publish しているのに 17 会場 204 レースは 7 月下旬のレースの再掲載**。桐生 picks の 30 分 cron も `date=2026-07-24` を 1 日 28 回再生成(ログ 91 回すべて同じ日付)→ **Q-046**。**⑭封印窓が週次 valid に飲み込まれている**(**P47**): 住之江 LIVE artifact の valid 6,609 行のうち **572 行(96 レース)が 2026-09-01〜09-12** = **この model family について封印窓は既に OOS ではない** → **Q-047**。判定の主系列は `*_SAFE`(2026-08-31 構造カット)で行い、**封印窓の着順・配当・命中は 1 つも参照していない**。**⑮Parity Integrity = GREEN 維持 / Semantics Integrity = YELLOW 維持**(既存 5 条件定義と矛盾なし)・**`INC-2026-0912-MOTORSEMANTICS` は OPEN 維持**(CLOSE 7 条件中 6)。unresolved exposure **4**(live 3 / dormant 1 / research 0)・**未測定 exposure 0 を維持**。**⑯Race Logic = LIMITED**(corrected artifact = q040 パネル / cmb1 P1 / **q044 ARM C** は可・**LIVE 1着 model の予測値を土台にする研究は不可**)。**production は 1 行も変更していない**(`git diff` = 0 行)・**live symlink も実体も不変**・**cron 不変**・**cached feature 24 本は 1 本も修復していない**・**新研究は 1 本も開始していない**(U-18〜U-22 は BACKLOG 記録のみ)。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-13 05:10**(更新者: Claude / Owner 裁定 2026-09-13「**Q-042 = GO。ただし AUDIT / IMPACT MEASUREMENT ONLY**」完走 = **RES-2026-09-M / NG-Q042**。**最終ラベル `Q042_EXPOSURE_MATERIAL`(+ `SEED_UNSTABLE`)**。**①LIVE 判定 = `LIVE_DORMANT`**: crontab 7 本 + launchd 6 本の全 entrypoint から推移的 import 走査で条件付きエンジンへ**到達 0 件**、`conditional_picks.json` は**リポジトリ全体で 1 本のみ**(`reports/suminoe_20260527`・2026-06-03 10:02 が最後。`reports/` のデータセットは **3,156 個**ある)。**ただし serving 経路は今日のデータでそのまま実行可能**(2026-08-18 で 12R/12R 生成成功)で、**その 2026-05-27 の古い出力が `nightly.sh` 手順 6 の `build_predictions_data.py` によって毎晩 LENS の live データへ再 publish され続けている** = 「エンジンは止まっているが、止まった日の答えが今も画面に載っている」(FINDINGS **P41**)。**②露出範囲を訂正**: **P2/P3 に直接入る壊れた列は `motor_recent20_top2` の 1 列だけ**で `motor_race_count_prior` は入っていない(**MOTOR_DEPENDENCY_LEDGER F-6 ②の「2 列」は誤り**)。**p1(`data/models/latest.txt`・毎週日曜 02:00 に自動再学習)には 2 列とも入り**、`p1`/`winner_p1`/`second_p1` として P2/P3 と 120 通り式へ伝播する。**③住之江単独フレームなので cross-venue 汚染は構造的に 0.00%**・誤りは **cycle 跨ぎのみ**(= MSA1 で唯一悪化した **ARM B′ 配置**)。窓 20 件のうち本物の同一個体 **18.73 件(94.38%)**・`motor_recent20_top2` 一致率 **91.12%**・9999 天井 **0.00%**・group 71 vs 物理個体 543(**7.6 倍**)= **national(9.71% / 10.94% / 63.2% / 129.4 倍)より遥かに軽い**。**④再現ゲート PASS 5/5・bit 一致**(p1 raw logit と P2/P3 raw score の `max_abs_delta` **0.0**・`valid_logloss` は **0.32035966066202215** まで exact・木の本数も 50/112/211 で一致)。学習カットは指紋照合で **p1 = 2026-05-30 / conditional = 2026-06-02**(候補は各 1 つのみ)。**⑤再現が一度 FAIL した原因を特定**: 現行 `src/model.py:split_train_calib_valid` では再現できず、**LIVE の p1 artifact は 2026-06-07 の split 変更(Codex review #2・行 index → 日付境界)より前の産物**だった。`backup_20260515_lens` との突合で **features.parquet の遡及ドリフトは 0 行**と確認済み(データは壊れていない)。**production を変更せず研究 clone に旧版 split を逐語複製**して bit 一致に到達(FINDINGS **P42**)。**⑥Primary = prediction displacement(評価窓 2026-06-03〜2026-08-18・426 レース・seeds 42/43/44)**: **3連単 argmax 入替 22.54%** / **2着本命 7.28%** / **3着本命 18.54%** / **p120 平均 TVD 0.05475** / **top-3 券種セット 34.04%** / top-10 55.63% / 押さえ **36.62%**。**1着本命だけは 1.17% しか動かない**。条件付き分布は P2 平均 |Δ| 0.99pp・argmax 4.93%・順位入替 29.46% / P3 平均 |Δ| 1.89pp・argmax **16.26%**・順位入替 39.41%。**⑦精度は同等**: 3連単 logloss 3.877234 → 3.871267(−0.006)だが **3 seed で符号が反転**(−0.006 / +0.007 / +0.004)= `SEED_UNSTABLE`。**displacement は 3 seed すべてで 5 指標とも線超え**。**= 「性能問題」ではなく「予測 identity 問題」**。**⑧ARM N(中立化)も同オーダーに動く**(argmax **26.06%** / TVD 0.0697)のに**精度は +0.013 しか落ちない** → **この 2 列は情報ではなく順位をかき混ぜるノイズ**(FINDINGS **P40**)。**⑨D-SWAP(凍結後に追加した診断・severity 非参加)**: 再学習せず LIVE と bit 一致の booster に corrected 列を serve 時だけ与えても **3連単 argmax 9.62% / top-3 セット 15.73% / TVD 0.0339** が動く = 再学習の交絡なしでも配備済みモデルは動く。**⑩LGB 診断**: `motor_recent20_top2` の gain share は P2 **1.59%(17 中 16 位)**/ P3 **2.41%(19 中 15 位)** と下位なのに、**P2 は 112 本中 72 本・P3 は 211 本中 128 本の木で使われ平均深さ 6.1**(葉に近い最後の決め手)= **寄与は小さいが決着をつける位置にいる**(FINDINGS **P39**)。**⑪Semantics Integrity = YELLOW 維持**(5 条件中 3)・**INC-2026-0912-MOTORSEMANTICS は OPEN 維持**(CLOSE 7 条件中 6)。**ただし「未測定 exposure」が 4 → 0 になった**(4 経路すべてに数字が付いた)= 残るのは「**測ったうえで直していない = 管理された既知差**」。**⑫Race Logic 再開ゲート = LIMITED**(B2 系は可・**conditional 由来 artifact と住之江 GATE PASS を土台にする研究は不可**)。**production は 1 行も変更していない**(`git diff` = 0 行)・**live model の symlink も実体も触っていない**・**cached feature 26 本は 1 本も修復していない**・holdout 2026-09-01〜10-31 は完全非接触。次の Owner 裁定 = **Q-043**(条件付きエンジンを封印するか直すか。**推奨 = 封印**)。人間向け = research/OWNER_VIEW.md)
@@ -1798,6 +1838,18 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 - 前々回更新: 2026-09-10 16:10(Owner 研究指令 第 2 弾「AI と市場の意見差を較正し、本当に買えるエッジが現実的な頻度で残るか決着させる」完走。NG-T3D3 = 凍結判定ケース1(3連複・2連単・2連複 MARKET GATE CANDIDATE・3連単 REJECT)/ 実質ケース3 寄り(hit 較正は回復・表示価格 EV は残る・確定配当ベースの実現値は全券種 <1)/ Edge–Frequency Frontier・Time-to-Evidence(頻度は制約でない)/ 知人 Crosswalk 44 行 / forward collector 登録・稼働 / shadow 方式 A 稼働 / Historical Replay 設計。人間向け 5 分表示 = research/OWNER_VIEW.md。次 = NG-T3D4(オッズ帯条件付き λ + 実現値 CI gate)の Owner GO)
 - 前々回更新: 2026-09-10 11:50(Ticket-Space 完走・P0 復旧・T3D3 設計)
 - 本ファイルは Canonical Research State の入口。機械可読版 = `research_state.json`。人間向け表示 = 研究コンソール(Artifact 494f0be1… — 本ファイル群から生成される view であり正本ではない)
+
+## §0. 2026-09-18 17:20 — Q-051 Batch 0 + pilot gate = **`Q051_BATCH1_READY`**(cutover 未実行)
+
+Owner 裁定 Q-051(a = β / b = gate まで GO / c = WAKE 据置)を完走。**production 無変更**(24 pointer / 24 features sha / allowlist / 既定 legacy / crontab / launchd)。
+詳細 = `lane-reports/q051_batch0_pilot_20260918.md` / registry `NG-Q051-B0` / FINDINGS §0 + P59 / P60。
+
+| pilot | legacy 33 列再現 | clean28 候補(staging)| 総変位 LIVE33→C28(144R)| gate | rollback |
+|---|---|---|---|---|---|
+| omura | REPRODUCED(bit) | `…_171534` sha `c8b1bf9f…` | 1着本命 5.56% / p6 TVD 0.132 / p120 0.269 / 3連単1番手 69.4% | 15/15 | 7/7 |
+| gamagori | REPRODUCED(bit) | `…_171558` sha `c395c0e6…` | 14.58% / 0.149 / 0.242 / 68.8% | 15/15 | 7/7 |
+
+**次 = Q-052(Batch 1 production cutover GO)。S-tier 残り 20 本には触らない。**
 
 ## §0. 2026-09-18 — Q-050 ①住之江 root = **`Q050_SUMINOE_READY`**(cutover は未実行)
 
@@ -2001,7 +2053,45 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-18 15:36(**Q-050 Task 7 = `Q050_SUMINOE_CUTOVER_PASS`**。旧: 2026-09-14 **Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**)
+最新更新: 2026-09-18 17:20(**Q-051 Batch 0 + pilot gate = `Q051_BATCH1_READY`・Q-052 待ち**。旧: 2026-09-18 16:19 Q-050 ② 計画提出 / 2026-09-18 15:36 **Q-050 Task 7 = `Q050_SUMINOE_CUTOVER_PASS`**。旧: 2026-09-14 **Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**)
+
+## §0. 2026-09-18 17:20 — Q-051 Batch 0 + pilot gate = **`Q051_BATCH1_READY`**(cutover 未実行・production 無変更)
+
+Owner 裁定 Q-051(a = β / b = gate まで GO / c = WAKE 据置)を完走。詳細 = `lane-reports/q051_batch0_pilot_20260918.md` / FINDINGS §0 + P59・P60 / registry `NG-Q051-B0`。
+
+- omura / gamagori = `Q051_PILOT_READY` 15/15。legacy 33 列 REPRODUCED ×2・clean28 候補 staged(`…_171534` / `…_171558`)・shadow 7 面(総変位 1着本命 5.56% / 14.58%・p6 TVD 0.132 / 0.149。semantics 単独 0.04〜0.06・系統効果が支配)・rollback drill 7/7
+- Batch 0 コード 8 点(承認範囲の正本 `scripts/ops/q051_scope.py`。cutover GO 時は `APPROVED_PHYSICAL_BUILDS` に会場を足す)
+
+### 最優先 — 次の 1 本(AI 単独可)
+
+**2026-09-20(日)02:00 の weekly retrain 後に `artifacts/ops/q050_retrain_guard.json` = `OK / physical / inline` を確認 + `PYTHONPATH=. .venv/bin/python scripts/ops/q048_smoke.py --venues kiryu,suminoe --label daily`。** REVERTED なら `sh scripts/ops/q048_rollback.sh suminoe`。住之江 anchor が正当に変わったら `scripts/ops/q051_pre_cutover_gate.py:ANCHORS` を更新。**S-tier には触らない。**
+
+### Owner 判断待ち(次サイクルの入口)
+
+- **Q-052**: Batch 1 = omura + gamagori の production cutover GO(材料 = 総変位の許容)
+- Q-050 ③ B2 据置 / Q-047 / Q-043 / Q-041 / Q-038 / G-A3 / Q-036 / Q-006 / Q-007 a〜d
+
+### 小さい運用改善(起票のみ)
+
+- 未使用の初回候補 `lgbm_v1_omura_armC_20260918_171426` の整理(Q-050 `_153027` と同じ)
+- 移行の許容線(総変位)を Batch 2 以降は plan に事前固定する(P60)
+
+## §0. 2026-09-18 16:19 — Q-050 ② S-tier 22 = **計画提出・Q-051 裁定待ち**(read-only 監査のみ)
+
+Owner 裁定「Q-050 ② = PLAN GO(計画作成・read-only 監査のみ。実装・再学習・cutover 禁止)」を実行。**production は 1 つも変えていない。**
+計画 = `docs/superpowers/plans/2026-09-18-q050-s-tier22-migration.md` / Owner 16 問 = `lane-reports/q050_stier22_plan_20260918.md` / 裁定 = **Q-051**(`~/ai-ops-os/portfolio/DECISION_QUEUE.md`)。
+
+- **22 本は同一 recipe だが P 層とは別系統**: 33 列 = 28 列 + `exhibition_time / approach / st / exhibition_rank_in_race / exhibition_diff_from_best`。現行コードはこの 5 列を leakage として拒否するので **同じ系統を再生産できない**(WAKE 8/4 実測: gain の 50.2% が approach)
+- **LIVE_ACTIVE 22 / 22**。WAKE 6 会場は 09:15 `daily_signal_notify.py` が allowlist を見ずに legacy で features を上書き(cutover 前に要修正)
+- 再現性: 行数一致 9 / 不一致 13。Class **A 22 / B 0 / C 0 / D 22**
+- **pilot = omura + gamagori**(予備 shimonoseki)。Batch 0(コード 8 点・production 無接触)+ Batch 1〜4(2 / 8 / 6 / WAKE 6)
+- Pre-Cutover Gate 14 項目(桐生・住之江 root の anchor 照合 #11 / WAKE untouched #12 を追加)。rollback は既存 lib で会場単位
+
+### いま決めてほしいこと(Q-051・3 段)
+
+- **a** 系統: 推奨 **β = 桐生と同じ clean 28 列**(α = 33 列 leaky 維持 / γ = 据置)
+- **b** Batch 0 + pilot omura・gamagori の gate まで GO(cutover は別 GO)
+- **c** WAKE 6 会場の 09:15 経路: 推奨 = Batch 1〜3 の間は据置(実装 + テストのみ)
 
 ## §0. 2026-09-18 15:36 — Q-050 Task 7 = **`Q050_SUMINOE_CUTOVER_PASS`**(住之江 root が ARM C / physical で LIVE)
 
@@ -3025,6 +3115,12 @@ Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」�
 | 2026-09-18 | Q-050 Task 8 rollback drill(実 production) | **PASS** | ARM C → LEGACY(切替前と完全一致)→ ARM C(bit 一致)。桐生 3 段階不変 | artifacts/ops/q050_rollback_drill.json |
 | 2026-09-18 | weekly retrain provenance(P58) | **是正(cutover 前)** | `save_model` が環境変数のみから semantics を書き、cron では legacy と記録 → guard が逆向きに戻す構造。`root_build_semantics` で allowlist を載せる。sandbox 実走で physical 維持を確認 | src/model.py / artifacts/ops/q050_t7_weekly_retrain_verify.json |
 | 2026-09-18 | Semantics Integrity | **YELLOW(据置)** | LGB P 層 2 本は physical。S-tier 22 / B2 / conditional / cached が残る。INC 7/8 | research/INCIDENTS.md |
+| 2026-09-18 | Q-051 a / b / c(S-tier 22 migration) | **GO(Owner)**: a = β clean28 / b = Batch 0 + pilot omura・gamagori の gate まで(**cutover 禁止**)/ c = WAKE 6 据置(実装 + テストのみ) | 33 列 leaky 系統を production 再学習しない。再現可能・意味的に正しい系統へ安全に移せるかを 2 会場で実証してから Batch 1 の実 cutover を別裁定 | ~/ai-ops-os/portfolio/DECISION_QUEUE.md Q-051 |
+| 2026-09-18 | Q-051 gate #4(a) legacy 33 列再現(omura / gamagori) | **REPRODUCED ×2** | research-only trainer(cbfd4b1 33 列・train_all_venues 逐語)で 5 指標・木数・valid 行 raw 予測 max\|Δ\| 0.0・決定性 OK。snapshot cut 05-01 を n_valid から特定(outcome 不使用) | artifacts/ops/q051_legacy_repro_{omura,gamagori}.json |
+| 2026-09-18 | Q-051 pilot Pre-Cutover Gate(14 項目・結果前に固定) | **PASS 15/15 ×2 = `Q051_PILOT_READY`** | 候補 `lgbm_v1_omura_armC_20260918_171534` / `lgbm_v1_gamagori_armC_20260918_171558`(physical / inline / 24 キー provenance / 決定性 / shadow C28 と sha 一致)・S1〜S9 physical PASS・negative control 2 方向・LENS staging・rollback artifact・24 会場 untouched・anchor 不変 | artifacts/ops/q051_pre_cutover_gate_{omura,gamagori}.json |
+| 2026-09-18 | Q-051 rollback drill(sandbox・会場単位) | **PASS 7/7** | omura だけ戻して gamagori / 桐生 / 住之江 不変・再適用 bit 一致・戻し先欠損は不動 | artifacts/ops/q051_rollback_drill.json |
+| 2026-09-18 | Q-051 Batch 1 verdict | **`Q051_BATCH1_READY`**(cutover は未実行) | 総変位 LIVE33→C28 = 1着本命 5.56% / 14.58%・p6 TVD 0.132 / 0.149・3連単1番手 69.4% / 68.8%(144R・outcome 不使用)。**系統効果が支配・semantics 単独は 0.04〜0.06**(P60)。許容線は plan に未固定 → Owner(Q-052) | lane-reports/q051_batch0_pilot_20260918.md |
+| 2026-09-18 | Semantics Integrity | **YELLOW(据置)** | pilot 2 本は cutover-ready だが LIVE は legacy。INC 7/8 | research/INCIDENTS.md |
 
 
 
@@ -4233,11 +4329,41 @@ Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)�
 
 # FINDINGS — 研究発見台帳(Canonical Research State)
 
-- 最終更新: 2026-09-18(Q-050 Task 7 = 住之江 root cutover PASS・**P58** 追加 / 旧: 2026-09-12 … → NG-TS1 → NG-U2 / VENUE-V0 → **NG-VA1 + Q-029 気象 provenance 監査** 反映)
+- 最終更新: 2026-09-18 17:20(Q-051 Batch 0 + pilot gate = `Q051_BATCH1_READY`・**P59 / P60** 追加 / 旧: 2026-09-18 Q-050 Task 7 = 住之江 root cutover PASS・**P58** / 2026-09-12 … → NG-TS1 → NG-U2 / VENUE-V0 → **NG-VA1 + Q-029 気象 provenance 監査** 反映)
 - 位置づけ: `research_state.json` / `RESEARCH_STATUS.md` と同期した人間可読の発見集。矛盾したら json 側が正
 - 主な出典: `docs/ARCHITECTURE_FREEZE_v2.1.md` / `lane-reports/nextgen_audit_20260903.md` / `lane-reports/hansei_sg_kiryu_20260903.md` / `lane-reports/e10_externality_20260904.md` / `docs/experiments/structured_order_model/results_summary.md` / `docs/MODEL_STRATEGY.md` / `artifacts/research/experiment_registry.jsonl` / `docs/ANALYSIS_BACKLOG.md`
 - 書式: 各発見は必ず3問に答える — **【分かったこと】結局何が分かったか /【予測に効くか】未来の予測に効くか /【市場】市場は既に知っているか**
 - 正直ラベルの規約: 小標本は「n=◯逸話」、確定オッズ由来の数値は「diagnostic(診断用・ROI主張不可)」を必ず付ける。無い値は「記録なし」と書く
+
+## §0. 2026-09-18 17:20 — Q-051 Batch 0 + pilot gate = **`Q051_BATCH1_READY`**(omura / gamagori = `Q051_PILOT_READY` 15/15・cutover は未実行)
+
+Owner 裁定 2026-09-18「**Q-051 a = β(clean 28 列)/ b = Batch 0 + pilot gate まで GO・cutover 禁止 / c = WAKE 6 据置(実装 + テストのみ)**」を実行。
+**production は 1 つも変えていない**(24 pointer / 24 features sha / allowlist `["kiryu","suminoe"]` / 既定 legacy / crontab / launchd。gate #10 / #11 で機械確認)。
+詳細 = `lane-reports/q051_batch0_pilot_20260918.md` / gate = `artifacts/ops/q051_pre_cutover_gate_{omura,gamagori}.json`。
+
+| 確定したこと | omura | gamagori |
+|---|---|---|
+| legacy 33 列の再現(research-only・production 再学習なし)| **REPRODUCED**(5 指標・木数 131・raw 予測 max\|Δ\| 0.0・決定性・cut 05-01)| **REPRODUCED**(木数 62・同上)|
+| clean28 候補(staging・pointer 不変)| `lgbm_v1_omura_armC_20260918_171534` sha `c8b1bf9f…` physical / inline / 24 キー provenance / 2 回学習 + 別プロセス + shadow C28 の **4 者 sha 一致** | `lgbm_v1_gamagori_armC_20260918_171558` sha `c395c0e6…` 同上(3 者一致)|
+| 総変位 LIVE33 → C28(144R・outcome 不使用)| 1着本命 **5.56%** / top-2 48.6% / p6 TVD **0.132** / p120 TVD **0.269** / 3連単1番手 **69.4%** / top-3 券種 86.1% | **14.58%** / 38.9% / **0.149** / **0.242** / **68.8%** / 84.7% |
+| 帰属分解 | semantics 単独(O33→C33)p6 TVD 0.045 / (O28→C28)0.039 ← **系統効果(C33→C28)0.121 が支配** | 0.057 / 0.048 ← **0.142 が支配** |
+| gate 14 項目 | **15/15**(anchor 2 回)| **15/15** |
+| rollback(sandbox 7/7)| omura だけ戻して gamagori / 桐生 / 住之江 不変・再適用 bit 一致 | 対称 |
+
+**新 finding = P59(legacy 33 列は現行コードから bit 一致で作り直せた)/ P60(β 移行の総変位は semantics ではなく系統 = leak 5 列除去 + recipe が支配。性能差ではなく information set の差)。**
+次 = **Q-052**(Batch 1 production cutover GO。総変位の許容は Owner が決める・AI は閾値を後付けしない)。
+
+**P59 — 「学習 frame が保存されていない」は「再現不能」と同義ではない。行数一致 + snapshot 日の特定で、現行コードから 4 か月前の artifact を bit 一致で作り直せた**【運用事実・2026-09-18・Q-051 gate #4(a)】
+
+- 【分かったこと】S-tier 22 本は 2026-05-02 の一括学習で、学習 frame は残っていない(plan §3-6)。omura / gamagori は現行 `features.parquet`(legacy)を dropna して **`date < 2026-01-01` の行数が meta の n_train と一致**し、`n_valid` が一致する日を trained_at ±7 日で探すと **05-01 が唯一**。その cut で `train_all_venues.train_one` を逐語再現した research-only trainer(33 列を自前で持ち `FEATURE_COLS` を import しない)で学習すると、**n_train / n_valid / T / valid_logloss / valid_top1 が下位ビットまで一致・木数一致・valid 行の raw 予測 max|Δ| = 0.0**。LightGBM 4.6.0 / 現行 `src/features.py` の legacy 経路は 4 か月前と同じ値を出している。
+- 【予測に効くか】効かない。**運用の発見**。「再現できる 9 / できない 13」の線引き(plan §3-6)は行数だけの必要条件だったが、pilot 2 本は十分条件まで満たした。**snapshot 日の特定は outcome を見ない**(n_valid は行数)。P57(再現性と決定性は別)と同じ規律で 2 回学習の sha 一致も別に確認した。
+- 【市場】無関係。
+
+**P60 — leaky 系統から clean 系統へ移すとき、画面の変位の大半は semantics 是正ではなく「レース後にしか分からない列を捨てたこと」に帰属する**【確定・2026-09-18・Q-051 shadow 7 面】
+
+- 【分かったこと】LIVE33 → C28 の総変位(p6 TVD omura 0.132 / gamagori 0.149)を 7 面で分解すると、**semantics 是正だけ**(O33→C33 0.045 / 0.057・O28→C28 0.039 / 0.048)は桐生(0.023)・住之江(0.070)と同オーダーで、**系統効果(C33→C28 0.121 / 0.142・O33→O28 0.132 / 0.137)が 7〜8 割**を占める。LIVE33 は eval 時に `approach / st`(K ファイル = レース後)を入力として読む(LENS の「過去 race 再現」表示)。それを持たない honest model と食い違うのは **information set の差であって性能差ではない**(WAKE 8/4: gain の 50.2% が approach)。
+- 【予測に効くか】この測定は migration impact であり「28 列の方が当たる」ではない(封印窓の outcome は 0 件)。**移行の許容線は結果を見る前に plan に固定していなかった** = 閾値を後付けせず Owner 判断(Q-052)に上げる。次に leaky 系統を移すとき(Batch 2〜4)も同じ 7 面で帰属を出してから裁定する。
+- 【市場】市場は `approach / st` を締切前には知らない。LIVE33 の LENS 表示は市場にも AI にも無い情報で作られていた。
 
 ## §0. 2026-09-18 15:36 — Q-050 Task 7 = **`Q050_SUMINOE_CUTOVER_PASS`**(住之江 root が ARM C / physical で LIVE)
 
@@ -5553,7 +5679,7 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 ```json
 {
  "updated_at": "2026-09-18",
- "updated_by": "Claude (RES-2026-09-Q / Q-050 Task 7)",
+ "updated_by": "Claude (RES-2026-09-R / NG-Q051-B0)",
  "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
  "architecture_version": "v2.1",
  "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
@@ -5568,8 +5694,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "id": "b2f41_prod2026_prod3",
   "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
  },
- "current_experiment": "RES-2026-09-Q (Q-049 完了 / Q-048 Stage B 完了 / Q-050 Task 7 = Q050_SUMINOE_CUTOVER_PASS)",
- "current_experiment_note": "住之江は切替可能な構造になったが cutover 自体は Owner HOLD。桐生のみ ARM C で LIVE 稼働",
+ "current_experiment": "RES-2026-09-R (Q-051 Batch 0 + pilot omura/gamagori Pre-Cutover Gate = Q051_BATCH1_READY)",
+ "current_experiment_note": "pilot 2 会場は cutover-ready (候補 staged・gate 15/15・legacy 33 列 REPRODUCED・rollback drill 7/7) だが production cutover は Owner 裁定 Q-052 待ち。桐生・住之江 root のみ ARM C LIVE。S-tier 残り 20 / B2 / conditional は据置",
  "experiments": {
   "registry_path": "artifacts/research/experiment_registry.jsonl",
   "adopted": [
@@ -6536,7 +6662,15 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "reason": "桐生 PASS は ②③ の根拠にならない。①は build 経路が nightly 手順 2/3 所有で週次自動再学習との整合が要る。②は 22 本すべて未再学習で 33 列 superset。③は DO_NOT_CUTOVER が覆っていない",
    "status_20260915": "未裁定 (Q-048 Stage B 完了後に起票)",
    "status_20260918": "**前半完了 = `Q050_SUMINOE_READY`**(Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO / Task 7 = 実 cutover は HOLD」)。住之江固有の 3 問題(build 経路が allowlist 非対応 / S1-S9 ゲート外 / weekly retrain の無人 pointer 張り替え)をすべて解消。production recipe を 8/8 で再現したうえで shadow を測り直し、**旧 2.27% を破棄して 2.56% を新しい予告値**とした。会場単位 rollback を sandbox で往復実証。test 82 passed・production 無変更。**残るは Task 7 の実行承認のみ**",
-   "status_20260918b": "**Task 7 完了 = `Q050_SUMINOE_CUTOVER_PASS`**(Owner 裁定 2026-09-18「Task 7 = GO / 学習窓 <= 2026-08-31」)。住之江 root の LIVE model が ARM C へ(`lgbm_v1_suminoe_armC_20260918_153428`・features physical)。smoke 8/8 × 4・identity abs_diff 0.0・実 production で rollback 往復・桐生不変・weekly retrain の穴 (P58) を cutover 前に是正・test 85。②S-tier 22 / ③B2 は未展開(別裁定)"
+   "status_20260918b": "**Task 7 完了 = `Q050_SUMINOE_CUTOVER_PASS`**(Owner 裁定 2026-09-18「Task 7 = GO / 学習窓 <= 2026-08-31」)。住之江 root の LIVE model が ARM C へ(`lgbm_v1_suminoe_armC_20260918_153428`・features physical)。smoke 8/8 × 4・identity abs_diff 0.0・実 production で rollback 往復・桐生不変・weekly retrain の穴 (P58) を cutover 前に是正・test 85。②S-tier 22 / ③B2 は未展開(別裁定)",
+   "status_20260918c": "**② S-tier 22 = Q-051 で裁定 (a=β / b=GO / c=据置) → Batch 0 + pilot gate 完走 = `Q051_BATCH1_READY`。cutover は Q-052**"
+  },
+  {
+   "n": 39,
+   "item": "Q-052 kyotei: Q-051 Batch 1 = omura + gamagori の production cutover GO / NO-GO",
+   "recommend": "Owner 判断 (AI は総変位の許容線を後付けしない)。GO なら q048_cutover.py --venues omura,gamagori → smoke ×4 → identity check → 実 production rollback 往復 → 翌朝 09:15 後・翌晩 nightly 後の smoke まで一気に行い STOP。承認時は scripts/ops/q051_scope.py の APPROVED_PHYSICAL_BUILDS に 2 会場を足す",
+   "reason": "pilot 2 会場は gate 15/15・候補 staged・legacy 33 列 REPRODUCED・rollback drill 7/7 で cutover-ready。ただし総変位が大きい (1着本命 5.56% / 14.58%・3連単1番手 ~69%・top-3 券種 ~85%) — 7〜8 割は leak 5 列除去 + recipe の系統効果 (P60)",
+   "status_20260918": "未裁定 (2026-09-18 17:20 起票)"
   }
  ],
  "w2_directives_owner_20260904": {
@@ -6681,7 +6815,7 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "architecture_vision_20260906": "Historical Player/Motor → Current Motor State → Current Environment State → Player Adjustment/Environmental Adaptation → 6艇Current State → Pressure×Resistance → Scenario Generator → P(Scenario)+P(Order|Scenario) → 120通りFundamental Probability → Calibration/Uncertainty → Market Evaluation → Scenario×Ticket Payoff → Sparse Value-weighted Portfolio → BET/NO BET。概念であり一括実装禁止",
   "human_facing": "日本語名称を主表示 (現在モーター状態/選手の調整能力/直前風変化/展開圧力×対応力/穴シナリオ/読めるレース/シナリオ分散買い)。内部IDは括弧の補助"
  },
- "next_actions": "Q-048 と Q-049 を 1 組で裁定してもらう。片方だけ GO すると 5 週間で劣化する。AI 単独で進められる作業は残っていない。持ち越し = Q-047 / Q-043 / Q-041 / Q-038 / G-A3 の食い違い / Q-036 / Q-006 / Q-007 a〜d",
+ "next_actions": "Q-052 (Batch 1 = omura + gamagori の production cutover GO) を裁定してもらう。AI 単独 = 09-20 02:00 の retrain guard 確認 + daily smoke のみ。持ち越し = Q-050 ③ / Q-047 / Q-043 / Q-041 / Q-038 / G-A3 / Q-036 / Q-006 / Q-007 a〜d",
  "model_identity_rule": "『同じモデル』と呼ぶには Model Weights + Feature Contract + Source Contract + Preprocessing Revision + Runtime Revision の 5 点が一致すること。weights が同じだけでは同じモデルと扱わない。『Raw B2』という呼称だけでモデルを参照することを禁ずる",
  "canonical_raw_b2": {
   "identity": "Q034_CLEAN_REPLICA",
@@ -7746,6 +7880,67 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "Q-050 ② S-tier 22 / ③ B2 は展開していない (別 Owner 裁定)"
   ],
   "lane_report": "lane-reports/q050_suminoe_cutover_20260918.md"
+ },
+ "res_2026_09_r_q051": {
+  "cycle": "RES-2026-09-R",
+  "experiment_id": "NG-Q051-B0",
+  "kind": "S-tier 22 の clean28 physical 移行 — Batch 0 (コード) + pilot omura / gamagori の Pre-Cutover Gate (cutover 別 GO)",
+  "owner_directive": "Q-051 a=β clean28 / b=Batch 0 + pilot gate GO・cutover 禁止 / c=WAKE 6 据置 (2026-09-18)",
+  "verdict": "Q051_BATCH1_READY",
+  "pilot": {
+   "omura": {
+    "verdict": "Q051_PILOT_READY",
+    "gate": "15/15",
+    "candidate": "lgbm_v1_omura_armC_20260918_171534",
+    "candidate_sha256": "c8b1bf9ff2575f3456acbaeea07358c5e73e1db1654b74fadd9b84ef7aa8c475",
+    "legacy33_reproduction": "REPRODUCED",
+    "displacement": {
+     "live33_to_C28": {
+      "N1": 0.0556,
+      "N2": 0.4861,
+      "p6_TVD": 0.1316,
+      "p120_TVD": 0.269,
+      "D2": 0.6944,
+      "D3": 0.8611
+     },
+     "semantics_only_O33_to_C33_p6_TVD": 0.0447,
+     "family_effect_C33_to_C28_p6_TVD": 0.121,
+     "n_eval_races": 144
+    }
+   },
+   "gamagori": {
+    "verdict": "Q051_PILOT_READY",
+    "gate": "15/15",
+    "candidate": "lgbm_v1_gamagori_armC_20260918_171558",
+    "candidate_sha256": "c395c0e63491f794cbd49f9faaff449c89ffbf540c4432a14044cb03d341eccd",
+    "legacy33_reproduction": "REPRODUCED",
+    "displacement": {
+     "live33_to_C28": {
+      "N1": 0.1458,
+      "N2": 0.3889,
+      "p6_TVD": 0.1487,
+      "p120_TVD": 0.242,
+      "D2": 0.6875,
+      "D3": 0.8472
+     },
+     "semantics_only_O33_to_C33_p6_TVD": 0.0567,
+     "family_effect_C33_to_C28_p6_TVD": 0.1419,
+     "n_eval_races": 144
+    }
+   }
+  },
+  "rollback_drill": "7/7 PASS (sandbox)",
+  "production_changed": false,
+  "physical_builds": [
+   "kiryu",
+   "suminoe"
+  ],
+  "new_findings": [
+   "P59",
+   "P60"
+  ],
+  "lane_report": "lane-reports/q051_batch0_pilot_20260918.md",
+  "next_owner_decision": "Q-052"
  }
 }
 ```
