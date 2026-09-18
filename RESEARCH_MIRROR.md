@@ -4,7 +4,8 @@
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
 
-- 更新: **2026-09-19 07:10**(Owner 裁定「**Q-059 = GO(採用ではなく『なぜ効くか』の分解)/ Q-053 = HOLD**」の実行後 = **RES-2026-09-X / NG-EP3 = `RACER_SIGNAL_LEAKAGE_SUSPECT`**・**判断は起床後に 1 つ = Q-060(次の分解サイクルを走らせたことの事後承認)**。Q-053 は HOLD のまま)
+- 更新: **2026-09-19 08:15**(就寝前指示に基づく追撃 = **RES-2026-09-Y / NG-EP4 = `SHUFFLE_CHANNEL_INCONCLUSIVE`**・**Q-059 の疑いの正体は「前半期間の仕掛けの癖(列を 1 本足すと 0.003 良くなる)」で、漏れではない**・**判断は起床後に 2 つ = Q-060(追撃の事後承認)/ 本番に足すかを諮る段階に進めるか**)
+- 前回更新: **2026-09-19 07:10**(Owner 裁定「**Q-059 = GO(採用ではなく『なぜ効くか』の分解)/ Q-053 = HOLD**」の実行後 = **RES-2026-09-X / NG-EP3 = `RACER_SIGNAL_LEAKAGE_SUSPECT`**・**判断は起床後に 1 つ = Q-060(次の分解サイクルを走らせたことの事後承認)**。Q-053 は HOLD のまま)
 - 前回更新: **2026-09-19 01:04**(Owner 裁定「**Q-058 = GO(b)/ Q-053 = HOLD**」の実行後 = **RES-2026-09-W / NG-EP2 = `EXHIBITION_POLICY_B2_NULL`**・**判断 1 つ = Q-059**(gate 外で出た大きな増分を凍結して再検証するか)。Q-053 は HOLD のまま・1 晩目の確認は clean)
 - 前回更新: **2026-09-18 22:45**(Owner 指示「**Q-056 = BACKLOG のみ / Q-053 = HOLD 継続 / 次は Exhibition Policy**」の実行後 = **RES-2026-09-V / NG-EP1 = `EXHIBITION_POLICY_PERSISTENT`**・**判断 1 つ = Q-058**(Phase 4 に進むか・arm a / b / c)。**Q-053 は HOLD のまま**)
 - 前回更新: **2026-09-18 21:03**(Owner GO「**Q-055 = GO**」の実行後 = **RES-2026-09-U / NG-MH2 = `HANDOFF_B2_NULL`**・判断不要・報告のみ)
@@ -25,6 +26,27 @@
 - 前々回更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
 - 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/q035_prior_parity_20260912.md`(今回)と `lane-reports/sia_v1_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
 - 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
+
+## §0. 2026-09-19 08:15 — 「疑いの 1 点は漏れか、レースの顔ぶれ情報か」= **どちらでもなく、前半期間の仕掛けの癖(情報ゼロの列を 1 本足すだけで 0.003 良くなる)。スコアの効き目はその 6 倍で、しかも「レース内で誰が期待より走るか」の成分だけから出ている**
+
+就寝前の「起きるまで研究を進めて」に基づき、次の分解サイクル(NG-EP4)を凍結(commit `91f32e1`・07:07)して回した。**本番は 1 行も触っていない**。
+
+### 何が分かったか(人間向け)
+
+- **何も保たない完全な偽物(全期間で選手を無作為に入れ替えたスコア・元との相関ほぼ 0)でも、前半期間ではキャリア長単独より 0.00276 良くなった**(乱数 3 本とも同じ向き)。情報を持ち得ない列なので、これは「漏れ」ではなく**仕掛けの癖**(前半期間で列を 1 本足すと約 0.003 良くなる)。後半期間ではこの癖は出ない(4 種の偽物すべて差なし)
+- Q-059 で疑いになった「同じ会場・同じ日で入れ替えた偽物」の 0.00306 は、この癖(0.00276)でほぼ説明がつく。顔ぶれだけ保った偽物(0.0040)・レース平均だけ(0.0052)は少し大きいが、後半期間では差なし = 顔ぶれ情報の寄与は「あっても小さい」
+- **本物のスコアの効き目(0.017 / 0.015)は、レース内の相対値だけにしても丸ごと残る**(0.0176 / 0.0156)。つまりレース全体の強さ・場の強さの情報ではなく、**「このレースの 6 艇の中で誰が期待より走るか」という選手固有の成分**が効いている。仕掛けの癖 0.003 の約 6 倍
+- **判定の名前は変えない**(Q-059 = 「否定できない」/ 今回 = 「中間」)。ただし読みは「漏れではない・単純な説明では消えない・癖を差し引いても採用線の 5 倍」に更新する
+- **仕掛けの癖 0.003 は、うちの採用線 0.003 と同じ大きさ**。前半期間だけで線に触る偽物は「たまに出る」ものだと分かった(過去にも例あり)。「両期間で同時に成立」を要求している今の規則は正しく働いている
+
+### いま決めてほしいこと(起床後・**2 つ・番号で**)
+
+1. **Q-060**: 寝ている間に回した追撃サイクル(NG-EP4)を事後承認するか。①回した ②止めると結果を捨てる ③推奨 = 承認(結果は上のとおり・本番には触っていない)
+2. **次の段階に進めるか**: このスコアを「本番モデルに足す価値があるか」を判定する採用ゲートを設計してよいか。①今は識別(本物か)の段階で止まっている ②進めなければ「大きな効き目の候補」が未判定のまま ③推奨 = 設計だけ GO(採用線は「偽物を差し引いた線」か「両期間 + 偽物ゼロ」を必須にする。本番に足すかどうかは、その結果を見てもう一度判断)
+
+### 変えていないもの
+
+- 本番モデル・買い目・S-tier・WAKE・LENS・封印期間。Q-053(S-tier 8 場の切替)は HOLD のまま(2 晩目は 09:40 に自動確認)
 
 ## §0. 2026-09-19 07:10 — 「脇で見つかった大きな効き目(選手の実力の取り残し)は本物か」= **単純な説明では消えなかった。ただし偽物チェックの 1 つが前半期間だけ判定線ちょうどに触れたので、規則どおり「漏れを否定できない」で保留**。次の分解サイクル(NG-EP4)を起床までに回す
 
@@ -1043,22 +1065,21 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: RES-2026-09-Y (NG-EP4 / Q-060 Shuffle Channel Decomposition) = OPEN (freeze 91f32e1・本番 run 07:07〜・24 fit)。RES-2026-09-X (NG-EP3 / Q-059) = COMPLETED = RACER_SIGNAL_LEAKAGE_SUSPECT。Q-053 = HOLD(NG-EP3: 単純な説明 (生の率 / 経験年数 / 級別 / lane / オンライン更新) では EP の 8 割を再現できず、生の率や simple 全部に EP を足すと採用線超・Q-058 は bit 再現。ただし会場×日 s…)
+- 実行中の実験: RES-2026-09-Y (NG-EP4 / Q-060) = COMPLETED = SHUFFLE_CHANNEL_INCONCLUSIVE (Q-059 の疑い = fold1 harness noise floor ≈ 0.003・leakage ではない・EP はレース内相対成分のみ)。RES-2026-09-X (NG-EP3 / Q-059) = COMPLETED = RACER_SIGNAL_LEAKAGE_SUSPECT (label 凍結・読みは新情報側)。Q-053 = HOLD。次 = Owner 判断 (Q-060 事後承認 / Q-061 adoption gate 設計 GO)(NG-EP4: GSHUF (情報ゼロ) fold1 −0.00276 [−0.00492, −0.00062] / fold2 +0.00142 null・RSET −0.0040 / +0.0010・RMEAN −0.0052 / −…)
 - 自走ジョブ: 部品層化バックフィル PID None(status=aborted・47062/49968 ページ・残り目安 0.4 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
-- NG-EP4(registered): Shuffle Channel Decomposition — NG-EP3 の会場×日 shuffle placebo が fold1 で採用線に触れた (−0.00306) ことを『harness / evalua…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-MH1**(2026-09-18・done_primary・—): 直前の使用者が節終盤に残した展示残差 (baseline 超過) は次操者の初回展示を β 0.125 で予測し、同一 motor の非隣接 usage (NC2 null 0.055) を 200/200 回上回る (隣接 premium 0.067)。24/24 場・前後半で再現・gap で緩やかに減衰・別 motor では ≈0。当日展示投入後も着順残差に 62% が残る (Model D CI>0)。ただし機構は分離できず (節内 delta の…
 - **NG-MH2**(2026-09-18・done_primary・—): handoff state (展示後・水準 HL) は両 fold で負方向 (−0.00197 / −0.00090) だが採用線 −0.003 に届かず clustered CI95 は両 fold で 0 を含む (fold1 seed 1 本正)・行為 (HD) は fold 間で符号反転 (−0.00192 / +0.00060)・展示前 (MH−M) は fold2 −0.00288 (CI<0) だが fold1 は CI 0 含む = e…
 - **NG-EP1**(2026-09-18・done_primary・—): 
 - **NG-EP2**(2026-09-19・done_primary・—): 展示タイプ score_ex は B2 採用線未達 (fold1 seed 1 本正・fold2 CI 0 含む)・interaction 有害・additive は ability 統制で消える → S-8 は実在するが B2 増分なしで closure。gate 外: ep_score / ab_score (長期 as-of 残差スコア) が −0.015〜−0.017 (6 fit 全負・採用線の 5 倍) → 採用せず U-39 / Q-059…
 - **NG-EP3**(2026-09-19・done_primary・—): 単純な説明 (生の率 / 経験年数 / 級別 / lane / オンライン更新) では EP の 8 割を再現できず、生の率や simple 全部に EP を足すと採用線超で改善・Q-058 は bit 再現。ただし会場×日 shuffle placebo が fold1 で CL を −0.00306 上回り閾値 −0.003 に触れた (fold2 null) → 凍結規則で LEAKAGE_SUSPECT。仮説 = レース構成情報の温存。次 = N…
+- **NG-EP4**(2026-09-19・done_primary・—): 情報ゼロの列 (全期間 shuffle) が fold1 で −0.00276 [−0.00492, −0.00062]・fold2 null = harness の fold1 noise floor ≈ 0.003 が Q-059 の SHUFL (−0.00306) をほぼ説明 (leakage ではない)。レース構成情報は fold1 で +0.001〜0.002・fold2 null。EP の効き目はレース内相対値だけで全部出る (EPD −0…
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-19 07:10(**RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点・他 flag は新情報側)・COMPLETED・STOP・次 = NG-EP4 / Q-060(Owner 就寝前指示で起動・研究のみ)・Q-053 = HOLD**。旧: 2026-09-19 01:04(**RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`(Case D)・COMPLETED・STOP・Q-053 = HOLD(observation ① clean)・次 = Owner 判断 Q-059(NG-EP3 = 長期 as-of 残差スコアの凍結再検証)**。旧: 2026-09-18 22:45(**RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy = `EXHIB…
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-19 08:15(**RES-2026-09-Y = NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`・COMPLETED・STOP・Q-059 の疑い = fold1 noise floor(leakage ではない)・次 = Owner 判断 Q-060 事後承認 + adoption gate 設計の GO**。旧: 2026-09-19 07:10(**RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点・他 flag は新情報側)・COMPLETED・STOP・次 = NG-EP4 / Q-060(Owner 就寝前指示で起動・研究のみ)・Q-053 = HOLD**。旧: 2026-09-19 01:04(**RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_…
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -1150,11 +1171,10 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - #45 Q-058 kyotei: NG-EP2 = Exhibition Policy Phase 4 (EP prediction gate・MR1 harness ME + as-of policy 列・ΔNLL ≤ −0.003) を OPEN するか。ar…(推奨: (b))
 - #46 Q-059 kyotei: NG-EP3 = 長期 as-of 残差スコア (ab_score / ep_score) を primary にした B2 gate + NC1 racer shuffle / NC2 pol_logn 単独 / NC3 生の長…(推奨: GO (研究のみ・production 非接触・自動 ACTIVE 化しない))
 - #47 Q-060 kyotei: NG-EP4 (Shuffle Channel Decomposition) を Owner 就寝前包括指示に基づき凍結・起動した (freeze 91f32e1・研究のみ・production 非接触)。事後承認するか停止するか(推奨: 事後承認 (結果を Q-059 の identity 読み直しに使う。統合は別 GO))
+- #48 Q-061 kyotei: 長期 as-of 残差スコア (ep_score) の adoption gate を設計するか (採用線に placebo 差し引き or 両 fold + placebo null を必須・B2 統合の是非を判定・統合は別 G…(推奨: 設計だけ GO (研究のみ))
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-18 | RES-2026-09-W | **OPEN(Owner Q-058 GO 23:0x・arm (b) = score_recent → score_ex・primary = interaction 付き EX / Q-053 HOLD 継続)** — NG-EP2 = as-of 展示タイプ score_ex(+ × 今日の展示 z)を MR1 土台 ME に足し B2 3連単 ΔNLL ≤ −0.003 に届くかの gate…
-- 2026-09-18 | NG-EP2 | **事前登録(freeze commit c6034f7・23:22・結果計算前)** — POLICY_SCORE_ASOF_SAFE PASS(score_ex bit 再現 / future mutation 2 split / brute force 200/2…
 - 2026-09-19 | NG-EP2 | **NULL = `EXHIBITION_POLICY_B2_NULL`(Case D)** — d_EX_ME fold1 −0.00424 [−0.00649, −0.00206](seeds −+−)/ fold2 −0.00098 [−0.00311, +0.0011…
 - 2026-09-19 | RES-2026-09-W | **COMPLETED → STOP** — S-8 = 実在するが B2 採用線未達(存在判定は不変)。production feature 候補 NO。**U-39** 新設(長期 as-of 残差スコア)→ Q-059…
 - 2026-09-19 | RES-2026-09-X | **OPEN(Owner Q-059 GO・identity gate・採用禁止・production 非接触 / Q-053 HOLD 継続)** — NG-EP3 = Q-058 の gate 外観測(ep / ab の B2 増分 −0.015〜−0.017)を H1 新情報 / H2 ability 再符号化 / H3 t…
@@ -1163,6 +1183,8 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 2026-09-19 | RES-2026-09-X | **COMPLETED → STOP** — production 候補への昇格なし(Owner 条件)。U-39 = TESTING(判定保留)。**P69 / P70**。次の 1 本 = NG-EP4(Q-060・sh…
 - 2026-09-19 | Owner 包括指示(就寝前 04:45) | **研究続行 GO(研究のみ)** — 「起きたら尼崎行くからそれまでに研究ガンガン進めておいて」→ NG-EP3 closure 後に次の 1 本(NG-EP4)を凍結して起動。production 統合禁止・採用判…
 - 2026-09-19 | RES-2026-09-Y / NG-EP4 | **OPEN・事前登録(freeze commit 91f32e1・07:07・結果計算前)** — Shuffle Channel Decomposition: NG-EP3 の SHUFL 疑い(fold1 −0.00306)を GSHUF(何も保存しない)/ RSET(レー…
+- 2026-09-19 | NG-EP4 | **`SHUFFLE_CHANNEL_INCONCLUSIVE`(凍結判定木・GSHUF が null でも採用線でもない)** — d_GSHUF_CL(情報ゼロの列)fold1 −0.00276 [−0.00492, −0.00062] / fold2 +0.00142 null・d_RSET_CL −0.…
+- 2026-09-19 | RES-2026-09-Y | **COMPLETED → STOP** — production 候補への昇格なし。NG-EP3 / NG-EP4 の label は凍結のまま(LEAKAGE_SUSPECT / INCONCLUSIVE)・識別の読みは…
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -1941,7 +1963,7 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 
 # RESEARCH_STATUS — 研究状態の正本
 
-- 最新更新: **2026-09-19 07:10**(更新者: Claude / Owner 裁定 2026-09-19「**Q-059 = GO(identity gate・採用禁止)/ Q-053 = HOLD 継続**」完走 = **RES-2026-09-X / NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(凍結 gate・freeze 03da3b4・run 04:26 → 07:02・9,415 s・66 fit)**。EP −0.01711 / −0.01500(Q-058 と bit 同一)。単純 comparator は全部 < 0.8(生の率 0.69 / 0.50・lane 0.74 / 0.62・経験年数 0.01 / 0.14・simple 全部 0.68 / 0.64)・fold 開始凍結でも 0.92 / 0.95・生の率 + EP −0.0062 / −0.0073・simple 全部 + EP −0.0040 / −0.0090 = novel 条件は成立。**ただし会場 × 日 shuffle placebo が fold1 で CL を −0.00306 上回り閾値 −0.003 に触れた(fold2 null)→ 規則どおり LEAKAGE_SUSPECT**。P69 / P70。production 非接触。次 = NG-EP4(Q-060・Owner 就寝前指示で起動)。前回: 2026-09-19 01:04(更新者: Claude / Owner 裁定 2026-09-18 23:0x「**Q-058 = GO・arm (b) score_ex・primary = interaction 付き EX / Q-053 = HOLD 継続**」完走 = **RES-2026-09-W / NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`(Case D・凍結 gate・freeze c6034f7・run 23:23 → 01:04・6,045 s・42 fit)**。as-of 展示タイプ score_ex(+ × 今日の展示 z + log1p(n_past) + missing)を MR1 土台 ME(bundle 12/12 再利用)に足した primary d_EX_ME = **fold1 −0.00424 [−0.00649, −0.00206](seeds −+−)/ fold2 −0.00098 [−0.00311, +0.00112](seeds +−−)** = 採用線 −0.003 を両 fold で満たさない(fold1 は seed 1 本正・fold2 は CI 0 含む)。interaction は両 fold で有害(+0.0022 / +0.0023)。additive EXA −0.00644 / −0.00331 は ability proxy 統制後に消える(+0.0012 / +0.0007)。placebo null(HARNESS_SUSPECT False)。d_ME_M MR1 一致。**S-8 = 実在するが B2 採用線未達(存在判定は不変)・production feature 候補 NO**。**gate 外の観測**: 長期 as-of 残差スコア(ep_score / ab_score)を ME に足すと **−0.0150〜−0.0171(6 fit 全負・採用線の 5 倍・当日展示の増分の約 8 割)** → 採用せず **U-39 新設・NG-EP3 = Q-059 起票**(Owner 判断)。FINDINGS **P67 / P68**。production 非接触・Q-053 HOLD(observation ① 00:34 = smoke 9/9 PASS・4 場 ARM C・LENS 24/24 FRESH・conditional 0・展開なし))
+- 最新更新: **2026-09-19 08:15**(更新者: Claude / Owner 就寝前包括指示に基づく追撃 = **RES-2026-09-Y / NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`(freeze 91f32e1・run 07:07 → 08:05・24 fit)**。情報ゼロの列が fold1 で −0.00276 [−0.00492, −0.00062](fold2 null)= harness の noise floor ≈ 0.003 が Q-059 の SHUFL(−0.00306)を説明・leakage ではない。EP はレース内相対値だけで全部出る(EPD −0.01759 / −0.01562)。P71。label は凍結のまま・読みは新情報側。production 非接触。次 = adoption gate 設計の Owner 裁定。前回: 2026-09-19 07:10(更新者: Claude / Owner 裁定 2026-09-19「**Q-059 = GO(identity gate・採用禁止)/ Q-053 = HOLD 継続**」完走 = **RES-2026-09-X / NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(凍結 gate・freeze 03da3b4・run 04:26 → 07:02・9,415 s・66 fit)**。EP −0.01711 / −0.01500(Q-058 と bit 同一)。単純 comparator は全部 < 0.8(生の率 0.69 / 0.50・lane 0.74 / 0.62・経験年数 0.01 / 0.14・simple 全部 0.68 / 0.64)・fold 開始凍結でも 0.92 / 0.95・生の率 + EP −0.0062 / −0.0073・simple 全部 + EP −0.0040 / −0.0090 = novel 条件は成立。**ただし会場 × 日 shuffle placebo が fold1 で CL を −0.00306 上回り閾値 −0.003 に触れた(fold2 null)→ 規則どおり LEAKAGE_SUSPECT**。P69 / P70。production 非接触。次 = NG-EP4(Q-060・Owner 就寝前指示で起動)。前回: 2026-09-19 01:04(更新者: Claude / Owner 裁定 2026-09-18 23:0x「**Q-058 = GO・arm (b) score_ex・primary = interaction 付き EX / Q-053 = HOLD 継続**」完走 = **RES-2026-09-W / NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`(Case D・凍結 gate・freeze c6034f7・run 23:23 → 01:04・6,045 s・42 fit)**。as-of 展示タイプ score_ex(+ × 今日の展示 z + log1p(n_past) + missing)を MR1 土台 ME(bundle 12/12 再利用)に足した primary d_EX_ME = **fold1 −0.00424 [−0.00649, −0.00206](seeds −+−)/ fold2 −0.00098 [−0.00311, +0.00112](seeds +−−)** = 採用線 −0.003 を両 fold で満たさない(fold1 は seed 1 本正・fold2 は CI 0 含む)。interaction は両 fold で有害(+0.0022 / +0.0023)。additive EXA −0.00644 / −0.00331 は ability proxy 統制後に消える(+0.0012 / +0.0007)。placebo null(HARNESS_SUSPECT False)。d_ME_M MR1 一致。**S-8 = 実在するが B2 採用線未達(存在判定は不変)・production feature 候補 NO**。**gate 外の観測**: 長期 as-of 残差スコア(ep_score / ab_score)を ME に足すと **−0.0150〜−0.0171(6 fit 全負・採用線の 5 倍・当日展示の増分の約 8 割)** → 採用せず **U-39 新設・NG-EP3 = Q-059 起票**(Owner 判断)。FINDINGS **P67 / P68**。production 非接触・Q-053 HOLD(observation ① 00:34 = smoke 9/9 PASS・4 場 ARM C・LENS 24/24 FRESH・conditional 0・展開なし))
 - 前回更新: **2026-09-18 22:45**(更新者: Claude / Owner 指示 2026-09-18 22:xx「**Q-056 = BACKLOG のみ / Q-053 = HOLD 継続 / 次期テーマ = Exhibition Policy**」完走 = **RES-2026-09-V / NG-EP1 / Q-057 = `EXHIBITION_POLICY_PERSISTENT`**(凍結 gate 8/8・freeze de0bad3・panel 361.7 s / persistence 35.4 s)。展示 + 統制(ability / lane / venue / class / physical motor / motor rate / weather / cycle age)の LightGBM **暦年 walk-forward** controller の残差 `r_ep` に、as-of shrunk score(Σ/(n+20)・同日除外)で選手持続を検定: **split-half 0.691 [0.662, 0.718](n=1,815)/ ICC(1) 0.0070・τ̂ 0.034 / future ρ 0.038(暦年 5/5・24/24 場)/ NC1 ≈ 0 / NC2 0.004 / NC3 PASS / NC4 展示固有 +0.0106 [0.0092, 0.0120]**。**正直な読み = 持続の約 7 割は ability 残余・展示固有は約 3 割・B2 相対は未判定**。副次: display trait 0.805・展示を強く出す選手は本番で展示ほど走らない(−0.031)・recent は足さない・事故直後 −0.5pp。**Phase 4(NG-EP2)は Owner GO = Q-058 まで実行しない**。production 非接触・Q-053 HOLD。FINDINGS **P65 / P66**・HYPOTHESES **S-8**)
 - 前回更新: **2026-09-18 21:03**(更新者: Claude / Owner GO 2026-09-18 19:40「**Q-055 = GO**(方式 Subagent-Driven・追加 Freeze 条件 3 点)」完走 = **RES-2026-09-U / NG-MH2 / Q-055 = `HANDOFF_B2_NULL`**(機構 UNRESOLVED・凍結 gate・freeze e0fad45・run 21:03:01・3,565 s)。NG-MH1 で実在を確認した handoff state(hh_lvl 水準 / hh_delta 行為・as-of・レース内 z)を MR1 土台 ME(corrected physical motor + 当日展示 z)に足し、**B2 3連単 ΔNLL が採用線 −0.003 に届くか**を clustered paired bootstrap(cluster = (jcd, race_date)・B=10,000)で判定。MR1 bundle 24/24 再利用・d_ME_M MR1 一致(−0.01516 / −0.01946)・新規 fit 24 失敗 0。**d_HL_ME fold1 −0.00197 [−0.00405, +0.00006](seeds −−+)/ fold2 −0.00090 [−0.00278, +0.00098](seeds −−−)= 採用線の 1/3〜2/3・CI95 は両 fold で 0 を含む → Gate A FAIL**。d_HD_ME(行為)fold1 −0.00192 / fold2 **+0.00060** = 符号反転 → Gate B FAIL。展示前 d_MH_M fold2 **−0.00288** [−0.00486, −0.00089] / fold1 −0.00171(CI 0 含む)= exhibition-mediated 寄り(NG-MH1 の「最新状態の観測」と整合・fold1 不安定)。placebo fold1 −0.00149 = HL の約 75%(gate は PASS・HARNESS_SUSPECT False)。EXHIBITION_Z_ASOF_SAFE PASS。**S-7 の存在判定は不変・B2 production feature 候補に昇格しない・Q-050 ③ の再裁定材料にならない**。**production / B2 / LIVE / WAKE 非接触**・Q-053 = HOLD(pilot smoke は時刻未到達・未実施)。次 = **Owner 判断**(NG-MH3 = 展示前 = 朝シグナル LightGBM 1着 physical model への増分 を BACKLOG に置くか・推奨 = 起票のみ / Q-053 再裁定は pilot 2 晩後)+ AI 単独 = Q-053 observation(時刻到達後 read-only)。FINDINGS **P64**・HYPOTHESES **S-7 追記**。人間向け = research/OWNER_VIEW.md)
 - 前回更新: **2026-09-18 19:15**(更新者: Claude / Owner 指示 2026-09-18「**Q-053 = HOLD・研究席は Motor Handoff / Tuning Carryover へ**」完走 = **RES-2026-09-T / NG-MH1 / Q-054 = `HANDOFF_SIGNAL_CONFIRMED`**(凍結 gate 10/10・freeze 41c9d60)。物理モーター 11,643 / 隣接 usage link 216,395。前操者 late 展示残差(baseline 超過)→ 次操者 初回展示残差 **β 0.125 [0.120, 0.129]**・同一 motor 内の非隣接 null 0.055 を 200/200 回上回る(**隣接 premium 0.067**)・NC1 ≈ 0・**24/24 場**・前後半再現・gap で緩やかに減衰・当日展示後も着順残差に 62% 残る(Model D 0.021 [0.017, 0.025])。**機構は未分離**(節内 delta の持ち越し 0.015 = 小・終盤の水準が持ち越される = 「調整の持ち越し」より「最新状態の観測」寄り)・**予測増分は当日展示の 1/25**(B2 採用線を単独で越える見込みは薄い・P34)。**production / B2 / LIVE / WAKE 非接触**。次 = **Q-055**(NG-MH2 = B2 レベル ΔNLL gate の GO)+ Q-053 observation(時刻到達後 read-only)。FINDINGS **P62 / P63**・HYPOTHESES **S-7**。人間向け = research/OWNER_VIEW.md)
@@ -1964,6 +1986,13 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 - 前々回更新: 2026-09-10 16:10(Owner 研究指令 第 2 弾「AI と市場の意見差を較正し、本当に買えるエッジが現実的な頻度で残るか決着させる」完走。NG-T3D3 = 凍結判定ケース1(3連複・2連単・2連複 MARKET GATE CANDIDATE・3連単 REJECT)/ 実質ケース3 寄り(hit 較正は回復・表示価格 EV は残る・確定配当ベースの実現値は全券種 <1)/ Edge–Frequency Frontier・Time-to-Evidence(頻度は制約でない)/ 知人 Crosswalk 44 行 / forward collector 登録・稼働 / shadow 方式 A 稼働 / Historical Replay 設計。人間向け 5 分表示 = research/OWNER_VIEW.md。次 = NG-T3D4(オッズ帯条件付き λ + 実現値 CI gate)の Owner GO)
 - 前々回更新: 2026-09-10 11:50(Ticket-Space 完走・P0 復旧・T3D3 設計)
 - 本ファイルは Canonical Research State の入口。機械可読版 = `research_state.json`。人間向け表示 = 研究コンソール(Artifact 494f0be1… — 本ファイル群から生成される view であり正本ではない)
+
+## §0. 2026-09-19 08:15 — RES-2026-09-Y = NG-EP4 / Q-060 Shuffle Channel Decomposition = **`SHUFFLE_CHANNEL_INCONCLUSIVE`**(COMPLETED・STOP)/ Q-059 の疑いの正体 = fold1 の harness noise floor
+
+- 凍結 91f32e1(07:07)/ run 07:07 → 08:05(24 fit)/ 再利用 30/30・NG-EP3 と 1e-9 一致
+- Δ(CL 比・clustered): GSHUF(何も保存しない)**−0.00276 / +0.00142**・SHUFL −0.00306 / +0.00139・RSET(レース内 multiset)−0.00400 / +0.00095・RMEAN(レース平均)−0.00524 / −0.00006。**EPD(レース内相対値)− ME = −0.01759 / −0.01562 = EP(−0.01711 / −0.01500)と同じ**
+- 読み: ①fold1 は列を 1 本足すだけで ≈ 0.003 良くなる(noise floor)= Q-059 の SHUFL はこれで説明・leakage ではない ②fold2 は全 placebo null ③EP の増分は選手固有の相対成分のみ・noise floor の約 6 倍。**label は凍結のまま(NG-EP3 LEAKAGE_SUSPECT / NG-EP4 INCONCLUSIVE)・識別の読みは新情報側に更新**。詳細 = `lane-reports/ep4_shuffle_channel_20260919.md` / FINDINGS P71
+- 次(提案・Owner 裁定): adoption gate の設計に placebo 差し引き線 or 両 fold + placebo null を入れて B2 統合の是非を判定する価値あり。統合は別 GO。Q-060 = 起床後に事後裁定 / Q-053 = HOLD(② 09:40 自動)
 
 ## §0. 2026-09-19 07:10 — RES-2026-09-X = NG-EP3 / Q-059 Racer Signal Identity = **`RACER_SIGNAL_LEAKAGE_SUSPECT`**(COMPLETED・STOP・harness placebo 1 点・他 flag は新情報側)/ 次 = NG-EP4(Q-060)
 
@@ -2245,7 +2274,27 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-19 07:10(**RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点・他 flag は新情報側)・COMPLETED・STOP・次 = NG-EP4 / Q-060(Owner 就寝前指示で起動・研究のみ)・Q-053 = HOLD**。旧: 2026-09-19 01:04(**RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`(Case D)・COMPLETED・STOP・Q-053 = HOLD(observation ① clean)・次 = Owner 判断 Q-059(NG-EP3 = 長期 as-of 残差スコアの凍結再検証)**。旧: 2026-09-18 22:45(**RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy = `EXHIBITION_POLICY_PERSISTENT`・COMPLETED・STOP・Q-053 = HOLD 継続・Q-056 = BACKLOG のみ・次 = Owner 判断 Q-058(Phase 4 GO・arm a/b/c)**。旧: 2026-09-18 21:03 **RES-2026-09-U = NG-MH2 / Q-055 = `HANDOFF_B2_NULL`・COMPLETED・STOP**。旧: 2026-09-18 19:15 **RES-2026-09-T = NG-MH1 / Q-054 Motor Handoff = `HANDOFF_SIGNAL_CONFIRMED`・STOP・Q-053 = HOLD・次 = Q-055**。旧: 2026-09-18 18:10 **RES-2026-09-S = Q-052 / Q-047 / Q-043 完了・Q-053 待ち**。旧: 2026-09-18 17:20 **Q-051 = `Q051_BATCH1_READY`**。旧: 2026-09-18 16:19 Q-050 ② 計画提出 / 2026-09-18 15:36 **Q-050 Task 7 = `Q050_SUMINOE_CUTOVER_PASS`**。旧: 2026-09-14 **Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**)
+最新更新: 2026-09-19 08:15(**RES-2026-09-Y = NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`・COMPLETED・STOP・Q-059 の疑い = fold1 noise floor(leakage ではない)・次 = Owner 判断 Q-060 事後承認 + adoption gate 設計の GO**。旧: 2026-09-19 07:10(**RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点・他 flag は新情報側)・COMPLETED・STOP・次 = NG-EP4 / Q-060(Owner 就寝前指示で起動・研究のみ)・Q-053 = HOLD**。旧: 2026-09-19 01:04(**RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`(Case D)・COMPLETED・STOP・Q-053 = HOLD(observation ① clean)・次 = Owner 判断 Q-059(NG-EP3 = 長期 as-of 残差スコアの凍結再検証)**。旧: 2026-09-18 22:45(**RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy = `EXHIBITION_POLICY_PERSISTENT`・COMPLETED・STOP・Q-053 = HOLD 継続・Q-056 = BACKLOG のみ・次 = Owner 判断 Q-058(Phase 4 GO・arm a/b/c)**。旧: 2026-09-18 21:03 **RES-2026-09-U = NG-MH2 / Q-055 = `HANDOFF_B2_NULL`・COMPLETED・STOP**。旧: 2026-09-18 19:15 **RES-2026-09-T = NG-MH1 / Q-054 Motor Handoff = `HANDOFF_SIGNAL_CONFIRMED`・STOP・Q-053 = HOLD・次 = Q-055**。旧: 2026-09-18 18:10 **RES-2026-09-S = Q-052 / Q-047 / Q-043 完了・Q-053 待ち**。旧: 2026-09-18 17:20 **Q-051 = `Q051_BATCH1_READY`**。旧: 2026-09-18 16:19 Q-050 ② 計画提出 / 2026-09-18 15:36 **Q-050 Task 7 = `Q050_SUMINOE_CUTOVER_PASS`**。旧: 2026-09-14 **Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**)
+
+## §0. 2026-09-19 08:15 — RES-2026-09-Y = NG-EP4 / Q-060 = **`SHUFFLE_CHANNEL_INCONCLUSIVE`**(COMPLETED・STOP)/ Q-053 = HOLD
+
+- 詳細 = `lane-reports/ep4_shuffle_channel_20260919.md` / `research/Q060_FROZEN_PLAN.md`(freeze 91f32e1)/ registry NG-EP4 / FINDINGS **P71** / HYPOTHESES U-39 追記
+- 要点: 情報ゼロの列が fold1 で −0.00276(fold2 null)= harness noise floor ≈ 0.003 が Q-059 の SHUFL を説明。EP はレース内相対値だけで全部出る(EPD −0.01759 / −0.01562)。label は凍結のまま・読みは新情報側
+
+### Owner 判断(起床後)
+
+- **Q-060**: NG-EP4 起動の事後承認 / 停止(推奨 = 承認)
+- **adoption gate 設計の GO**(提案・新 Q として起票済 Q-061): 採用線に placebo 差し引き or 両 fold + placebo null を必須にして「B2 に足す価値」を判定する。統合は別 GO
+- Q-053(HOLD 継続・pilot 2 晩後に再裁定)/ Q-050 ③ B2(据置)/ Q-056 / Q-041 / Q-038 / Q-036 / Q-006 / Q-007
+
+### AI 単独(**時刻到達後のみ・read-only**。待たない・捏造しない)
+
+- Q-053 observation ② 09:40(Monitor 自動)/ ③ 09-20 02:00 後 `q050_retrain_guard.json`
+- 新サイクルは Owner GO まで着手しない(就寝前包括指示の範囲は NG-EP4 まで)
+
+### 禁止(Owner 指示・変更なし)
+
+- production / B2 LIVE / LGB LIVE / S-tier / WAKE / LENS / pointers / allowlist / betting logic への接触。EP 系 feature の production 候補化。結果を見た label / 閾値 / 判定木の変更
 
 ## §0. 2026-09-19 07:10 — RES-2026-09-X = NG-EP3 / Q-059 = **`RACER_SIGNAL_LEAKAGE_SUSPECT`**(COMPLETED・STOP)/ **RES-2026-09-Y = NG-EP4 / Q-060 起動(研究のみ)/ Q-053 = HOLD**
 
@@ -3461,6 +3510,8 @@ Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」�
 | 2026-09-19 | RES-2026-09-X | **COMPLETED → STOP** | production 候補への昇格なし(Owner 条件)。U-39 = TESTING(判定保留)。**P69 / P70**。次の 1 本 = NG-EP4(Q-060・shuffle channel の分解: GSHUF / RSET / RMEAN / EPD)。Q-053 observation ① clean・② 09:40 自動・③ 09-20 02:00 後 | research/FINDINGS.md P69 / P70 |
 | 2026-09-19 | Owner 包括指示(就寝前 04:45) | **研究続行 GO(研究のみ)** | 「起きたら尼崎行くからそれまでに研究ガンガン進めておいて」→ NG-EP3 closure 後に次の 1 本(NG-EP4)を凍結して起動。production 統合禁止・採用判断なしは維持。起床後に Q-060 で事後裁定 | 会話(2026-09-19 04:45)/ research/Q060_FROZEN_PLAN.md |
 | 2026-09-19 | RES-2026-09-Y / NG-EP4 | **OPEN・事前登録(freeze commit 91f32e1・07:07・結果計算前)** | Shuffle Channel Decomposition: NG-EP3 の SHUFL 疑い(fold1 −0.00306)を GSHUF(何も保存しない)/ RSET(レース内 multiset 保存・derangement)/ RMEAN(レース平均)/ EPD(レース内相対値)の 4 arm(24 fit)+ ep3 bundle 推論再利用で分解。判定木 = HARNESS_ARTIFACT / RACE_COMPOSITION / UNEXPLAINED / INCONCLUSIVE + racer_relative flag。tests 3 passed・smoke exit 0 | artifacts/research/nextgen/ep4/ep4_frozen.json |
+| 2026-09-19 | NG-EP4 | **`SHUFFLE_CHANNEL_INCONCLUSIVE`(凍結判定木・GSHUF が null でも採用線でもない)** | d_GSHUF_CL(情報ゼロの列)fold1 −0.00276 [−0.00492, −0.00062] / fold2 +0.00142 null・d_RSET_CL −0.00400 / +0.00095・d_RMEAN_CL −0.00524 / −0.00006・d_SHUFL_CL −0.00306 / +0.00139(NG-EP3 と 1e-9 一致)・**d_EPD_ME −0.01759 / −0.01562(EP と同じ・EP − EPD +0.0005 / +0.0006)**。再利用 30/30。= Q-059 の疑いは fold1 の harness noise floor ≈ 0.003(leakage ではない)・EP はレース内相対成分のみ | artifacts/research/nextgen/ep4/EP4_THREEWAY.json / lane-reports/ep4_shuffle_channel_20260919.md |
+| 2026-09-19 | RES-2026-09-Y | **COMPLETED → STOP** | production 候補への昇格なし。NG-EP3 / NG-EP4 の label は凍結のまま(LEAKAGE_SUSPECT / INCONCLUSIVE)・識別の読みは「新情報側・noise floor 差し引き後も採用線の 5 倍」に更新。**P71**。次(提案・Owner 裁定)= adoption gate の設計(placebo 差し引き線 or 両 fold + placebo null)。Q-060 = 起床後に事後裁定 | research/FINDINGS.md P71 |
 
 
 
@@ -3957,11 +4008,16 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 
 # HYPOTHESES — 研究仮説台帳(正本)
 
-- 最新更新: **2026-09-19 07:10**(RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点)・U-39 に結果を追記(単純説明では消えない・NG-EP4 で分解中)。前回: 2026-09-19 01:04(RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`・S-8 に B2 採用線未達を追記・**U-39** 新設(長期 as-of 残差スコアの B2 増分・gate 外観測 → Q-059)。前回: 2026-09-18 Q-050 Task 7・**U-33** 追加。前回: 2026-09-12 更新者: Claude / セッション: RES-2026-09-F — NG-VA1 で U-36a を **R-17 で否定**。**ID 衝突を解消**: 旧「U-36 会場 × 4 コース攻撃」= **U-36a**、旧「U-36 レース形成の感度マップ(H-C)」= **U-36b** に分離した(2026-09-11 の採番ミス)。新規 U-38 = 研究参照モデルの provenance 整合)
+- 最新更新: **2026-09-19 08:15**(RES-2026-09-Y = NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`・U-39 に「疑いの正体 = fold1 noise floor・EP はレース内相対成分」を追記。前回: 2026-09-19 07:10(RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点)・U-39 に結果を追記(単純説明では消えない・NG-EP4 で分解中)。前回: 2026-09-19 01:04(RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`・S-8 に B2 採用線未達を追記・**U-39** 新設(長期 as-of 残差スコアの B2 増分・gate 外観測 → Q-059)。前回: 2026-09-18 Q-050 Task 7・**U-33** 追加。前回: 2026-09-12 更新者: Claude / セッション: RES-2026-09-F — NG-VA1 で U-36a を **R-17 で否定**。**ID 衝突を解消**: 旧「U-36 会場 × 4 コース攻撃」= **U-36a**、旧「U-36 レース形成の感度マップ(H-C)」= **U-36b** に分離した(2026-09-11 の採番ミス)。新規 U-38 = 研究参照モデルの provenance 整合)
 - 位置づけ: Canonical Research State の一部。機械可読の骨格 = `research_state.json` の `hypotheses` 節(矛盾したらそちらが正)。表示用 view = 研究コンソール(Artifact)
 - **目的**: shin(Owner)の現場感覚・人間の定説・データ由来の仮説を全て1つの台帳に載せ、「どの感覚が確認され、どれが否定されたか」を一目で分かるようにする
 - 正直ラベルの規約: 小標本は「逸話」、確定オッズ由来は「diagnostic」、事後発見は「再登録要」と必ず付記。数値は出典ファイルから転記(捏造禁止・無い値は「記録なし」)
 - 分類: **UNTESTED**(未検証)/ **TESTING**(事前登録済みで検証枠にある)/ **SUPPORTED**(支持)/ **PARTIALLY SUPPORTED**(部分支持)/ **REJECTED**(否定・同一形の再提案禁止)
+
+## §0. 2026-09-19 08:15 — RES-2026-09-Y = NG-EP4 / Q-060 = **`SHUFFLE_CHANNEL_INCONCLUSIVE`**(freeze 91f32e1)→ U-39 の「疑い」は harness の fold1 noise floor(≈ 0.003)。EP はレース内相対成分のみ(EPD ≈ EP)
+
+- 情報ゼロの列(全期間 shuffle)が fold1 で −0.00276 [−0.00492, −0.00062](fold2 null)= 列を足すだけの効き ≈ 0.003 = Q-059 の SHUFL(−0.00306)を説明。leakage ではない。FINDINGS **P71**
+- **U-39 の状態**: TESTING(識別の読み = 新情報側・label は凍結規則のまま)。次 = adoption gate の設計(placebo 差し引き線 / 両 fold + placebo null)を Owner に諮る。統合は別 GO
 
 ## §0. 2026-09-19 07:10 — RES-2026-09-X = NG-EP3 / Q-059 Racer Signal Identity = **`RACER_SIGNAL_LEAKAGE_SUSPECT`**(freeze 03da3b4)→ U-39 は「単純な説明では消えないが harness placebo 1 点が残る」
 
@@ -4351,6 +4407,7 @@ Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)�
 - **未検証の穴**: ep / ab 列専用の negative control が無い(placebo は ex 列)/ career 長さ pol_logn との分離 / controller を通さない生の長期 top2 率との比較 / ab_score の future-mutation 機械確認 / 「なぜ既存 ability 列で取り切れないか」の機構
 - **状態**: **UNTESTED(TESTING 候補)**。NG-EP3 / **Q-059** で primary 化 + NC1〜NC3 + as-of audit を凍結して再検証。届けば Q-050 ③ B2 の再裁定材料(統合は別 GO)。効果量が大きすぎるときは leakage / harness を先に疑う(規約)
 - **2026-09-19 07:10 追記(NG-EP3 / Q-059・FINDINGS P69 / P70)**: 凍結 verdict = **`RACER_SIGNAL_LEAKAGE_SUSPECT`**(会場 × 日 shuffle placebo が fold1 で CL を −0.00306 [−0.00521, −0.00099] 上回り閾値 −0.003 に触れた。fold2 は +0.00139 null)。**それ以外は全部「新情報」側**: Q-058 bit 再現 / 生の as-of top2 率 = EP の 0.69 / 0.50・1着率 0.63 / 0.50・lane 補正 0.74 / 0.62(strongest single)・経験年数 0.01 / 0.14・simple 全部 0.68 / 0.64・級別バンド内 shuffle 0.31 / 0.09・fold 開始凍結でも 0.92 / 0.95 残る / 生の率 + EP = −0.0062 / −0.0073・simple 全部 + EP = −0.0040 / −0.0090(採用線超)/ AB(展示なし controller 残差)が EP の 0.90 / 0.91 を再現 / B2 既存 ability 25 列の線形 R² = EP 0.48 / 0.45(生の率は 0.87)。**状態 = TESTING(判定保留)**。次 = NG-EP4(Q-060)= shuffle channel の分解(GSHUF / RSET / RMEAN / EPD)。仮説: SHUFL の −0.003 は「レース構成情報の温存」で、leakage ではない
+- **2026-09-19 08:15 追記(NG-EP4 / Q-060・FINDINGS P71)**: 凍結 verdict = `SHUFFLE_CHANNEL_INCONCLUSIVE`。**何も保存しない placebo(GSHUF)が fold1 で −0.00276 [−0.00492, −0.00062]・fold2 +0.00142 null** = fold1 の harness noise floor ≈ 0.003 が SHUFL の −0.00306 をほぼ説明(仮説「レース構成情報」は一部だけ: RSET −0.0040 / RMEAN −0.0052 は GSHUF より 0.001〜0.002 大・fold2 null)。**EP の効き目はレース内相対値だけで全部出る**(EPD −0.01759 / −0.01562・EP − EPD +0.0005 / +0.0006)。= Q-059 の「疑い」は leakage ではなく harness の性質。**状態 = TESTING(読みは H1 新情報側・label は凍結のまま)**。次 = adoption gate 設計(placebo 差し引き / 両 fold + placebo null)の Owner 裁定
 
 ---
 
@@ -4715,11 +4772,25 @@ Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)�
 
 # FINDINGS — 研究発見台帳(Canonical Research State)
 
-- 最終更新: 2026-09-19 07:10(RES-2026-09-X = NG-EP3 / Q-059 Racer Signal Identity = `RACER_SIGNAL_LEAKAGE_SUSPECT`(凍結規則・会場 × 日 shuffle placebo が fold1 で閾値ちょうど)・**P69 / P70** 追加 / 旧: 2026-09-19 01:04(RES-2026-09-W = NG-EP2 / Q-058 Exhibition Policy Phase 4 B2 gate = `EXHIBITION_POLICY_B2_NULL`(Case D)・**P67 / P68** 追加 / 旧: 2026-09-18 22:45 RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy persistence = `EXHIBITION_POLICY_PERSISTENT`・**P65 / P66** 追加 / 旧: 2026-09-18 21:03 RES-2026-09-U = NG-MH2 / Q-055 handoff state の B2 レベル増分 gate = `HANDOFF_B2_NULL`・**P64** 追加 / 旧: 2026-09-18 19:15 RES-2026-09-T = NG-MH1 / Q-054 Motor Handoff = `HANDOFF_SIGNAL_CONFIRMED`・**P62 / P63** 追加 / 旧: 2026-09-18 18:10 RES-2026-09-S = Q-052 cutover PASS / Q-047 holdout 契約 / Q-043 封印・**P61** 追加 / 旧: 2026-09-18 17:20 Q-051 = `Q051_BATCH1_READY`・**P59 / P60** / 旧: 2026-09-18 Q-050 Task 7 = 住之江 root cutover PASS・**P58** / 2026-09-12 … → NG-TS1 → NG-U2 / VENUE-V0 → **NG-VA1 + Q-029 気象 provenance 監査** 反映)
+- 最終更新: 2026-09-19 08:15(RES-2026-09-Y = NG-EP4 / Q-060 Shuffle Channel Decomposition = `SHUFFLE_CHANNEL_INCONCLUSIVE`(情報ゼロの列が fold1 で −0.0028 = harness の noise floor)・**P71** 追加 / 旧: 2026-09-19 07:10(RES-2026-09-X = NG-EP3 / Q-059 Racer Signal Identity = `RACER_SIGNAL_LEAKAGE_SUSPECT`(凍結規則・会場 × 日 shuffle placebo が fold1 で閾値ちょうど)・**P69 / P70** 追加 / 旧: 2026-09-19 01:04(RES-2026-09-W = NG-EP2 / Q-058 Exhibition Policy Phase 4 B2 gate = `EXHIBITION_POLICY_B2_NULL`(Case D)・**P67 / P68** 追加 / 旧: 2026-09-18 22:45 RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy persistence = `EXHIBITION_POLICY_PERSISTENT`・**P65 / P66** 追加 / 旧: 2026-09-18 21:03 RES-2026-09-U = NG-MH2 / Q-055 handoff state の B2 レベル増分 gate = `HANDOFF_B2_NULL`・**P64** 追加 / 旧: 2026-09-18 19:15 RES-2026-09-T = NG-MH1 / Q-054 Motor Handoff = `HANDOFF_SIGNAL_CONFIRMED`・**P62 / P63** 追加 / 旧: 2026-09-18 18:10 RES-2026-09-S = Q-052 cutover PASS / Q-047 holdout 契約 / Q-043 封印・**P61** 追加 / 旧: 2026-09-18 17:20 Q-051 = `Q051_BATCH1_READY`・**P59 / P60** / 旧: 2026-09-18 Q-050 Task 7 = 住之江 root cutover PASS・**P58** / 2026-09-12 … → NG-TS1 → NG-U2 / VENUE-V0 → **NG-VA1 + Q-029 気象 provenance 監査** 反映)
 - 位置づけ: `research_state.json` / `RESEARCH_STATUS.md` と同期した人間可読の発見集。矛盾したら json 側が正
 - 主な出典: `docs/ARCHITECTURE_FREEZE_v2.1.md` / `lane-reports/nextgen_audit_20260903.md` / `lane-reports/hansei_sg_kiryu_20260903.md` / `lane-reports/e10_externality_20260904.md` / `docs/experiments/structured_order_model/results_summary.md` / `docs/MODEL_STRATEGY.md` / `artifacts/research/experiment_registry.jsonl` / `docs/ANALYSIS_BACKLOG.md`
 - 書式: 各発見は必ず3問に答える — **【分かったこと】結局何が分かったか /【予測に効くか】未来の予測に効くか /【市場】市場は既に知っているか**
 - 正直ラベルの規約: 小標本は「n=◯逸話」、確定オッズ由来の数値は「diagnostic(診断用・ROI主張不可)」を必ず付ける。無い値は「記録なし」と書く
+
+## §0. 2026-09-19 08:15 — RES-2026-09-Y = NG-EP4 / Q-060 Shuffle Channel Decomposition = **`SHUFFLE_CHANNEL_INCONCLUSIVE`**(凍結 gate・freeze 91f32e1)/ Q-059 の「疑い 1 点」= fold1 の harness noise floor(≈ 0.003)であって leakage ではない
+
+Owner 就寝前包括指示(04:45「起きるまで研究を進めて」)に基づく研究 only の追撃。問い = 「Q-059 で会場 × 日 shuffle placebo が閾値に触れたのは harness / evaluation artifact か、レース構成情報の温存か」。結果計算前に凍結(commit `91f32e1`・07:07)した判定木をそのまま機械適用。production 非接触。詳細 = `lane-reports/ep4_shuffle_channel_20260919.md` / registry `NG-EP4` / `research/Q060_FROZEN_PLAN.md`。
+
+**P71 — 情報を持ち得ない列(全期間で racer-day を無作為に入れ替えた ep_score・原本との相関 0.0006)を ME + career length に 1 本足すだけで、fold1 では 3連単 NLL が −0.00276 [−0.00492, −0.00062](3 seed 全負)下がる。fold2 では +0.00142(null)。= fold1 の harness には「列を 1 本足すと約 0.003 良くなる」noise floor があり、これは採用線 −0.003 と同じ大きさ。Q-059 で会場 × 日 shuffle が閾値に触れた(−0.00306)のはこの noise floor でほぼ説明できる(leakage ではない)。レース構成情報(レース内 multiset 保存 −0.0040 / レース平均 −0.0052・fold1)は noise floor より 0.001〜0.002 大きいが fold2 では null。一方 EP の効き目はレース内相対値だけで全部出る(EPD −0.01759 / −0.01562 vs EP −0.01711 / −0.01500・EP − EPD = +0.0005 / +0.0006)= EP の増分はレース水準の情報ではなく選手固有の相対成分で、noise floor の約 6 倍**【確定(凍結 gate の機械適用・label は INCONCLUSIVE = GSHUF が null でも採用線でもない中間)・2026-09-19・NG-EP4】
+
+- 【分かったこと】①「何も保存しない placebo」が fold1 で CI < 0 の負 = harness の fold1 noise floor ≈ 0.003(前例: MH2 fold1 placebo −0.0015・EP2 fold1 EX −0.0042 で seed 1 本正)②fold2 は全 placebo null ③EP は within-race relative 成分のみ(racer_relative_signal_retained = True・1.03 / 1.04)④NG-EP3 の値は 30/30 再利用で 1e-9 一致
+- 【予測に効くか】**Q-059 の identity の読みを更新**: LEAKAGE_SUSPECT の正体は noise floor・他の全 flag は新情報側・noise floor を差し引いても EP は −0.014 / −0.015(採用線の 5 倍)。**label(NG-EP3 = LEAKAGE_SUSPECT / NG-EP4 = INCONCLUSIVE)は凍結規則のまま変えない**。断定は Owner 裁定後
+- 【市場】未測定
+- 【言えないこと】noise floor の機構(列追加で学習が変わる・early stopping・標準化)は未特定。fold1 だけに出る理由も未特定
+- 【帰結】採用線 −0.003 は fold1 の noise floor と同じ大きさ → 今後の single-column gate は「placebo 差し引き」か「両 fold 同時 + placebo null」を必須にする(提案)。EP の adoption gate(B2 統合の是非)を諮る価値あり(統合は別 GO・研究席からは起動しない)
+
+---
 
 ## §0. 2026-09-19 07:10 — RES-2026-09-X = NG-EP3 / Q-059 Racer Signal Identity = **`RACER_SIGNAL_LEAKAGE_SUSPECT`**(凍結 gate・freeze 03da3b4・理由 = HARNESS_SUSPECT 1 点)/ 単純な説明(生の率・経験年数・級別・lane・オンライン更新)では signal は消えず
 
@@ -6218,7 +6289,7 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 
 ```json
 {
- "updated_at": "2026-09-19 07:15",
+ "updated_at": "2026-09-19 08:15",
  "updated_by": "Claude (RES-2026-09-W / NG-EP2 / Q-058 closure・Owner 裁定 2026-09-18 23:0x Q-058 GO (b) / Q-053 HOLD)",
  "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
  "architecture_version": "v2.1",
@@ -6234,8 +6305,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "id": "b2f41_prod2026_prod3",
   "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
  },
- "current_experiment": "RES-2026-09-Y (NG-EP4 / Q-060 Shuffle Channel Decomposition) = OPEN (freeze 91f32e1・本番 run 07:07〜・24 fit)。RES-2026-09-X (NG-EP3 / Q-059) = COMPLETED = RACER_SIGNAL_LEAKAGE_SUSPECT。Q-053 = HOLD",
- "current_experiment_note": "NG-EP3: 単純な説明 (生の率 / 経験年数 / 級別 / lane / オンライン更新) では EP の 8 割を再現できず、生の率や simple 全部に EP を足すと採用線超・Q-058 は bit 再現。ただし会場×日 shuffle placebo が fold1 で CL を −0.00306 上回り閾値 −0.003 に触れた (fold2 null) → 凍結規則で LEAKAGE_SUSPECT。NG-EP4 = その出所を harness artifact / レース構成情報に分解 (Owner 就寝前指示・研究のみ)",
+ "current_experiment": "RES-2026-09-Y (NG-EP4 / Q-060) = COMPLETED = SHUFFLE_CHANNEL_INCONCLUSIVE (Q-059 の疑い = fold1 harness noise floor ≈ 0.003・leakage ではない・EP はレース内相対成分のみ)。RES-2026-09-X (NG-EP3 / Q-059) = COMPLETED = RACER_SIGNAL_LEAKAGE_SUSPECT (label 凍結・読みは新情報側)。Q-053 = HOLD。次 = Owner 判断 (Q-060 事後承認 / Q-061 adoption gate 設計 GO)",
+ "current_experiment_note": "NG-EP4: GSHUF (情報ゼロ) fold1 −0.00276 [−0.00492, −0.00062] / fold2 +0.00142 null・RSET −0.0040 / +0.0010・RMEAN −0.0052 / −0.0001・EPD −0.01759 / −0.01562 = EP と同じ。再利用 30/30。production 非接触・採用なし",
  "experiments": {
   "registry_path": "artifacts/research/experiment_registry.jsonl",
   "adopted": [
@@ -7280,7 +7351,13 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "n": 47,
    "item": "Q-060 kyotei: NG-EP4 (Shuffle Channel Decomposition) を Owner 就寝前包括指示に基づき凍結・起動した (freeze 91f32e1・研究のみ・production 非接触)。事後承認するか停止するか",
    "recommend": "事後承認 (結果を Q-059 の identity 読み直しに使う。統合は別 GO)",
-   "status_20260919": "未裁定 (07:07 起票・起床後)"
+   "status_20260919": "未裁定 (起床後)。NG-EP4 完走 = SHUFFLE_CHANNEL_INCONCLUSIVE (情報ゼロの列が fold1 −0.00276 = noise floor・leakage ではない・EP はレース内相対成分のみ)"
+  },
+  {
+   "n": 48,
+   "item": "Q-061 kyotei: 長期 as-of 残差スコア (ep_score) の adoption gate を設計するか (採用線に placebo 差し引き or 両 fold + placebo null を必須・B2 統合の是非を判定・統合は別 GO)",
+   "recommend": "設計だけ GO (研究のみ)",
+   "status_20260919": "未裁定 (08:15 起票・NG-EP4 closure)"
   }
  ],
  "w2_directives_owner_20260904": {
@@ -7425,7 +7502,7 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "architecture_vision_20260906": "Historical Player/Motor → Current Motor State → Current Environment State → Player Adjustment/Environmental Adaptation → 6艇Current State → Pressure×Resistance → Scenario Generator → P(Scenario)+P(Order|Scenario) → 120通りFundamental Probability → Calibration/Uncertainty → Market Evaluation → Scenario×Ticket Payoff → Sparse Value-weighted Portfolio → BET/NO BET。概念であり一括実装禁止",
   "human_facing": "日本語名称を主表示 (現在モーター状態/選手の調整能力/直前風変化/展開圧力×対応力/穴シナリオ/読めるレース/シナリオ分散買い)。内部IDは括弧の補助"
  },
- "next_actions": "AI 単独 = NG-EP4 run 完了後 verdict 機械適用 → lane-report → State Sync → sync_all → Owner 報告 (Q-059 + Q-060) → STOP。Q-053 observation ② 09:40 (Monitor 自動) / ③ 09-20 02:00 後。Owner (起床後) = Q-060 事後裁定 / Q-053 再裁定",
+ "next_actions": "Owner (起床後) = Q-060 事後承認 / Q-061 adoption gate 設計 GO / Q-053 再裁定。AI 単独 = Q-053 observation ② 09:40 (Monitor 自動) / ③ 09-20 02:00 後。新サイクルは Owner GO まで着手しない",
  "model_identity_rule": "『同じモデル』と呼ぶには Model Weights + Feature Contract + Source Contract + Preprocessing Revision + Runtime Revision の 5 点が一致すること。weights が同じだけでは同じモデルと扱わない。『Raw B2』という呼称だけでモデルを参照することを禁ずる",
  "canonical_raw_b2": {
   "identity": "Q034_CLEAN_REPLICA",
@@ -9455,17 +9532,126 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "NG-EP4"
   ],
   "q_id": "Q-060",
-  "status": "OPEN",
+  "status": "COMPLETED",
   "owner_directive": "Owner 就寝前包括指示 2026-09-19 04:45「起きたら尼崎行くからそれまでに研究ガンガン進めておいて」。研究のみ・production 非接触・採用判断なし。起床後に Q-060 で事後裁定",
   "freeze_commit": "91f32e1",
   "freeze_hash_record": "4b68f51",
   "frozen": "research/Q060_FROZEN_PLAN.md + artifacts/research/nextgen/ep4/ep4_frozen.json",
-  "run": "2026-09-19 07:07 開始 (24 fit・pid artifacts/research/nextgen/ep4/ep4_threeway.pid)",
+  "run": "2026-09-19 07:07 → 08:05 (3,449 s・24 fit・失敗 0・git_head ff2ee44)",
   "arms": {
    "reuse": "M / ME (MR1) + EP / CL / SHUFL (ep3 bundle)",
    "new": "GSHUF (何も保存しない) / RSET (レース内巡回シフト・multiset 保存) / RMEAN (レース平均) / EPD (レース内相対値)"
   },
-  "verdict_tree": "HARNESS_ARTIFACT (GSHUF が採用線) / RACE_COMPOSITION (GSHUF null & RSET が SHUFL の 0.8 以上) / UNEXPLAINED / INCONCLUSIVE + racer_relative flag (EPD が EP の 0.8 以上)"
+  "verdict_tree": "HARNESS_ARTIFACT (GSHUF が採用線) / RACE_COMPOSITION (GSHUF null & RSET が SHUFL の 0.8 以上) / UNEXPLAINED / INCONCLUSIVE + racer_relative flag (EPD が EP の 0.8 以上)",
+  "verdict": "SHUFFLE_CHANNEL_INCONCLUSIVE",
+  "reasons": [
+   "GSHUF_NOT_NULL_NOT_MEETING (fold1 d_GSHUF_CL -0.00276 [-0.00492, -0.00062]; fold2 +0.00142 null)"
+  ],
+  "primary": {
+   "fold1": {
+    "d_GSHUF_CL": [
+     -0.00276,
+     [
+      -0.00492,
+      -0.00062
+     ]
+    ],
+    "d_SHUFL_CL": [
+     -0.00306,
+     [
+      -0.00516,
+      -0.00101
+     ]
+    ],
+    "d_RSET_CL": [
+     -0.004,
+     [
+      -0.00589,
+      -0.00201
+     ]
+    ],
+    "d_RMEAN_CL": [
+     -0.00524,
+     [
+      -0.00724,
+      -0.00325
+     ]
+    ],
+    "d_EPD_ME": [
+     -0.01759,
+     [
+      -0.02043,
+      -0.01469
+     ]
+    ],
+    "d_EP_EPD": [
+     0.00048,
+     [
+      -4e-05,
+      0.001
+     ]
+    ]
+   },
+   "fold2": {
+    "d_GSHUF_CL": [
+     0.00142,
+     [
+      -0.00057,
+      0.00333
+     ]
+    ],
+    "d_SHUFL_CL": [
+     0.00139,
+     [
+      -0.00049,
+      0.00328
+     ]
+    ],
+    "d_RSET_CL": [
+     0.00095,
+     [
+      -0.00107,
+      0.00302
+     ]
+    ],
+    "d_RMEAN_CL": [
+     -6e-05,
+     [
+      -0.00202,
+      0.0019
+     ]
+    ],
+    "d_EPD_ME": [
+     -0.01562,
+     [
+      -0.01835,
+      -0.01289
+     ]
+    ],
+    "d_EP_EPD": [
+     0.00062,
+     [
+      1e-05,
+      0.00124
+     ]
+    ]
+   }
+  },
+  "flags": {
+   "harness_artifact": false,
+   "harness_clean_both_folds": false,
+   "race_composition": false,
+   "racer_relative_signal_retained": true,
+   "ep3_reproduced": true,
+   "reuse": "30/30"
+  },
+  "reading": "Q-059 の LEAKAGE_SUSPECT の正体 = fold1 の harness noise floor ≈ 0.003 (情報ゼロの列で再現)・leakage ではない。EP の増分は within-race relative 成分のみで noise floor の約 6 倍。label は凍結のまま",
+  "new_findings": [
+   "P71"
+  ],
+  "lane_report": "lane-reports/ep4_shuffle_channel_20260919.md",
+  "consequence": "production 候補なし。次 (提案) = adoption gate 設計 (placebo 差し引き線 / 両 fold + placebo null) の Owner GO = Q-061",
+  "completed_at": "2026-09-19 08:05"
  }
 }
 ```
