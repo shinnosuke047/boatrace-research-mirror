@@ -938,11 +938,11 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-Q048B**(2026-09-15・done・—): 
 - **NG-Q050A**(2026-09-18・done・—): 
 - **NG-Q050-T7**(2026-09-18・done_primary・—): 
 - **NG-Q051-B0**(2026-09-18・done_primary・—): 
 - **NG-Q052-B1**(2026-09-18・done_primary・—): 
+- **NG-Q047**(2026-09-18・done_primary・—): 
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-18 17:20(**Q-051 Batch 0 + pilot gate = `Q051_BATCH1_READY`・Q-052 待ち**。旧: 2026-09-18 16:19 Q-050 ② 計画提出 / 2026-09-18 15:36 **Q-050 Task 7 = `Q050_SUMINOE_CUTOVER_PASS`**。旧: 2026-09-14 **Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**) ## §0. 2026-09-18 17:20 — Q-051 Batch 0 + pilot gate = **`Q051_BATCH1_READY`**(cutover 未実行・production 無変更) Owner 裁定 Q-051(a = β / b = gate まで GO / c…
@@ -1032,9 +1032,6 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-18 | Semantics Integrity | **YELLOW(据置)** — LGB P 層 2 本は physical。S-tier 22 / B2 / conditional / cached が残る。INC 7/8
-- 2026-09-18 | Q-051 a / b / c(S-tier 22 migration) | **GO(Owner)**: a = β clean28 / b = Batch 0 + pilot omura・gamagori の gate まで(**cutover 禁止**)/ c = WAKE 6 据置(実装 + テストのみ) — 33 列 leaky 系統を production 再学習しない。再現可能・意味的に正しい系統へ安全に移せるかを 2 会場で実証してから Batch 1 の実 cutover を…
-- 2026-09-18 | Q-051 gate #4(a) legacy 33 列再現(omura / gamagori) | **REPRODUCED ×2** — research-only trainer(cbfd4b1 33 列・train_all_venues 逐語)で 5 指標・木数・valid 行 raw 予測 max\
 - 2026-09-18 | Q-051 pilot Pre-Cutover Gate(14 項目・結果前に固定) | **PASS 15/15 ×2 = `Q051_PILOT_READY`** — 候補 `lgbm_v1_omura_armC_20260918_171534` / `lgbm_v1_gamagori_armC_20260918_171558`(physica…
 - 2026-09-18 | Q-051 rollback drill(sandbox・会場単位) | **PASS 7/7** — omura だけ戻して gamagori / 桐生 / 住之江 不変・再適用 bit 一致・戻し先欠損は不動
 - 2026-09-18 | Q-051 Batch 1 verdict | **`Q051_BATCH1_READY`**(cutover は未実行) — 総変位 LIVE33→C28 = 1着本命 5.56% / 14.58%・p6 TVD 0.132 / 0.149・3連単1番手 69.4% / 68.8%(144R・outco…
@@ -1042,6 +1039,9 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 2026-09-18 | Q-052 / Q-047 / Q-043(3 件) | **GO(Owner)**: Q-052 a = omura + gamagori 同時 production cutover(pilot のみ・残り 20 禁止)/ Q-047 a = weekly retrain の validation・outcome 窓を 2026-08-31 で固定(11/1 開封まで)/ Q-043 a = 条件付き 2着3着エンジン封印(再稼働なし)。実行順 1→2→3・phase ごとに commit 分離 — 変更原因を分離するため
 - 2026-09-18 | Q-052 PHASE 0(関連 suite) | **PASS 607**(torch NN 学習テスト除外)/ cutover 後 production-critical **99 passed** — B2 NN の overfit 系が 30 分超 hang(今回 diff と無関係)を除外。gate 再実行 15/15 × 2
 - 2026-09-18 | Q-052 Batch 1 cutover(omura / gamagori) | **PASS = `Q052_BATCH1_CUTOVER_PASS`**(`Q052_OMURA_PASS` / `Q052_GAMAGORI_PASS`) — Q-051 の staged candidate をそのまま使用(再学習なし)。pointer → `lgbm_v1_omura_armC_20260918_171534` / …
+- 2026-09-18 | Q-047 a(封印 holdout 契約) | **実装・実証 = `Q047_HOLDOUT_CONTRACT_ENFORCED`** — `configs/holdout_policy.json` を正本に `src/holdout.py` が `outcome_date <= 2026-08-31` を **tr…
+- 2026-09-18 | Q-047 weekly 経路 sandbox 実走 | **PASS(A〜D)** — 日曜 02:00 相当: validation max 2026-08-18・9 月 outcome 858 行除外・physical / inline・guard OK / 汚…
+- 2026-09-18 | Q-047 既存 artifact 監査(91 本) | **HOLDOUT_CONTAMINATED 2 / CLEAN 79 / UNKNOWN 10** — 汚染 = 住之江 root `lgbm_v1_20260906_020025` / `lgbm_v1_20260913_020022`(封印窓に全期間学習・**どちらも LIVE…
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -3124,6 +3124,9 @@ Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」�
 | 2026-09-18 | Q-052 / Q-047 / Q-043(3 件) | **GO(Owner)**: Q-052 a = omura + gamagori 同時 production cutover(pilot のみ・残り 20 禁止)/ Q-047 a = weekly retrain の validation・outcome 窓を 2026-08-31 で固定(11/1 開封まで)/ Q-043 a = 条件付き 2着3着エンジン封印(再稼働なし)。実行順 1→2→3・phase ごとに commit 分離 | 変更原因を分離するため | ~/ai-ops-os/portfolio/DECISION_QUEUE.md Q-052 |
 | 2026-09-18 | Q-052 PHASE 0(関連 suite) | **PASS 607**(torch NN 学習テスト除外)/ cutover 後 production-critical **99 passed** | B2 NN の overfit 系が 30 分超 hang(今回 diff と無関係)を除外。gate 再実行 15/15 × 2 | /tmp/q051_pytest_all2.log / artifacts/ops/q051_pre_cutover_gate_{omura,gamagori}.json |
 | 2026-09-18 | Q-052 Batch 1 cutover(omura / gamagori) | **PASS = `Q052_BATCH1_CUTOVER_PASS`**(`Q052_OMURA_PASS` / `Q052_GAMAGORI_PASS`) | Q-051 の staged candidate をそのまま使用(再学習なし)。pointer → `lgbm_v1_omura_armC_20260918_171534` / `lgbm_v1_gamagori_armC_20260918_171558`・features physical(S9 不一致 0 / 旧キー差 9,853・89,397 / 8,610・84,402 行)・smoke 9/9・identity = shadow と abs_diff 0.0(6 指標)・LENS 24/24・実 production rollback 往復 PASS ×2・桐生 / 住之江 不変 | artifacts/ops/q052_cutover_verdict.json / q052_rollback_drill.json |
+| 2026-09-18 | Q-047 a(封印 holdout 契約) | **実装・実証 = `Q047_HOLDOUT_CONTRACT_ENFORCED`** | `configs/holdout_policy.json` を正本に `src/holdout.py` が `outcome_date <= 2026-08-31` を **train_model / evaluate / train_all_venues の入口で無条件に強制**(CLI / env / kwarg で緩められない・policy 無しは fail-closed)。meta に `training/validation/calibration_max_outcome_date` + `holdout_policy/cutoff` + `previous_pointer`。retrain guard は CLEAN 以外を REVERT・戻し先も CLEAN 必須 | 2026-11-01 開封まで維持 | src/holdout.py / configs/holdout_policy.json / tests/test_q047_holdout_contract.py |
+| 2026-09-18 | Q-047 weekly 経路 sandbox 実走 | **PASS(A〜D)** | 日曜 02:00 相当: validation max 2026-08-18・9 月 outcome 858 行除外・physical / inline・guard OK / 汚染 model → 直前 CLEAN へ自動復旧 / CLEAN な戻し先が無ければ不動 / production 不変 | artifacts/ops/q047_weekly_sandbox.json |
+| 2026-09-18 | Q-047 既存 artifact 監査(91 本) | **HOLDOUT_CONTAMINATED 2 / CLEAN 79 / UNKNOWN 10** | 汚染 = 住之江 root `lgbm_v1_20260906_020025` / `lgbm_v1_20260913_020022`(封印窓に全期間学習・**どちらも LIVE ではない**・履歴として残す)。LIVE 24 本すべて CLEAN。UNKNOWN 10 = dormant の 2着 / 3着 / conditional(LGB 1着系ではない)。weekly 対象 = 住之江 root のみ(crontab / launchd / nightly を機械確認) | artifacts/ops/q047_holdout_audit.json |
 
 
 
@@ -4337,6 +4340,17 @@ Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)�
 - 主な出典: `docs/ARCHITECTURE_FREEZE_v2.1.md` / `lane-reports/nextgen_audit_20260903.md` / `lane-reports/hansei_sg_kiryu_20260903.md` / `lane-reports/e10_externality_20260904.md` / `docs/experiments/structured_order_model/results_summary.md` / `docs/MODEL_STRATEGY.md` / `artifacts/research/experiment_registry.jsonl` / `docs/ANALYSIS_BACKLOG.md`
 - 書式: 各発見は必ず3問に答える — **【分かったこと】結局何が分かったか /【予測に効くか】未来の予測に効くか /【市場】市場は既に知っているか**
 - 正直ラベルの規約: 小標本は「n=◯逸話」、確定オッズ由来の数値は「diagnostic(診断用・ROI主張不可)」を必ず付ける。無い値は「記録なし」と書く
+
+## §0. 2026-09-18 18:00 — Q-052 / Q-047(Owner 3 件裁定の PHASE 1〜2)
+
+- **Q-052 = `Q052_BATCH1_CUTOVER_PASS`**: omura / gamagori が clean28 ARM C / physical で LIVE(Q-051 の staged candidate・再学習なし)。smoke 9/9・identity = shadow と abs_diff 0.0(6 指標)・LENS 24/24・実 production rollback 往復 PASS × 2・桐生 / 住之江 不変。allowlist 4 会場・既定 legacy
+- **Q-047 = `Q047_HOLDOUT_CONTRACT_ENFORCED`**: `configs/holdout_policy.json` → `src/holdout.py` が `outcome_date <= 2026-08-31` を train_model / evaluate / train_all_venues の入口で無条件に強制(CLI / env / kwarg で緩められない・policy 無しは fail-closed)。sandbox の日曜経路で 9 月 outcome 858 行除外・validation max 08-18・guard OK・汚染 model は直前 CLEAN へ自動復旧。既存 91 artifact の監査 = **汚染 2(住之江 root `_20260906_020025` / `_20260913_020022`・LIVE ではない・履歴として残す)/ CLEAN 79 / UNKNOWN 10(dormant の 2着・3着・conditional)**。**P61**
+
+**P61 — 「封印している」は、封印を破る経路が 1 つも無いことを機械で示して初めて言える。今日まで weekly retrain は毎週その経路だった**【運用事実・2026-09-18・Q-047】
+
+- 【分かったこと】P47 で「valid 窓が封印窓に前進する」ことは分かっていたが、それは **2026-09-06 と 09-13 の 2 回、実際に封印窓の着順を valid / early stopping / calibration に使った artifact を作っていた**(`lgbm_v1_20260906_020025` / `lgbm_v1_20260913_020022`)。今回まで「9/1 以降を使うな」は人の合意で、コードにはどこにも無かった(cutover 候補だけ script 側で `<= 2026-08-31` に切っていた)。是正は「CLI に cutoff を足す」ではなく **学習・評価の入口で policy ファイルを読んで無条件に切り、越えていれば例外**(scheduler が何を渡しても破れない)。guard も CLEAN 以外を通さず、**戻し先が汚染ならそこへも戻さない**(guard 自身が汚染を LIVE に戻す穴 = P58 と同型)。
+- 【予測に効くか】効かない。**11/1 の開封が「本当に未見だったか」を答えられる状態に戻す**ための運用の発見。汚染 2 本は削除・改名せず HOLDOUT_CONTAMINATED として残す(履歴を書き換えない)。
+- 【市場】無関係。
 
 ## §0. 2026-09-18 17:20 — Q-051 Batch 0 + pilot gate = **`Q051_BATCH1_READY`**(omura / gamagori = `Q051_PILOT_READY` 15/15・cutover は未実行)
 
