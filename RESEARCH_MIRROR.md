@@ -938,11 +938,11 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-Q049**(2026-09-15・done・—): 
 - **NG-Q048B**(2026-09-15・done・—): 
 - **NG-Q050A**(2026-09-18・done・—): 
 - **NG-Q050-T7**(2026-09-18・done_primary・—): 
 - **NG-Q051-B0**(2026-09-18・done_primary・—): 
+- **NG-Q052-B1**(2026-09-18・done_primary・—): 
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-18 17:20(**Q-051 Batch 0 + pilot gate = `Q051_BATCH1_READY`・Q-052 待ち**。旧: 2026-09-18 16:19 Q-050 ② 計画提出 / 2026-09-18 15:36 **Q-050 Task 7 = `Q050_SUMINOE_CUTOVER_PASS`**。旧: 2026-09-14 **Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**) ## §0. 2026-09-18 17:20 — Q-051 Batch 0 + pilot gate = **`Q051_BATCH1_READY`**(cutover 未実行・production 無変更) Owner 裁定 Q-051(a = β / b = gate まで GO / c…
@@ -1032,9 +1032,6 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-18 | Q-050 Task 7 cutover | **PASS = `Q050_SUMINOE_CUTOVER_PASS`** — pointer → `lgbm_v1_suminoe_armC_20260918_153428` / features physical / smoke 8/8 / identi…
-- 2026-09-18 | Q-050 Task 8 rollback drill(実 production) | **PASS** — ARM C → LEGACY(切替前と完全一致)→ ARM C(bit 一致)。桐生 3 段階不変
-- 2026-09-18 | weekly retrain provenance(P58) | **是正(cutover 前)** — `save_model` が環境変数のみから semantics を書き、cron では legacy と記録 → guard が逆向きに戻す構造。`root_build_sem…
 - 2026-09-18 | Semantics Integrity | **YELLOW(据置)** — LGB P 層 2 本は physical。S-tier 22 / B2 / conditional / cached が残る。INC 7/8
 - 2026-09-18 | Q-051 a / b / c(S-tier 22 migration) | **GO(Owner)**: a = β clean28 / b = Batch 0 + pilot omura・gamagori の gate まで(**cutover 禁止**)/ c = WAKE 6 据置(実装 + テストのみ) — 33 列 leaky 系統を production 再学習しない。再現可能・意味的に正しい系統へ安全に移せるかを 2 会場で実証してから Batch 1 の実 cutover を…
 - 2026-09-18 | Q-051 gate #4(a) legacy 33 列再現(omura / gamagori) | **REPRODUCED ×2** — research-only trainer(cbfd4b1 33 列・train_all_venues 逐語)で 5 指標・木数・valid 行 raw 予測 max\
@@ -1042,6 +1039,9 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 2026-09-18 | Q-051 rollback drill(sandbox・会場単位) | **PASS 7/7** — omura だけ戻して gamagori / 桐生 / 住之江 不変・再適用 bit 一致・戻し先欠損は不動
 - 2026-09-18 | Q-051 Batch 1 verdict | **`Q051_BATCH1_READY`**(cutover は未実行) — 総変位 LIVE33→C28 = 1着本命 5.56% / 14.58%・p6 TVD 0.132 / 0.149・3連単1番手 69.4% / 68.8%(144R・outco…
 - 2026-09-18 | Semantics Integrity | **YELLOW(据置)** — pilot 2 本は cutover-ready だが LIVE は legacy。INC 7/8
+- 2026-09-18 | Q-052 / Q-047 / Q-043(3 件) | **GO(Owner)**: Q-052 a = omura + gamagori 同時 production cutover(pilot のみ・残り 20 禁止)/ Q-047 a = weekly retrain の validation・outcome 窓を 2026-08-31 で固定(11/1 開封まで)/ Q-043 a = 条件付き 2着3着エンジン封印(再稼働なし)。実行順 1→2→3・phase ごとに commit 分離 — 変更原因を分離するため
+- 2026-09-18 | Q-052 PHASE 0(関連 suite) | **PASS 607**(torch NN 学習テスト除外)/ cutover 後 production-critical **99 passed** — B2 NN の overfit 系が 30 分超 hang(今回 diff と無関係)を除外。gate 再実行 15/15 × 2
+- 2026-09-18 | Q-052 Batch 1 cutover(omura / gamagori) | **PASS = `Q052_BATCH1_CUTOVER_PASS`**(`Q052_OMURA_PASS` / `Q052_GAMAGORI_PASS`) — Q-051 の staged candidate をそのまま使用(再学習なし)。pointer → `lgbm_v1_omura_armC_20260918_171534` / …
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -3121,6 +3121,9 @@ Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」�
 | 2026-09-18 | Q-051 rollback drill(sandbox・会場単位) | **PASS 7/7** | omura だけ戻して gamagori / 桐生 / 住之江 不変・再適用 bit 一致・戻し先欠損は不動 | artifacts/ops/q051_rollback_drill.json |
 | 2026-09-18 | Q-051 Batch 1 verdict | **`Q051_BATCH1_READY`**(cutover は未実行) | 総変位 LIVE33→C28 = 1着本命 5.56% / 14.58%・p6 TVD 0.132 / 0.149・3連単1番手 69.4% / 68.8%(144R・outcome 不使用)。**系統効果が支配・semantics 単独は 0.04〜0.06**(P60)。許容線は plan に未固定 → Owner(Q-052) | lane-reports/q051_batch0_pilot_20260918.md |
 | 2026-09-18 | Semantics Integrity | **YELLOW(据置)** | pilot 2 本は cutover-ready だが LIVE は legacy。INC 7/8 | research/INCIDENTS.md |
+| 2026-09-18 | Q-052 / Q-047 / Q-043(3 件) | **GO(Owner)**: Q-052 a = omura + gamagori 同時 production cutover(pilot のみ・残り 20 禁止)/ Q-047 a = weekly retrain の validation・outcome 窓を 2026-08-31 で固定(11/1 開封まで)/ Q-043 a = 条件付き 2着3着エンジン封印(再稼働なし)。実行順 1→2→3・phase ごとに commit 分離 | 変更原因を分離するため | ~/ai-ops-os/portfolio/DECISION_QUEUE.md Q-052 |
+| 2026-09-18 | Q-052 PHASE 0(関連 suite) | **PASS 607**(torch NN 学習テスト除外)/ cutover 後 production-critical **99 passed** | B2 NN の overfit 系が 30 分超 hang(今回 diff と無関係)を除外。gate 再実行 15/15 × 2 | /tmp/q051_pytest_all2.log / artifacts/ops/q051_pre_cutover_gate_{omura,gamagori}.json |
+| 2026-09-18 | Q-052 Batch 1 cutover(omura / gamagori) | **PASS = `Q052_BATCH1_CUTOVER_PASS`**(`Q052_OMURA_PASS` / `Q052_GAMAGORI_PASS`) | Q-051 の staged candidate をそのまま使用(再学習なし)。pointer → `lgbm_v1_omura_armC_20260918_171534` / `lgbm_v1_gamagori_armC_20260918_171558`・features physical(S9 不一致 0 / 旧キー差 9,853・89,397 / 8,610・84,402 行)・smoke 9/9・identity = shadow と abs_diff 0.0(6 指標)・LENS 24/24・実 production rollback 往復 PASS ×2・桐生 / 住之江 不変 | artifacts/ops/q052_cutover_verdict.json / q052_rollback_drill.json |
 
 
 
