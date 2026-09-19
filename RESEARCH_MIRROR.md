@@ -4,7 +4,8 @@
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
 
-- 更新: **2026-09-19 16:25**(Owner 裁定「**Q-062 = GO・型 B**」の実行後 = **採用ゲートの結果 = 合格(`RACER_RESIDUAL_ADOPTABLE`)**・**本番には足していない**・**判断は 1 つ = Q-063**(本番と同じ土台で再現 + 毎晩の自動生成が組めるかを確かめる研究だけのサイクルを開くか))
+- 更新: **2026-09-19 22:10**(Owner 裁定「**Q-063 = 開く**」の実行後 = **本番と同じ土台では「本物だが足す価値はいま無い」・毎晩の自動生成は計算上 OK(材料の表 4 本が本番処理に無い)**・**本番には足していない**・**判断は 1 つ = Q-064**(単純な通算成績の列を候補として同じ手順で判定するか))
+- 前回更新: **2026-09-19 16:25**(Owner 裁定「**Q-062 = GO・型 B**」の実行後 = **採用ゲートの結果 = 合格(`RACER_RESIDUAL_ADOPTABLE`)**・**本番には足していない**・**判断は 1 つ = Q-063**(本番と同じ土台で再現 + 毎晩の自動生成が組めるかを確かめる研究だけのサイクルを開くか))
 - 前回更新: **2026-09-19 15:07**(Owner 裁定「**Q-060 = 事後承認 / Q-061 = 設計だけ GO / Q-053 = HOLD 継続**」の実行後 = **採用ゲートの契約を提出(fit 0 本・本番非接触)**・**判断は 1 つ = Q-062**(契約どおり走らせるか・型 A / B / C))
 - 前回更新: **2026-09-19 08:08**(就寝前指示に基づく追撃 = **RES-2026-09-Y / NG-EP4 = `SHUFFLE_CHANNEL_INCONCLUSIVE`**・**Q-059 の疑いの正体は「前半期間の仕掛けの癖(列を 1 本足すと 0.003 良くなる)」で、漏れではない**・**判断は起床後に 2 つ = Q-060(追撃の事後承認)/ 本番に足すかを諮る段階に進めるか**)
 - 前回更新: **2026-09-19 07:10**(Owner 裁定「**Q-059 = GO(採用ではなく『なぜ効くか』の分解)/ Q-053 = HOLD**」の実行後 = **RES-2026-09-X / NG-EP3 = `RACER_SIGNAL_LEAKAGE_SUSPECT`**・**判断は起床後に 1 つ = Q-060(次の分解サイクルを走らせたことの事後承認)**。Q-053 は HOLD のまま)
@@ -28,6 +29,28 @@
 - 前々回更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
 - 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/q035_prior_parity_20260912.md`(今回)と `lane-reports/sia_v1_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
 - 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
+
+## §0. 2026-09-19 22:10 — 本番と同じ土台で「選手の実力の取り残し」スコアを試した結果 = **本物だが、本番に足す価値はいま無い**(統合していない)
+
+Owner 裁定(Q-063 = 開く)を実行。**本番モデルの土台を 1 桁も違わず再現できたことを先に確認**(保存済みの本番モデルの出力と完全一致・学習に使った行数 2,017,260 も一致)してから、契約どおりに走らせた。所要 約 2.5 時間・本番は 1 行も触っていない。
+
+**何が分かったか(平易に)**
+1. このスコアが「本物の情報」であることは本番の土台でも再現した(最強の偽物を差し引いても 2 期間とも線の 1.6〜2 倍)
+2. **しかし「枠番補正した通算成績」という単純な指標を先に足すと、このスコアの上乗せはゼロになった**(研究用の土台では線の 1.7 倍残っていた)。つまり本番の土台では、このスコアの効き目は単純な指標に完全に含まれる
+3. 逆に分かったこと: **いまの本番モデルは「選手の長期の実力」を表す列を持っていない**。単純な通算成績を 1 本足すだけで、このスコア以上に改善する(2 期間とも)
+4. 毎晩このスコアを自動で作る仕組みは、計算としては問題なし(完全に決定的・1 日分 0.02 秒・全部作り直しても 4 分)。ただし材料となる表 4 本が本番の毎晩の処理に載っていない(1 本は 7 月末で止まっている)
+
+**正直な注意**
+- 「足す価値がいま無い」は「このスコアが偽物」ではない。研究用の土台での合格(Q-062)は変わらない
+- 単純な通算成績が効くというのは「比較相手」として測った値で、候補として正式に判定したものではない。採用の話にするなら同じ手順(偽物との差・2 期間・乱数 3 本)で判定し直す
+- 回収率・封印期間での再現・なぜ土台で結果が変わるのか、は分かっていない
+
+### Owner 判断(1 つ・番号で)
+
+- **1 件目**: ①いまの本番モデルには「選手の長期の実力」を表す列が無く、単純な通算成績を 1 本足すだけで、今回のスコア以上に改善することが分かった ②放っておくと、この改善は「比較のために測った数字」のまま台帳に眠る ③私の推奨 = この単純な列を候補として、同じ手順(偽物との差・2 期間・乱数 3 本)で判定する研究だけのサイクルを開く(本番は触らない・約 2 時間)。番号で: 1 = 開く / 2 = 保留 / 3 = 閉じる
+- Q-053 は HOLD 継続(09-20 02:00 の自動再学習の後に確認 → 再裁定)
+
+詳しい場所: `lane-reports/rrs2_prod3_replication_20260919.md`(28 項目)/ 判断の正本 = ai-ops-os DECISION_QUEUE **Q-064**
 
 ## §0. 2026-09-19 16:25 — 採用ゲートを契約どおり走らせた結果 = **合格**(ただし本番には足していない)
 
@@ -1107,21 +1130,21 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: RES-2026-09-Z (NG-RRS1 / Q-062) = COMPLETED = RACER_RESIDUAL_ADOPTABLE (凍結 gate の機械適用・freeze 1e6403c・統合なし・STOP)。次 = Owner 判断 Q-063 (本番土台での再現 + as-of 生成経路・研究のみ)。Q-053 = HOLD (最終観測 = 2026-09-20 02:00 後)(raw −0.01711 / −0.01500・最強 null (RMEAN) 補正後 −0.01167 / −0.01287・LANE 上 −0.00520 / −0.00520・LANE+GSHUF 補正後 (Type B) −0.0…)
+- 実行中の実験: RES-2026-09-AA (NG-RRS2 / Q-063) = COMPLETED = RRS_PROD3_BELOW_LINE × RRS_NIGHTLY_FEASIBLE_WITH_WORK (凍結 gate の機械適用・freeze 74dd472・統合なし・STOP)。次 = Owner 判断 Q-064 (LANE 型単純 prior を候補として同じ gate・研究のみ)。Q-053 = HOLD (観測 ③ = 2026-09-20 02:00 後)(production baseline 再現 全 PASS (checkpoint sha / REF1 窓 p120 bit 一致 / train 窓 mu・sd 差 0・行数 2,017,260 一致 / recipe)。raw −0…)
 - 自走ジョブ: 部品層化バックフィル PID None(status=aborted・47062/49968 ページ・残り目安 0.4 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-EP1**(2026-09-18・done_primary・—): 
 - **NG-EP2**(2026-09-19・done_primary・—): 展示タイプ score_ex は B2 採用線未達 (fold1 seed 1 本正・fold2 CI 0 含む)・interaction 有害・additive は ability 統制で消える → S-8 は実在するが B2 増分なしで closure。gate 外: ep_score / ab_score (長期 as-of 残差スコア) が −0.015〜−0.017 (6 fit 全負・採用線の 5 倍) → 採用せず U-39 / Q-059…
 - **NG-EP3**(2026-09-19・done_primary・—): 単純な説明 (生の率 / 経験年数 / 級別 / lane / オンライン更新) では EP の 8 割を再現できず、生の率や simple 全部に EP を足すと採用線超で改善・Q-058 は bit 再現。ただし会場×日 shuffle placebo が fold1 で CL を −0.00306 上回り閾値 −0.003 に触れた (fold2 null) → 凍結規則で LEAKAGE_SUSPECT。仮説 = レース構成情報の温存。次 = N…
 - **NG-EP4**(2026-09-19・done_primary・—): 情報ゼロの列 (全期間 shuffle) が fold1 で −0.00276 [−0.00492, −0.00062]・fold2 null = harness の fold1 noise floor ≈ 0.003 が Q-059 の SHUFL (−0.00306) をほぼ説明 (leakage ではない)。レース構成情報は fold1 で +0.001〜0.002・fold2 null。EP の効き目はレース内相対値だけで全部出る (EPD −0…
 - **NG-RRS1**(2026-09-19・done_primary・—): 4 段 gate (raw / 最強 null RMEAN 補正 / LANE 上 / LANE+GSHUF 補正) が両 fold で採用線超・CI 上端 < 0・3 seed 全負・非冗長 (LANE 0.741 / 0.623)。効き目の 6〜7 割は LANE と重なり独自部分 −0.005〜−0.007。noise floor は LANE 土台では出ない。cold 帯 fold1 −0.00075。本番 B2 / ROI / 封印窓 / as…
+- **NG-RRS2**(2026-09-19・done_primary・—): exact prod3 baseline を bit 再現した上で、RRS は production 土台で REAL (raw −0.0097 / −0.0103・RMEAN 補正 −0.0048 / −0.0061) だが LANE 上の増分ゼロ (+0.0000 / −0.0003)・Type B 線未達 (−0.0026 / −0.0011)。LANE 単体 −0.0121 / −0.0120 (RRS より大)。nightly 生成は bit …
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-19 16:25(**RES-2026-09-Z = NG-RRS1 / Q-062 = `RACER_RESIDUAL_ADOPTABLE`・COMPLETED・STOP・統合なし・次 = Owner 判断 Q-063(本番土台での再現 + as-of 生成経路・研究のみ)/ Q-053 HOLD(観測 ③ 09-20 02:00 後)**。旧: 2026-09-19 15:07(**Q-060 事後承認 / Q-061 設計提出(RRS adoption gate 契約・fit 0 本)/ Q-062 起票(run GO・Owner 待ち)/ Q-053 HOLD 継続(最終観測 09-20 02:00 後)**。旧: 2026-09-19 08:08(**RES-2026-09-Y = NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`・COMPLETED・STOP・Q-059 の疑い = fold1 noise floor(leakag…
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-19 22:10(**RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)・次 = Owner 判断 Q-064(LANE 候補・研究のみ)/ Q-053 HOLD**。旧: 2026-09-19 16:25(**RES-2026-09-Z = NG-RRS1 / Q-062 = `RACER_RESIDUAL_ADOPTABLE`・COMPLETED・STOP・統合なし・次 = Owner 判断 Q-063(本番土台での再現 + as-of 生成経路・研究のみ)/ Q-053 HOLD(観測 ③ 09-20 02:00 後)**。旧: 2026-09-19 15:07(**Q-060 事後承認 / Q…
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -1216,19 +1239,20 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - #48 Q-061 kyotei: 長期 as-of 残差スコア (ep_score) の adoption gate を設計するか (採用線に placebo 差し引き or 両 fold + placebo null を必須・B2 統合の是非を判定・統合は別 G…(推奨: 設計だけ GO (研究のみ))
 - #49 Q-062 kyotei: Q-061 で固定した RRS adoption gate 契約 (raw ≤ −0.003 + strongest-null 補正 excess ≤ −0.003 + clustered paired CI + 3 seed +…(推奨: GO・型 B (研究のみ・production 非接触・どの label でも本サイクルで統合しない))
 - #50 Q-063 kyotei: RRS (採用ゲート ADOPTABLE) を本番と同じ土台 (prod3 構成・41 列) + RRS 3 列で同じ 4 段 gate で再現し、ep_score の as-of nightly 生成経路の実装可能性を確かめる研…(推奨: GO (研究のみ・本番非接触・≈ 1 時間))
+- #51 Q-064 kyotei: production B2 (prod3 41 列) は長期 as-of の選手 prior を欠き、単純な枠番補正の通算 as-of 2連対率 (LANE・lane_score) を 1 本足すだけで −0.012 / −0.0…(推奨: 開く (研究のみ・本番非接触・≈ 2 時間))
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-19 | RES-2026-09-X | **COMPLETED → STOP** — production 候補への昇格なし(Owner 条件)。U-39 = TESTING(判定保留)。**P69 / P70**。次の 1 本 = NG-EP4(Q-060・sh…
-- 2026-09-19 | Owner 包括指示(就寝前 04:45) | **研究続行 GO(研究のみ)** — 「起きたら尼崎行くからそれまでに研究ガンガン進めておいて」→ NG-EP3 closure 後に次の 1 本(NG-EP4)を凍結して起動。production 統合禁止・採用判…
-- 2026-09-19 | RES-2026-09-Y / NG-EP4 | **OPEN・事前登録(freeze commit 91f32e1・07:07・結果計算前)** — Shuffle Channel Decomposition: NG-EP3 の SHUFL 疑い(fold1 −0.00306)を GSHUF(何も保存しない)/ RSET(レー…
-- 2026-09-19 | NG-EP4 | **`SHUFFLE_CHANNEL_INCONCLUSIVE`(凍結判定木・GSHUF が null でも採用線でもない)** — d_GSHUF_CL(情報ゼロの列)fold1 −0.00276 [−0.00492, −0.00062] / fold2 +0.00142 null・d_RSET_CL −0.…
 - 2026-09-19 | RES-2026-09-Y | **COMPLETED → STOP** — production 候補への昇格なし。NG-EP3 / NG-EP4 の label は凍結のまま(LEAKAGE_SUSPECT / INCONCLUSIVE)・識別の読みは…
 - 2026-09-19 | Q-060 / NG-EP4 | **GO(事後承認・Owner)** — NG-EP4 結果を正史採用。理由 = production 非接触 / 結果前 freeze / seed・fold 選別なし / Q-059 疑義の falsificatio…
 - 2026-09-19 | Q-061 | **GO(設計のみ・Owner)→ 同日 15:06 設計提出・Owner 裁定待ち(Q-062)** — Racer Residual Signal(中立名・ep_score 定義不変)の adoption gate 契約: raw ≤ −0.003 ∧ strongest-null…
 - 2026-09-19 | Q-053 | **HOLD 継続(Owner)** — 2 晩 clean。最終観測 = 2026-09-20 02:00 weekly retrain 後に read-only(retrain guard / holdout CLE…
 - 2026-09-19 | Q-062(NG-RRS1 = RRS adoption gate の run) | GO(型 B) — Owner 裁定: Q-061 契約どおり 1 回走らせる。production 非接触・結果を見て閾値 / null / seed / fold / label を変えない・ど…
 - 2026-09-19 | NG-RRS1(freeze 1e6403c) | **PASS = `RACER_RESIDUAL_ADOPTABLE`** — 凍結判定木 S4 の機械適用: raw −0.01711 / −0.01500・最強 null(RMEAN)補正 −0.01167 / −0.01287・LANE 上 −0.00…
+- 2026-09-19 | Q-063(NG-RRS2 = RRS × exact prod3 baseline + nightly as-of) | GO(1 OPEN・Owner・22 節) — 研究 / staging のみ。exact production baseline を再現してから RRS 3 列の 4 段 gate(A raw / B strongest-n…
+- 2026-09-19 | NG-RRS2 Track A(freeze 74dd472) | **PASS(baseline 再現 R1〜R4)→ gate = `RRS_PROD3_BELOW_LINE`** — production baseline 再現 = checkpoint sha 一致 / REF1 窓 p120 bit 一致 / train 窓 mu・sd 差 0・行数 2,…
+- 2026-09-19 | NG-RRS2 Track B(nightly as-of 生成) | **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`** — scoring / full ≡ incremental / idempotent / deterministic すべて bit 一致・日次 0.02 s・全再構築 235 s…
+- 2026-09-19 | Q-063 combined | **production integration confirmation を設計する価値 = いまは無い(機械)** — Owner 19 節の条件(Prediction = INCREMENTAL ∧ Operations ≠ BLOCKED)のうち前者を満たさない。次 = Q-064(LANE …
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -2007,7 +2031,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 
 # RESEARCH_STATUS — 研究状態の正本
 
-- 最新更新: **2026-09-19 16:25**(更新者: Claude / Owner 裁定 **Q-062 = GO・型 B** の実行 = **RES-2026-09-Z = NG-RRS1 = `RACER_RESIDUAL_ADOPTABLE`**(凍結 gate の機械適用・freeze 1e6403c・新規 fit 12・再利用 102/102 差 0.0・leakage 10/10・1,972 s)。raw −0.01711 / −0.01500・最強 null(RMEAN)補正後 −0.01167 / −0.01287・LANE 上 −0.00520 / −0.00520・**Type B(LANE+GSHUF 補正後)−0.00746 / −0.00673**・全部 CI 上端 < 0・3 seed 全負・ratio 最大 0.74 = 非冗長。**production 非接触・統合なし・STOP**。次 = Q-063(本番土台での再現 + as-of 生成経路・研究のみ・Owner GO 待ち)。Q-053 = HOLD(観測 ③ 09-20 02:00 後)。前回: **2026-09-19 15:07**(更新者: Claude / Owner 裁定 2026-09-19 起床後「**Q-060 = 事後承認 / Q-061 = 設計のみ GO / Q-053 = HOLD 継続**」の実行 = **Q-061 設計提出(fit 0 本・production 非接触)**。候補の中立名 = **Racer Residual Signal**(ep_score・定義不変)。契約 = raw ≤ −0.003 ∧ **strongest-null 補正 excess ≤ −0.003**(null 5 本 GSHUF / SHUFL / SHUF / RSET / RMEAN・fold 別 argmin)∧ clustered paired CI 上端 < 0 ∧ 3 seed 全負 ∧ leakage hard gate(L1〜L8 + R0 + H0 再実行)∧ ratio 0.8 ∧ **LANE 上の incremental ≤ −0.003(+ 変種 B: GSHUF placebo 補正)**∧ 両 fold ∧ sealed holdout。label 6 種・判定木固定。run = **Q-062**(新規 fit 12・≈ 50 分・Owner GO 待ち)。
+- 最新更新: **2026-09-19 22:10**(更新者: Claude / Owner 裁定 **Q-063 = 1 OPEN / GO** の実行 = **RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)**。exact production baseline 再現 全 PASS → RRS は production 土台で REAL だが LANE 上の増分ゼロ = 線未達・nightly 生成はアルゴリズム上 FEASIBLE・入力表 4 本の nightly 化が work。統合なし。次 = Q-064(LANE 候補))
+- 前回更新: **2026-09-19 16:25**(更新者: Claude / Owner 裁定 **Q-062 = GO・型 B** の実行 = **RES-2026-09-Z = NG-RRS1 = `RACER_RESIDUAL_ADOPTABLE`**(凍結 gate の機械適用・freeze 1e6403c・新規 fit 12・再利用 102/102 差 0.0・leakage 10/10・1,972 s)。raw −0.01711 / −0.01500・最強 null(RMEAN)補正後 −0.01167 / −0.01287・LANE 上 −0.00520 / −0.00520・**Type B(LANE+GSHUF 補正後)−0.00746 / −0.00673**・全部 CI 上端 < 0・3 seed 全負・ratio 最大 0.74 = 非冗長。**production 非接触・統合なし・STOP**。次 = Q-063(本番土台での再現 + as-of 生成経路・研究のみ・Owner GO 待ち)。Q-053 = HOLD(観測 ③ 09-20 02:00 後)。前回: **2026-09-19 15:07**(更新者: Claude / Owner 裁定 2026-09-19 起床後「**Q-060 = 事後承認 / Q-061 = 設計のみ GO / Q-053 = HOLD 継続**」の実行 = **Q-061 設計提出(fit 0 本・production 非接触)**。候補の中立名 = **Racer Residual Signal**(ep_score・定義不変)。契約 = raw ≤ −0.003 ∧ **strongest-null 補正 excess ≤ −0.003**(null 5 本 GSHUF / SHUFL / SHUF / RSET / RMEAN・fold 別 argmin)∧ clustered paired CI 上端 < 0 ∧ 3 seed 全負 ∧ leakage hard gate(L1〜L8 + R0 + H0 再実行)∧ ratio 0.8 ∧ **LANE 上の incremental ≤ −0.003(+ 変種 B: GSHUF placebo 補正)**∧ 両 fold ∧ sealed holdout。label 6 種・判定木固定。run = **Q-062**(新規 fit 12・≈ 50 分・Owner GO 待ち)。
 - 前回更新: **2026-09-19 08:08**(更新者: Claude / Owner 就寝前包括指示に基づく追撃 = **RES-2026-09-Y / NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`(freeze 91f32e1・run 07:07 → 08:05・24 fit)**。情報ゼロの列が fold1 で −0.00276 [−0.00492, −0.00062](fold2 null)= harness の noise floor ≈ 0.003 が Q-059 の SHUFL(−0.00306)を説明・leakage ではない。EP はレース内相対値だけで全部出る(EPD −0.01759 / −0.01562)。P71。label は凍結のまま・読みは新情報側。production 非接触。次 = adoption gate 設計の Owner 裁定。前回: 2026-09-19 07:10(更新者: Claude / Owner 裁定 2026-09-19「**Q-059 = GO(identity gate・採用禁止)/ Q-053 = HOLD 継続**」完走 = **RES-2026-09-X / NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(凍結 gate・freeze 03da3b4・run 04:26 → 07:02・9,415 s・66 fit)**。EP −0.01711 / −0.01500(Q-058 と bit 同一)。単純 comparator は全部 < 0.8(生の率 0.69 / 0.50・lane 0.74 / 0.62・経験年数 0.01 / 0.14・simple 全部 0.68 / 0.64)・fold 開始凍結でも 0.92 / 0.95・生の率 + EP −0.0062 / −0.0073・simple 全部 + EP −0.0040 / −0.0090 = novel 条件は成立。**ただし会場 × 日 shuffle placebo が fold1 で CL を −0.00306 上回り閾値 −0.003 に触れた(fold2 null)→ 規則どおり LEAKAGE_SUSPECT**。P69 / P70。production 非接触。次 = NG-EP4(Q-060・Owner 就寝前指示で起動)。前回: 2026-09-19 01:04(更新者: Claude / Owner 裁定 2026-09-18 23:0x「**Q-058 = GO・arm (b) score_ex・primary = interaction 付き EX / Q-053 = HOLD 継続**」完走 = **RES-2026-09-W / NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`(Case D・凍結 gate・freeze c6034f7・run 23:23 → 01:04・6,045 s・42 fit)**。as-of 展示タイプ score_ex(+ × 今日の展示 z + log1p(n_past) + missing)を MR1 土台 ME(bundle 12/12 再利用)に足した primary d_EX_ME = **fold1 −0.00424 [−0.00649, −0.00206](seeds −+−)/ fold2 −0.00098 [−0.00311, +0.00112](seeds +−−)** = 採用線 −0.003 を両 fold で満たさない(fold1 は seed 1 本正・fold2 は CI 0 含む)。interaction は両 fold で有害(+0.0022 / +0.0023)。additive EXA −0.00644 / −0.00331 は ability proxy 統制後に消える(+0.0012 / +0.0007)。placebo null(HARNESS_SUSPECT False)。d_ME_M MR1 一致。**S-8 = 実在するが B2 採用線未達(存在判定は不変)・production feature 候補 NO**。**gate 外の観測**: 長期 as-of 残差スコア(ep_score / ab_score)を ME に足すと **−0.0150〜−0.0171(6 fit 全負・採用線の 5 倍・当日展示の増分の約 8 割)** → 採用せず **U-39 新設・NG-EP3 = Q-059 起票**(Owner 判断)。FINDINGS **P67 / P68**。production 非接触・Q-053 HOLD(observation ① 00:34 = smoke 9/9 PASS・4 場 ARM C・LENS 24/24 FRESH・conditional 0・展開なし))
 - 前回更新: **2026-09-18 22:45**(更新者: Claude / Owner 指示 2026-09-18 22:xx「**Q-056 = BACKLOG のみ / Q-053 = HOLD 継続 / 次期テーマ = Exhibition Policy**」完走 = **RES-2026-09-V / NG-EP1 / Q-057 = `EXHIBITION_POLICY_PERSISTENT`**(凍結 gate 8/8・freeze de0bad3・panel 361.7 s / persistence 35.4 s)。展示 + 統制(ability / lane / venue / class / physical motor / motor rate / weather / cycle age)の LightGBM **暦年 walk-forward** controller の残差 `r_ep` に、as-of shrunk score(Σ/(n+20)・同日除外)で選手持続を検定: **split-half 0.691 [0.662, 0.718](n=1,815)/ ICC(1) 0.0070・τ̂ 0.034 / future ρ 0.038(暦年 5/5・24/24 場)/ NC1 ≈ 0 / NC2 0.004 / NC3 PASS / NC4 展示固有 +0.0106 [0.0092, 0.0120]**。**正直な読み = 持続の約 7 割は ability 残余・展示固有は約 3 割・B2 相対は未判定**。副次: display trait 0.805・展示を強く出す選手は本番で展示ほど走らない(−0.031)・recent は足さない・事故直後 −0.5pp。**Phase 4(NG-EP2)は Owner GO = Q-058 まで実行しない**。production 非接触・Q-053 HOLD。FINDINGS **P65 / P66**・HYPOTHESES **S-8**)
 - 前回更新: **2026-09-18 21:03**(更新者: Claude / Owner GO 2026-09-18 19:40「**Q-055 = GO**(方式 Subagent-Driven・追加 Freeze 条件 3 点)」完走 = **RES-2026-09-U / NG-MH2 / Q-055 = `HANDOFF_B2_NULL`**(機構 UNRESOLVED・凍結 gate・freeze e0fad45・run 21:03:01・3,565 s)。NG-MH1 で実在を確認した handoff state(hh_lvl 水準 / hh_delta 行為・as-of・レース内 z)を MR1 土台 ME(corrected physical motor + 当日展示 z)に足し、**B2 3連単 ΔNLL が採用線 −0.003 に届くか**を clustered paired bootstrap(cluster = (jcd, race_date)・B=10,000)で判定。MR1 bundle 24/24 再利用・d_ME_M MR1 一致(−0.01516 / −0.01946)・新規 fit 24 失敗 0。**d_HL_ME fold1 −0.00197 [−0.00405, +0.00006](seeds −−+)/ fold2 −0.00090 [−0.00278, +0.00098](seeds −−−)= 採用線の 1/3〜2/3・CI95 は両 fold で 0 を含む → Gate A FAIL**。d_HD_ME(行為)fold1 −0.00192 / fold2 **+0.00060** = 符号反転 → Gate B FAIL。展示前 d_MH_M fold2 **−0.00288** [−0.00486, −0.00089] / fold1 −0.00171(CI 0 含む)= exhibition-mediated 寄り(NG-MH1 の「最新状態の観測」と整合・fold1 不安定)。placebo fold1 −0.00149 = HL の約 75%(gate は PASS・HARNESS_SUSPECT False)。EXHIBITION_Z_ASOF_SAFE PASS。**S-7 の存在判定は不変・B2 production feature 候補に昇格しない・Q-050 ③ の再裁定材料にならない**。**production / B2 / LIVE / WAKE 非接触**・Q-053 = HOLD(pilot smoke は時刻未到達・未実施)。次 = **Owner 判断**(NG-MH3 = 展示前 = 朝シグナル LightGBM 1着 physical model への増分 を BACKLOG に置くか・推奨 = 起票のみ / Q-053 再裁定は pilot 2 晩後)+ AI 単独 = Q-053 observation(時刻到達後 read-only)。FINDINGS **P64**・HYPOTHESES **S-7 追記**。人間向け = research/OWNER_VIEW.md)
@@ -2031,6 +2056,14 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 - 前々回更新: 2026-09-10 16:10(Owner 研究指令 第 2 弾「AI と市場の意見差を較正し、本当に買えるエッジが現実的な頻度で残るか決着させる」完走。NG-T3D3 = 凍結判定ケース1(3連複・2連単・2連複 MARKET GATE CANDIDATE・3連単 REJECT)/ 実質ケース3 寄り(hit 較正は回復・表示価格 EV は残る・確定配当ベースの実現値は全券種 <1)/ Edge–Frequency Frontier・Time-to-Evidence(頻度は制約でない)/ 知人 Crosswalk 44 行 / forward collector 登録・稼働 / shadow 方式 A 稼働 / Historical Replay 設計。人間向け 5 分表示 = research/OWNER_VIEW.md。次 = NG-T3D4(オッズ帯条件付き λ + 実現値 CI gate)の Owner GO)
 - 前々回更新: 2026-09-10 11:50(Ticket-Space 完走・P0 復旧・T3D3 設計)
 - 本ファイルは Canonical Research State の入口。機械可読版 = `research_state.json`。人間向け表示 = 研究コンソール(Artifact 494f0be1… — 本ファイル群から生成される view であり正本ではない)
+
+## §0. 2026-09-19 22:10 — RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)
+
+- Owner 裁定 2026-09-19(Q-063 = 1 OPEN / GO・22 節)を実行。freeze 74dd472(hash 記録 e821340・Track B 技術 fix 20248df)。tests 24 passed(壊して FAIL 4 通り)。**fit 前の production baseline 再現 gate 全 PASS**(R1 checkpoint sha / R2 REF1 窓 8,997 races p120 bit 一致・NLL Δ ≤ 3e-7 / R3 train 窓 mu・sd 差 0・行数 2,017,260 一致 / R4 recipe)・leakage 再監査 10/10
+- **Track A(60 fit・9,071 s)**: raw −0.00968 / −0.01028・最強 null(RMEAN)補正 −0.00479 / −0.00612(REAL)/ **LANE 上の増分 +0.00000 / −0.00026(CI ∋ 0)/ Type B −0.00263 / −0.00109(線未達)→ `RRS_PROD3_BELOW_LINE`**。LANE 単体は −0.01211 / −0.01203(RRS より大)。noise floor(GSHUF)−0.0011 / −0.0015(CI ∋ 0)。R5: P3 は NG-MS2 legacy base と 2〜4e-7 で一致。X1(production 窓そのまま・gate 外): train < 2026-07-01 全履歴 315,216 races・valid 1,859(学習時 log と一致)で P3 を再学習すると production checkpoint と p120 max|Δ| ≤ 3.4e-7・NLL 16 桁一致 = 再学習 identity 成立。評価窓 2026-07-15〜08-31(7,138 races・635 cluster)で RRS raw = P3EPfull − CKPT **−0.00791 [−0.01168, −0.00420]** 3 seed 全負(P3EPfull − P3full 同値)。raw のみで LANE 比較は無し(記述)
+- **Track B**: full rebuild 235 s(scoring bit 一致・controller 再学習 bit 一致)/ simulation 31 日 ×2(state・emit bit 一致・idempotent・deterministic・0.02 s/日・cold-start 0.013 %)→ `RRS_NIGHTLY_FEASIBLE_WITH_WORK`(入力表 4 本に nightly 更新経路が無い・MJ 07-27 停止)。RRS の内部情報源 18/47 列が prod3 に無い
+- **Combined = production integration confirmation を設計する価値: いまは無い**。統合なし・production 非接触。FINDINGS **P73 / P74 / P75** / HYPOTHESES U-39(production 土台では BELOW_LINE)+ U-40 新設 / 詳細 `lane-reports/rrs2_prod3_replication_20260919.md`
+- 次(提案)= **Q-064** = LANE(単純 as-of 枠番補正 prior)を候補として prod3 41 列土台で同じ 4 段 gate(研究のみ)。Q-053 = HOLD(観測 ③ 09-20 02:00 後・read-only)
 
 ## §0. 2026-09-19 15:07 — Q-060 = **事後承認(Owner)**/ Q-061 = **設計提出・Owner 裁定待ち(Q-062)**/ Q-053 = HOLD 継続(最終観測 = 09-20 02:00 後)
 
@@ -2326,7 +2359,26 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-19 16:25(**RES-2026-09-Z = NG-RRS1 / Q-062 = `RACER_RESIDUAL_ADOPTABLE`・COMPLETED・STOP・統合なし・次 = Owner 判断 Q-063(本番土台での再現 + as-of 生成経路・研究のみ)/ Q-053 HOLD(観測 ③ 09-20 02:00 後)**。旧: 2026-09-19 15:07(**Q-060 事後承認 / Q-061 設計提出(RRS adoption gate 契約・fit 0 本)/ Q-062 起票(run GO・Owner 待ち)/ Q-053 HOLD 継続(最終観測 09-20 02:00 後)**。旧: 2026-09-19 08:08(**RES-2026-09-Y = NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`・COMPLETED・STOP・Q-059 の疑い = fold1 noise floor(leakage ではない)・次 = Owner 判断 Q-060 事後承認 + adoption gate 設計の GO**。旧: 2026-09-19 07:10(**RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点・他 flag は新情報側)・COMPLETED・STOP・次 = NG-EP4 / Q-060(Owner 就寝前指示で起動・研究のみ)・Q-053 = HOLD**。旧: 2026-09-19 01:04(**RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`(Case D)・COMPLETED・STOP・Q-053 = HOLD(observation ① clean)・次 = Owner 判断 Q-059(NG-EP3 = 長期 as-of 残差スコアの凍結再検証)**。旧: 2026-09-18 22:45(**RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy = `EXHIBITION_POLICY_PERSISTENT`・COMPLETED・STOP・Q-053 = HOLD 継続・Q-056 = BACKLOG のみ・次 = Owner 判断 Q-058(Phase 4 GO・arm a/b/c)**。旧: 2026-09-18 21:03 **RES-2026-09-U = NG-MH2 / Q-055 = `HANDOFF_B2_NULL`・COMPLETED・STOP**。旧: 2026-09-18 19:15 **RES-2026-09-T = NG-MH1 / Q-054 Motor Handoff = `HANDOFF_SIGNAL_CONFIRMED`・STOP・Q-053 = HOLD・次 = Q-055**。旧: 2026-09-18 18:10 **RES-2026-09-S = Q-052 / Q-047 / Q-043 完了・Q-053 待ち**。旧: 2026-09-18 17:20 **Q-051 = `Q051_BATCH1_READY`**。旧: 2026-09-18 16:19 Q-050 ② 計画提出 / 2026-09-18 15:36 **Q-050 Task 7 = `Q050_SUMINOE_CUTOVER_PASS`**。旧: 2026-09-14 **Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**)
+最新更新: 2026-09-19 22:10(**RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)・次 = Owner 判断 Q-064(LANE 候補・研究のみ)/ Q-053 HOLD**。旧: 2026-09-19 16:25(**RES-2026-09-Z = NG-RRS1 / Q-062 = `RACER_RESIDUAL_ADOPTABLE`・COMPLETED・STOP・統合なし・次 = Owner 判断 Q-063(本番土台での再現 + as-of 生成経路・研究のみ)/ Q-053 HOLD(観測 ③ 09-20 02:00 後)**。旧: 2026-09-19 15:07(**Q-060 事後承認 / Q-061 設計提出(RRS adoption gate 契約・fit 0 本)/ Q-062 起票(run GO・Owner 待ち)/ Q-053 HOLD 継続(最終観測 09-20 02:00 後)**。旧: 2026-09-19 08:08(**RES-2026-09-Y = NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`・COMPLETED・STOP・Q-059 の疑い = fold1 noise floor(leakage ではない)・次 = Owner 判断 Q-060 事後承認 + adoption gate 設計の GO**。旧: 2026-09-19 07:10(**RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点・他 flag は新情報側)・COMPLETED・STOP・次 = NG-EP4 / Q-060(Owner 就寝前指示で起動・研究のみ)・Q-053 = HOLD**。旧: 2026-09-19 01:04(**RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`(Case D)・COMPLETED・STOP・Q-053 = HOLD(observation ① clean)・次 = Owner 判断 Q-059(NG-EP3 = 長期 as-of 残差スコアの凍結再検証)**。旧: 2026-09-18 22:45(**RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy = `EXHIBITION_POLICY_PERSISTENT`・COMPLETED・STOP・Q-053 = HOLD 継続・Q-056 = BACKLOG のみ・次 = Owner 判断 Q-058(Phase 4 GO・arm a/b/c)**。旧: 2026-09-18 21:03 **RES-2026-09-U = NG-MH2 / Q-055 = `HANDOFF_B2_NULL`・COMPLETED・STOP**。旧: 2026-09-18 19:15 **RES-2026-09-T = NG-MH1 / Q-054 Motor Handoff = `HANDOFF_SIGNAL_CONFIRMED`・STOP・Q-053 = HOLD・次 = Q-055**。旧: 2026-09-18 18:10 **RES-2026-09-S = Q-052 / Q-047 / Q-043 完了・Q-053 待ち**。旧: 2026-09-18 17:20 **Q-051 = `Q051_BATCH1_READY`**。旧: 2026-09-18 16:19 Q-050 ② 計画提出 / 2026-09-18 15:36 **Q-050 Task 7 = `Q050_SUMINOE_CUTOVER_PASS`**。旧: 2026-09-14 **Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**)
+
+## §0. 2026-09-19 22:10 — RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)
+
+- 詳細 = `lane-reports/rrs2_prod3_replication_20260919.md` / `research/Q063_FROZEN_PLAN.md`(freeze 74dd472)/ registry NG-RRS2 / FINDINGS **P73 / P74 / P75** / HYPOTHESES U-39(production 土台では BELOW_LINE)・U-40 新設
+- 要点: production baseline 再現 全 PASS → RRS は production 41 列土台で REAL(raw / 最強 null 補正が両 fold 線超)だが **LANE 上の増分ゼロ・Type B 線未達 = BELOW_LINE**。LANE 単体 −0.012 / −0.012。nightly 生成は bit 等価・決定的・0.02 s/日 = FEASIBLE_WITH_WORK(入力表 4 本の nightly 化)。**統合なし・production 非接触**
+
+### Owner 判断
+
+- **Q-064**: LANE(単純な as-of 枠番補正 prior・lane_score)を候補として prod3 41 列土台で同じ 4 段 gate(raw / 最強 null / 別の strong simple / Type B・両 fold・3 seed)に掛ける研究のみサイクルを開くか(推奨 = 開く・本番非接触・≈ 2 時間・null / comparator は結果前に凍結)
+- Q-053(HOLD 継続・09-20 02:00 の weekly retrain 後の read-only 観測 ③ の結果で再裁定)/ Q-050 ③ B2(据置)/ Q-056 / Q-041 / Q-038 / Q-036 / Q-006 / Q-007
+
+### AI 単独(**時刻到達後のみ・read-only**。待たない・捏造しない)
+
+- Q-053 observation ③ = 09-20 02:00 後 `artifacts/ops/q050_retrain_guard.json`(OK / physical / inline / holdout CLEAN / previous_pointer = lgbm_v1_suminoe_armC_20260918_153428)+ 4 場 smoke + LENS 24/24 + conditional 0 → HANDOFF §0 に 1 行
+
+### 禁止(Owner 指示・変更なし)
+
+- production / B2 LIVE / LGB LIVE / S-tier / WAKE / LENS / pointers / allowlist / betting logic への接触。**RRS の統合(BELOW_LINE)・LANE の統合(未判定)**。結果を見た閾値 / null / seed / fold / label / 判定木の変更。新規 experiment の本番 run を Owner GO なしで始めること(RESEARCH_GOVERNANCE 7)
+
 
 ## §0. 2026-09-19 16:25 — RES-2026-09-Z = NG-RRS1 / Q-062 = **`RACER_RESIDUAL_ADOPTABLE`**(COMPLETED・STOP・統合なし)/ Q-053 = HOLD
 
@@ -3606,6 +3658,11 @@ Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」�
 | 2026-09-19 | Q-062(NG-RRS1 = RRS adoption gate の run) | GO(型 B) | Owner 裁定: Q-061 契約どおり 1 回走らせる。production 非接触・結果を見て閾値 / null / seed / fold / label を変えない・どの label でも統合しない | ai-ops-os DECISION_QUEUE Q-062 |
 | 2026-09-19 | NG-RRS1(freeze 1e6403c) | **PASS = `RACER_RESIDUAL_ADOPTABLE`** | 凍結判定木 S4 の機械適用: raw −0.01711 / −0.01500・最強 null(RMEAN)補正 −0.01167 / −0.01287・LANE 上 −0.00520 / −0.00520・LANE+GSHUF 補正 −0.00746 / −0.00673(全部 CI95 上端 < 0・3 seed 全負)・ratio 最大 0.741 / 0.623・leakage 10/10・再現 102/102 差 0.0。**統合なし・Owner 報告 → STOP**。次 = Q-063 | artifacts/research/nextgen/rrs1/RRS1_GATE.json / lane-reports/rrs1_adoption_gate_20260919.md |
 
+| 2026-09-19 | Q-063(NG-RRS2 = RRS × exact prod3 baseline + nightly as-of) | GO(1 OPEN・Owner・22 節) | 研究 / staging のみ。exact production baseline を再現してから RRS 3 列の 4 段 gate(A raw / B strongest-null / C strong-simple / D Type B)を両 fold で再現 + nightly as-of 生成の feasibility。motor semantics は legacy のまま・RRS 定義不変・9/1 以降 outcome 禁止・ROI / market 禁止・自動統合禁止 | ai-ops-os DECISION_QUEUE Q-063 |
+| 2026-09-19 | NG-RRS2 Track A(freeze 74dd472) | **PASS(baseline 再現 R1〜R4)→ gate = `RRS_PROD3_BELOW_LINE`** | production baseline 再現 = checkpoint sha 一致 / REF1 窓 p120 bit 一致 / train 窓 mu・sd 差 0・行数 2,017,260 一致 / recipe 同一。gate: raw −0.00968 / −0.01028・最強 null RMEAN 補正 −0.00479 / −0.00612(REAL)だが LANE 上の増分 +0.00000 / −0.00026(CI ∋ 0)・Type B −0.00263 / −0.00109 = 線未達 → S5。統合なし | lane-reports/rrs2_prod3_replication_20260919.md / registry NG-RRS2 |
+| 2026-09-19 | NG-RRS2 Track B(nightly as-of 生成) | **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`** | scoring / full ≡ incremental / idempotent / deterministic すべて bit 一致・日次 0.02 s・全再構築 235 s。残 work = 入力表 4 本(features_v2 / extra3_ext / setsu_master / MJ)に production nightly の更新経路が無い(MJ は 07-27 停止) | lane-reports/rrs2_prod3_replication_20260919.md / artifacts/research/nextgen/rrs2/RRS2_TRACK_B.json |
+| 2026-09-19 | Q-063 combined | **production integration confirmation を設計する価値 = いまは無い(機械)** | Owner 19 節の条件(Prediction = INCREMENTAL ∧ Operations ≠ BLOCKED)のうち前者を満たさない。次 = Q-064(LANE 型単純 prior を候補として同じ gate に掛けるか・Owner GO) | ai-ops-os DECISION_QUEUE Q-064 |
+
 
 
 # ===== DATA_STATUS.md =====
@@ -4101,11 +4158,18 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 
 # HYPOTHESES — 研究仮説台帳(正本)
 
-- 最新更新: **2026-09-19 16:25**(RES-2026-09-Z = NG-RRS1 / Q-062 = `RACER_RESIDUAL_ADOPTABLE`・**U-39 = SUPPORTED(研究 harness 上・採用ゲート合格)**。production / 市場 / 封印窓は未検証。前回: 2026-09-19 08:08(RES-2026-09-Y = NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`・U-39 に「疑いの正体 = fold1 noise floor・EP はレース内相対成分」を追記。前回: 2026-09-19 07:10(RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点)・U-39 に結果を追記(単純説明では消えない・NG-EP4 で分解中)。前回: 2026-09-19 01:04(RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`・S-8 に B2 採用線未達を追記・**U-39** 新設(長期 as-of 残差スコアの B2 増分・gate 外観測 → Q-059)。前回: 2026-09-18 Q-050 Task 7・**U-33** 追加。前回: 2026-09-12 更新者: Claude / セッション: RES-2026-09-F — NG-VA1 で U-36a を **R-17 で否定**。**ID 衝突を解消**: 旧「U-36 会場 × 4 コース攻撃」= **U-36a**、旧「U-36 レース形成の感度マップ(H-C)」= **U-36b** に分離した(2026-09-11 の採番ミス)。新規 U-38 = 研究参照モデルの provenance 整合)
+- 最新更新: **2026-09-19 22:10**(RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)・**U-39 = SUPPORTED(研究 harness)/ production 土台では BELOW_LINE(LANE に包含)**・U-40 新設(LANE 型 prior・候補))。前回:  / 旧: **2026-09-19 16:25**(RES-2026-09-Z = NG-RRS1 / Q-062 = `RACER_RESIDUAL_ADOPTABLE`・**U-39 = SUPPORTED(研究 harness 上・採用ゲート合格)**。production / 市場 / 封印窓は未検証。前回: 2026-09-19 08:08(RES-2026-09-Y = NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`・U-39 に「疑いの正体 = fold1 noise floor・EP はレース内相対成分」を追記。前回: 2026-09-19 07:10(RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点)・U-39 に結果を追記(単純説明では消えない・NG-EP4 で分解中)。前回: 2026-09-19 01:04(RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`・S-8 に B2 採用線未達を追記・**U-39** 新設(長期 as-of 残差スコアの B2 増分・gate 外観測 → Q-059)。前回: 2026-09-18 Q-050 Task 7・**U-33** 追加。前回: 2026-09-12 更新者: Claude / セッション: RES-2026-09-F — NG-VA1 で U-36a を **R-17 で否定**。**ID 衝突を解消**: 旧「U-36 会場 × 4 コース攻撃」= **U-36a**、旧「U-36 レース形成の感度マップ(H-C)」= **U-36b** に分離した(2026-09-11 の採番ミス)。新規 U-38 = 研究参照モデルの provenance 整合)
 - 位置づけ: Canonical Research State の一部。機械可読の骨格 = `research_state.json` の `hypotheses` 節(矛盾したらそちらが正)。表示用 view = 研究コンソール(Artifact)
 - **目的**: shin(Owner)の現場感覚・人間の定説・データ由来の仮説を全て1つの台帳に載せ、「どの感覚が確認され、どれが否定されたか」を一目で分かるようにする
 - 正直ラベルの規約: 小標本は「逸話」、確定オッズ由来は「diagnostic」、事後発見は「再登録要」と必ず付記。数値は出典ファイルから転記(捏造禁止・無い値は「記録なし」)
 - 分類: **UNTESTED**(未検証)/ **TESTING**(事前登録済みで検証枠にある)/ **SUPPORTED**(支持)/ **PARTIALLY SUPPORTED**(部分支持)/ **REJECTED**(否定・同一形の再提案禁止)
+
+## §0. 2026-09-19 22:10 — RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**) → **U-39 = SUPPORTED(研究 harness・ME 土台)/ production 土台では BELOW_LINE(LANE に包含)**・**U-40 新設(候補・未検証)**
+
+- production と同じ 41 列 legacy 土台 (P3) 上: raw −0.00968 / −0.01028・最強 null (RMEAN) 補正 −0.00479 / −0.00612 = REAL。**LANE 上の増分 +0.00000 / −0.00026(CI ∋ 0)・Type B −0.00263 / −0.00109 = 線未達**。FINDINGS **P73**。X1(production 窓そのまま・gate 外): train < 2026-07-01 全履歴 315,216 races・valid 1,859(学習時 log と一致)で P3 を再学習すると production checkpoint と p120 max|Δ| ≤ 3.4e-7・NLL 16 桁一致 = 再学習 identity 成立。評価窓 2026-07-15〜08-31(7,138 races・635 cluster)で RRS raw = P3EPfull − CKPT **−0.00791 [−0.01168, −0.00420]** 3 seed 全負(P3EPfull − P3full 同値)。raw のみで LANE 比較は無し(記述)
+- **U-39 の状態**: **SUPPORTED(研究 harness・ME 土台・Q-062 ADOPTABLE は不変)/ production 土台では `RRS_PROD3_BELOW_LINE`** = 本番に足す価値は LANE に包含される(いまは無い)。統合しない。機構(なぜ ME では残り P3 では残らないか)は未特定
+- **U-40(新設・候補・事前登録外の観測)**: production B2 は長期 as-of の選手 prior を欠き、単純な枠番補正の通算 as-of 2連対率(LANE)を 1 本足すだけで −0.012 / −0.012(FINDINGS **P74**)。→ Q-064 で候補として同じ 4 段 gate に掛けるか(Owner GO)。comparator の値を候補の値として読まない
+- Track B(FINDINGS **P75**): RRS の nightly 生成はアルゴリズム上 FEASIBLE(bit 等価・決定的・0.02 s/日)・入力表 4 本の nightly 化が work
 
 ## §0. 2026-09-19 16:25 — RES-2026-09-Z = NG-RRS1 / Q-062 = **`RACER_RESIDUAL_ADOPTABLE`**(freeze 1e6403c)→ **U-39 = SUPPORTED(研究 harness 上)**
 
@@ -4871,11 +4935,37 @@ Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)�
 
 # FINDINGS — 研究発見台帳(Canonical Research State)
 
-- 最終更新: 2026-09-19 16:25(RES-2026-09-Z = NG-RRS1 / Q-062 Racer Residual Signal adoption gate = `RACER_RESIDUAL_ADOPTABLE`(両 fold・4 段 gate 全 PASS・統合なし)・**P72** 追加 / 旧: 2026-09-19 08:08(RES-2026-09-Y = NG-EP4 / Q-060 Shuffle Channel Decomposition = `SHUFFLE_CHANNEL_INCONCLUSIVE`(情報ゼロの列が fold1 で −0.0028 = harness の noise floor)・**P71** 追加 / 旧: 2026-09-19 07:10(RES-2026-09-X = NG-EP3 / Q-059 Racer Signal Identity = `RACER_SIGNAL_LEAKAGE_SUSPECT`(凍結規則・会場 × 日 shuffle placebo が fold1 で閾値ちょうど)・**P69 / P70** 追加 / 旧: 2026-09-19 01:04(RES-2026-09-W = NG-EP2 / Q-058 Exhibition Policy Phase 4 B2 gate = `EXHIBITION_POLICY_B2_NULL`(Case D)・**P67 / P68** 追加 / 旧: 2026-09-18 22:45 RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy persistence = `EXHIBITION_POLICY_PERSISTENT`・**P65 / P66** 追加 / 旧: 2026-09-18 21:03 RES-2026-09-U = NG-MH2 / Q-055 handoff state の B2 レベル増分 gate = `HANDOFF_B2_NULL`・**P64** 追加 / 旧: 2026-09-18 19:15 RES-2026-09-T = NG-MH1 / Q-054 Motor Handoff = `HANDOFF_SIGNAL_CONFIRMED`・**P62 / P63** 追加 / 旧: 2026-09-18 18:10 RES-2026-09-S = Q-052 cutover PASS / Q-047 holdout 契約 / Q-043 封印・**P61** 追加 / 旧: 2026-09-18 17:20 Q-051 = `Q051_BATCH1_READY`・**P59 / P60** / 旧: 2026-09-18 Q-050 Task 7 = 住之江 root cutover PASS・**P58** / 2026-09-12 … → NG-TS1 → NG-U2 / VENUE-V0 → **NG-VA1 + Q-029 気象 provenance 監査** 反映)
+- 最終更新: 2026-09-19 22:10(RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)・**P73 / P74 / P75** 追加) / 旧: 2026-09-19 16:25(RES-2026-09-Z = NG-RRS1 / Q-062 Racer Residual Signal adoption gate = `RACER_RESIDUAL_ADOPTABLE`(両 fold・4 段 gate 全 PASS・統合なし)・**P72** 追加 / 旧: 2026-09-19 08:08(RES-2026-09-Y = NG-EP4 / Q-060 Shuffle Channel Decomposition = `SHUFFLE_CHANNEL_INCONCLUSIVE`(情報ゼロの列が fold1 で −0.0028 = harness の noise floor)・**P71** 追加 / 旧: 2026-09-19 07:10(RES-2026-09-X = NG-EP3 / Q-059 Racer Signal Identity = `RACER_SIGNAL_LEAKAGE_SUSPECT`(凍結規則・会場 × 日 shuffle placebo が fold1 で閾値ちょうど)・**P69 / P70** 追加 / 旧: 2026-09-19 01:04(RES-2026-09-W = NG-EP2 / Q-058 Exhibition Policy Phase 4 B2 gate = `EXHIBITION_POLICY_B2_NULL`(Case D)・**P67 / P68** 追加 / 旧: 2026-09-18 22:45 RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy persistence = `EXHIBITION_POLICY_PERSISTENT`・**P65 / P66** 追加 / 旧: 2026-09-18 21:03 RES-2026-09-U = NG-MH2 / Q-055 handoff state の B2 レベル増分 gate = `HANDOFF_B2_NULL`・**P64** 追加 / 旧: 2026-09-18 19:15 RES-2026-09-T = NG-MH1 / Q-054 Motor Handoff = `HANDOFF_SIGNAL_CONFIRMED`・**P62 / P63** 追加 / 旧: 2026-09-18 18:10 RES-2026-09-S = Q-052 cutover PASS / Q-047 holdout 契約 / Q-043 封印・**P61** 追加 / 旧: 2026-09-18 17:20 Q-051 = `Q051_BATCH1_READY`・**P59 / P60** / 旧: 2026-09-18 Q-050 Task 7 = 住之江 root cutover PASS・**P58** / 2026-09-12 … → NG-TS1 → NG-U2 / VENUE-V0 → **NG-VA1 + Q-029 気象 provenance 監査** 反映)
 - 位置づけ: `research_state.json` / `RESEARCH_STATUS.md` と同期した人間可読の発見集。矛盾したら json 側が正
 - 主な出典: `docs/ARCHITECTURE_FREEZE_v2.1.md` / `lane-reports/nextgen_audit_20260903.md` / `lane-reports/hansei_sg_kiryu_20260903.md` / `lane-reports/e10_externality_20260904.md` / `docs/experiments/structured_order_model/results_summary.md` / `docs/MODEL_STRATEGY.md` / `artifacts/research/experiment_registry.jsonl` / `docs/ANALYSIS_BACKLOG.md`
 - 書式: 各発見は必ず3問に答える — **【分かったこと】結局何が分かったか /【予測に効くか】未来の予測に効くか /【市場】市場は既に知っているか**
 - 正直ラベルの規約: 小標本は「n=◯逸話」、確定オッズ由来の数値は「diagnostic(診断用・ROI主張不可)」を必ず付ける。無い値は「記録なし」と書く
+
+## §0. 2026-09-19 22:10 — RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)
+
+Owner 裁定 2026-09-19(**Q-063 = 1 OPEN / GO・22 節**)を実行。契約(`rrs2_frozen.json` / `Q063_FROZEN_PLAN.md`・freeze 74dd472)を結果を見ずに機械適用。fit 前の **production baseline 再現 gate = 全 PASS**(checkpoint sha 一致 / REF1 窓 8,997 races の p120 bit 一致 / train 窓 mu・sd 差 0・行数 2,017,260 一致 / recipe 同一)。新規 fit 60(P3 土台 10 arm × 3 seed × 2 fold・9,071 s・失敗 0)+ X1 6 fit + Track B(全再構築 235 s・simulation 31 日 ×2)。**production 非接触・holdout 非接触・Q-053 HOLD**。詳細 = `lane-reports/rrs2_prod3_replication_20260919.md` / registry `NG-RRS2` / `artifacts/research/nextgen/rrs2/{RRS2_GATE,RRS2_TRACK_B,RRS2_EXACT_WINDOW}.json`。
+
+**P73 — production B2 と同じ 41 列 legacy 土台(P3・checkpoint と bit 同一の推論・train 窓 mu/sd 差 0)の上では、RRS(ep_score・定義不変)は ①生の増分 −0.00968 / −0.01028 ②最強 null(両 fold RMEAN)補正後 −0.00479 / −0.00612 まで両 fold で線を超え CI 上端 < 0・3 seed 全負(= REAL)だが、③強い単純指標 LANE の上の増分は +0.00000 [−0.00228, +0.00229] / −0.00026 [−0.00220, +0.00166](CI が 0 を含む)④Type B(LANE + 情報ゼロ列を差し引く)は −0.00263 / −0.00109 で線未達。判定木 S5 = `RRS_PROD3_BELOW_LINE`**【確定(凍結 gate の機械適用)・2026-09-19・NG-RRS2】
+
+- 【分かったこと】①RRS が「本物の racer 固有情報」であることは production 土台でも再現した ②しかし **採用の決定打だった「強い単純指標の上に残る増分」は production 土台では消えた**(研究用 ME 土台では −0.0052 残っていた)③土台が違うと増分の有無が変わる = Q-063 を開いた理由が的中 ④P3 土台の noise floor(GSHUF)は −0.0011 / −0.0015(CI ∋ 0)で採用線の半分以下・LANE 土台では情報ゼロ列は悪化(+0.0026 / +0.0008)= Q-062 と同じ ⑤history 診断は逆転(ME 土台では mid / high に集中・P3 土台では cold だけに小さく残り mid / high はゼロ)⑥X1(production 窓そのまま・gate 外): train < 2026-07-01 全履歴 315,216 races・valid 1,859(学習時 log と一致)で P3 を再学習すると production checkpoint と p120 max|Δ| ≤ 3.4e-7・NLL 16 桁一致 = 再学習 identity 成立。評価窓 2026-07-15〜08-31(7,138 races・635 cluster)で RRS raw = P3EPfull − CKPT **−0.00791 [−0.01168, −0.00420]** 3 seed 全負(P3EPfull − P3full 同値)。raw のみで LANE 比較は無し(記述)
+- 【予測に効くか】**production B2 に RRS を足す価値は、同じ土台に LANE を足す価値に完全に包含される(いまは無い)**。Q-062 の ADOPTABLE(研究 harness 上)は否定されないが、本番採用の根拠にはならない
+- 【市場】未測定(ROI / market edge は本サイクルで禁止)
+- 【言えないこと】ME 土台で残り P3 土台で残らない機構 / 封印窓 / ROI / cold 帯の小さな増分(fold1 −0.00345・n 4,953)の実在
+- 【帰結】production integration confirmation を設計する価値 = **いまは無い**(Owner 19 節の条件を満たさない)。次の 1 つ = **P74 の LANE を候補として同じ gate に掛ける**(Q-064 起票・GO は Owner)
+
+**P74 — production B2(legacy 41 列)は「選手の長期 as-of の実力 prior」を持っておらず、単純な枠番補正の通算 as-of 2連対率(LANE = Σ(is_top2 − E[top2 | jcd, lane]) / (n + 20)・2020-21 固定表・controller も展示も物理モーター周期表も不要)を 1 本足すだけで −0.01211 [−0.01457, −0.00960] / −0.01203 [−0.01443, −0.00971](3 seed 全負)= RRS の raw gain より大きい(ratio LANE / RRS = 1.25 / 1.17)。RRS・LANE・null(RMEAN −0.0049 / −0.0042)はいずれも同じ穴を別経路で埋めており、LANE で埋めた後に RRS 固有の情報は残らない**【観測(comparator の値・候補として事前登録外・採用判断に使わない)・2026-09-19・NG-RRS2】
+
+- 【分かったこと】穴を埋める最も安い候補は LANE(依存 = features_v2 の is_top2 と 2020-21 の固定表だけ・as-of・nightly は Track B と同型)
+- 【予測に効くか】候補として未検証(本 gate では comparator)。同じ 4 段 gate(raw / 最強 null / 別の strong simple / Type B)で判定してから
+- 【市場】未測定
+- 【帰結】**Q-064**(LANE 候補の adoption gate・研究のみ)を起票。GO は Owner
+
+**P75 — RRS の nightly as-of 生成(build_rrs_asof_features 相当)は staging 実装で **決定的・as-of 安全・idempotent・full ≡ incremental(bit 一致・31 日 × 29,260 行・state 1,939 racers)・日次 0.02 s・全再構築 3.9 分(controller A 再学習 bit 再現)・provenance 9 項目・fail-closed 6 条件** = アルゴリズム上は nightly 可能。ただし controller A の 47 特徴のうち 18 は prod3 に無い情報(physical motor cycle 由来 4 / 節文脈 3 / 展示 2 / tilt・展示 ST 3 / 気温水温安定板 3 / class_code 等)で、入力表 4 本(features_v2 / extra3_ext / setsu_master / beforeinfo_flat_mj)は production nightly に更新経路が無く MJ は 2026-07-27 で停止 → `RRS_NIGHTLY_FEASIBLE_WITH_WORK`**【運用事実・2026-09-19・NG-RRS2】
+
+- 【分かったこと】「作れる」と「運用に載っている」は別。RRS は「純粋な racer ability だけ」ではなく prod3 に無い情報で統制した残差
+- 【帰結】RRS を production 候補に戻す場合は入力表 4 本の nightly 化が前提。LANE 候補ならこの work はほぼ不要
+
+---
 
 ## §0. 2026-09-19 16:25 — RES-2026-09-Z = NG-RRS1 / Q-062 Racer Residual Signal Adoption Gate = **`RACER_RESIDUAL_ADOPTABLE`**(凍結 gate・freeze 1e6403c・COMPLETED・STOP・**統合なし**)
 
@@ -6404,8 +6494,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 
 ```json
 {
- "updated_at": "2026-09-19 16:25",
- "updated_by": "Claude (レーン B・Q-062 run 完走・closure)",
+ "updated_at": "2026-09-19 22:10",
+ "updated_by": "Claude (レーン B・Q-063 run 完走・closure)",
  "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
  "architecture_version": "v2.1",
  "architecture_doc": "docs/ARCHITECTURE_FREEZE_v2.1.md",
@@ -6420,8 +6510,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "id": "b2f41_prod2026_prod3",
   "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
  },
- "current_experiment": "RES-2026-09-Z (NG-RRS1 / Q-062) = COMPLETED = RACER_RESIDUAL_ADOPTABLE (凍結 gate の機械適用・freeze 1e6403c・統合なし・STOP)。次 = Owner 判断 Q-063 (本番土台での再現 + as-of 生成経路・研究のみ)。Q-053 = HOLD (最終観測 = 2026-09-20 02:00 後)",
- "current_experiment_note": "raw −0.01711 / −0.01500・最強 null (RMEAN) 補正後 −0.01167 / −0.01287・LANE 上 −0.00520 / −0.00520・LANE+GSHUF 補正後 (Type B) −0.00746 / −0.00673。全部 CI95 上端 < 0・3 seed 全負・ratio 最大 0.741 / 0.623 (非冗長)・leakage 10/10 PASS・再利用 102/102 差 0.0。production 非接触・holdout 非接触。効き目の 6〜7 割は LANE と重なり独自部分は −0.005〜−0.007。cold 帯 (fold1) は小",
+ "current_experiment": "RES-2026-09-AA (NG-RRS2 / Q-063) = COMPLETED = RRS_PROD3_BELOW_LINE × RRS_NIGHTLY_FEASIBLE_WITH_WORK (凍結 gate の機械適用・freeze 74dd472・統合なし・STOP)。次 = Owner 判断 Q-064 (LANE 型単純 prior を候補として同じ gate・研究のみ)。Q-053 = HOLD (観測 ③ = 2026-09-20 02:00 後)",
+ "current_experiment_note": "production baseline 再現 全 PASS (checkpoint sha / REF1 窓 p120 bit 一致 / train 窓 mu・sd 差 0・行数 2,017,260 一致 / recipe)。raw −0.00968 / −0.01028・最強 null (RMEAN) 補正 −0.00479 / −0.00612 = REAL。LANE 上の増分 +0.00000 / −0.00026 (CI ∋ 0)・Type B −0.00263 / −0.00109 = 線未達。LANE 単体 −0.01211 / −0.01203 (RRS より大)。Track B: bit 等価・決定的・idempotent・0.02 s/日・全再構築 235 s・入力表 4 本に nightly 更新経路なし。X1(production 窓そのまま・gate 外): train < 2026-07-01 全履歴 315,216 races・valid 1,859(学習時 log と一致)で P3 を再学習すると production checkpoint と p120 max|Δ| ≤ 3.4e-7・NLL 16 桁一致 = 再学習 identity 成立。評価窓 2026-07-15〜08-31(7,138 races・635 cluster)で RRS raw = P3EPfull − CKPT **−0.00791 [−0.01168, −0.00420]** 3 seed 全負(P3EPfull − P3full 同値)。raw のみで LANE 比較は無し(記述)",
  "experiments": {
   "registry_path": "artifacts/research/experiment_registry.jsonl",
   "adopted": [
@@ -6637,6 +6727,9 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   ],
   "done_20260919_ep2": [
    "NG-EP2 (EXHIBITION_POLICY_B2_NULL・Case D・gate 外で ep/ab score −0.015〜−0.017 → Q-059)"
+  ],
+  "done_20260919_rrs2": [
+   "NG-RRS2 (RRS_PROD3_BELOW_LINE × RRS_NIGHTLY_FEASIBLE_WITH_WORK・exact prod3 baseline 再現 PASS・LANE 上の増分ゼロ・LANE 単体 −0.012 → Q-064)"
   ]
  },
  "hypotheses": {
@@ -7484,7 +7577,13 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "n": 50,
    "item": "Q-063 kyotei: RRS (採用ゲート ADOPTABLE) を本番と同じ土台 (prod3 構成・41 列) + RRS 3 列で同じ 4 段 gate で再現し、ep_score の as-of nightly 生成経路の実装可能性を確かめる研究のみサイクルを開くか (統合は別 GO)",
    "recommend": "GO (研究のみ・本番非接触・≈ 1 時間)",
-   "status_20260919": "未裁定 (2026-09-19 16:25 起票)"
+   "status_20260919": "CLOSED (2026-09-19 Owner 裁定 = 1 OPEN / GO → 同日 22:10 完走 = RRS_PROD3_BELOW_LINE × RRS_NIGHTLY_FEASIBLE_WITH_WORK・統合なし・STOP)"
+  },
+  {
+   "n": 51,
+   "item": "Q-064 kyotei: production B2 (prod3 41 列) は長期 as-of の選手 prior を欠き、単純な枠番補正の通算 as-of 2連対率 (LANE・lane_score) を 1 本足すだけで −0.012 / −0.012 (NG-RRS2 の comparator 値)。これを候補として同じ 4 段 gate (raw / 最強 null / 別の strong simple / Type B・両 fold・3 seed・null と comparator は結果前に凍結) に掛ける研究のみサイクルを開くか",
+   "recommend": "開く (研究のみ・本番非接触・≈ 2 時間)",
+   "status_20260919": "未裁定 (2026-09-19 22:10 起票)"
   }
  ],
  "w2_directives_owner_20260904": {
