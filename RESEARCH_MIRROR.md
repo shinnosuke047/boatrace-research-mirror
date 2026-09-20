@@ -4,7 +4,8 @@
 ---
 # OWNER VIEW — 5 分で分かる研究の現在地(人間向け・日本語)
 
-- 更新: **2026-09-20 03:55**(Owner 裁定「**Q-064 = 2 GO**」の実行後 = **「単純な通算成績」は本番と同じ土台で合格(採用可)**・最強の偽物を差し引いても線の 2.5〜3 倍・前回の複雑なスコア(RRS)の 8 割をこれだけで再現し、RRS を上に足しても線に届かない = **RRS は作らなくてよい**・3 つ束ねても「枠番補正の通算成績」1 本と同じ = 1 本に縮められる・**本番には足していない**・**判断は 3 つ = ①統合の設計を開くか(5 列 / 1 列)②次の研究「6 艇の展開」の地図の GO ③研究ダッシュボードの構造 OK**)
+- 更新: **2026-09-20 15:00**(Owner 裁定「**Q-065 GO-1 = 開く**」の実行後 = **「荒れそうなレースか」はレース前に読める(2 倍・全 24 会場)。そして本番モデルはその方向に系統的にズレている(荒れそうなほどセンターを過小評価・1 枠を買いかぶる)。ただしその読みは「6 艇の組合せ」でなくても作れる = 相互作用の証拠にはならない**・**本番モデルは変えていない**・**判断は 4 つ**)
+- 前回更新: **2026-09-20 03:55**(Owner 裁定「**Q-064 = 2 GO**」の実行後 = **「単純な通算成績」は本番と同じ土台で合格(採用可)**・最強の偽物を差し引いても線の 2.5〜3 倍・前回の複雑なスコア(RRS)の 8 割をこれだけで再現し、RRS を上に足しても線に届かない = **RRS は作らなくてよい**・3 つ束ねても「枠番補正の通算成績」1 本と同じ = 1 本に縮められる・**本番には足していない**・**判断は 3 つ = ①統合の設計を開くか(5 列 / 1 列)②次の研究「6 艇の展開」の地図の GO ③研究ダッシュボードの構造 OK**)
 - 前回更新: **2026-09-19 23:16**(Owner 裁定「**Q-064 = 設計だけ先に**」の実行後 = **「単純な通算成績」の候補 3 つ(1着率 / 2連対率 / 枠番補正)を束ねて、本番と同じ土台で最強の偽物と比べて判定する手順を固定して提出(計算は 1 本も走らせていない・本番には触っていない)**・**判断は 1 つ = Q-064 の走らせ方(番号 1〜5・推奨 2)**)
 - 前回更新: **2026-09-19 22:10**(Owner 裁定「**Q-063 = 開く**」の実行後 = **本番と同じ土台では「本物だが足す価値はいま無い」・毎晩の自動生成は計算上 OK(材料の表 4 本が本番処理に無い)**・**本番には足していない**・**判断は 1 つ = Q-064**(単純な通算成績の列を候補として同じ手順で判定するか))
 - 前回更新: **2026-09-19 16:25**(Owner 裁定「**Q-062 = GO・型 B**」の実行後 = **採用ゲートの結果 = 合格(`RACER_RESIDUAL_ADOPTABLE`)**・**本番には足していない**・**判断は 1 つ = Q-063**(本番と同じ土台で再現 + 毎晩の自動生成が組めるかを確かめる研究だけのサイクルを開くか))
@@ -31,6 +32,14 @@
 - 前々回更新: 2026-09-12 01:45(Owner 指令 2026-09-12「**Q-030 = GO / 最優先**」「**Q-031 = GO**」の実行後)
 - 位置づけ: 正本(NEXT_ACTIONS / DECISION_LOG / FINDINGS / registry)の人間向け要約。数値の細部は `lane-reports/q035_prior_parity_20260912.md`(今回)と `lane-reports/sia_v1_20260912.md`、会場ごとの地図は `research/VENUE_LOGIC_ATLAS.md` へ
 - 用語: **B2** = 現在の本番予測モデル / **残差** = 実際の結果と B2 の予測確率の差 / **beforeinfo** = 締切前に見られる直前情報 / **K ファイル** = レース後に出る公式成績ページ
+
+## §0. 2026-09-20 15:00 — 「荒れそうなレースか」はレース前に読める。本番モデルはその方向にズレている。ただし「6 艇の組合せ」の証拠ではない
+
+- 何を調べたか: レース前に分かる情報だけで「3・4 コースの艇が攻めて勝つレースか」を推定し、①それが当たるか ②**本番モデルの確率がその推定に沿ってズレていないか** を見た
+- 結果 ①: **当たる**。推定の上位 10% では攻撃が **37%** 起きた(下位 10% は 7%)。2 つの期間とも、**24 会場すべて**で同じ向き
+- 結果 ②: **ズレている**。推定が高いほど、本番モデルは「センター(3・4 枠)が勝つ確率」を過小に、「1 枠が勝つ確率」を過大に見積もっていた。上位 10% では **実際より 13% 少なく**見積もっている。全体平均だとほぼゼロなので、**条件を切らないと見えないズレ**
+- 結果 ③(ここが今回の限界): その「読み」は **6 艇の組合せを明示しなくても、各艇の強さを 6 艇分並べるだけで同じ精度になる**。さらに **会場と天気だけでもかなり再現できる**。だから「レース構造・相互作用の発見」とは言えない
+- **本番モデルは 1 行も変えていない**。次にやる価値があるのは「相互作用」ではなく「**条件を切った確率の補正**」(後処理・本番モデル自体は不変)
 
 ## §0. 2026-09-20 03:55 — 「単純な通算成績」は本番と同じ土台で **合格(採用可)**。前回の複雑なスコアはこれに含まれる。本番には足していない
 
@@ -1149,21 +1158,21 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 採用ライン(薄層): ΔNLL ≥ 0.003
 
 ## 2. Active Research(実行中・待機中)
-- 実行中の実験: RES-2026-09-AB (NG-LP1 / Q-064) = COMPLETED = SIMPLE_CAREER_PROD3_ADOPTABLE (凍結 gate の機械適用・freeze 4de5314・統合なし・STOP)。Owner 指示: 単体 feature の追加を既定にしない → 次 = Race Structure / Interaction (Q-065 Map・planning only) + Research Dashboard (Q-066 MVP)。統合設計は別 GO。Q-053 = HOLD (観測 ③ 02:00 後 = clean)(Q-064 = 設計提出済 (2026-09-19 23:16・NG-LP1 Simple Career Prior の exact prod3 adoption gate・fit 0・Owner 裁定待ち run GO 1〜5)。pro…)
+- 実行中の実験: RES-2026-09-AC (NG-RS1 / Q-065 GO-1) = COMPLETED = RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED (凍結 gate の機械適用・freeze 82dab27・B2 不変・統合なし・STOP)。並行 = Q-064 LACP 統合設計 (design only) / Q-066 Dashboard 更新 + Race Structure Explorer + Screen Review Sheet。Q-053 = HOLD(Q-064 = 設計提出済 (2026-09-19 23:16・NG-LP1 Simple Career Prior の exact prod3 adoption gate・fit 0・Owner 裁定待ち run GO 1〜5)。pro…)
 - 自走ジョブ: 部品層化バックフィル PID None(status=aborted・47062/49968 ページ・残り目安 0.4 日)
 - NG-E19SG(registered): SG/G1 festival-day market-efficiency segment (charter §52/§55, backlog 2-5)
 - NG-E8SWAP(filed): dead-weight local features replacement ablation (filed only)
 - NG-FC1(registered): forward collector (締切直前〜締切後オッズ前向き収集・close_window) の 2 週間試験運用 — Owner 研究指令 2026-09-10 第 2 弾 §9 GO で launchd 登録…
 
 ## 3. Latest Findings(直近の判定 5 件)
-- **NG-EP3**(2026-09-19・done_primary・—): 単純な説明 (生の率 / 経験年数 / 級別 / lane / オンライン更新) では EP の 8 割を再現できず、生の率や simple 全部に EP を足すと採用線超で改善・Q-058 は bit 再現。ただし会場×日 shuffle placebo が fold1 で CL を −0.00306 上回り閾値 −0.003 に触れた (fold2 null) → 凍結規則で LEAKAGE_SUSPECT。仮説 = レース構成情報の温存。次 = N…
 - **NG-EP4**(2026-09-19・done_primary・—): 情報ゼロの列 (全期間 shuffle) が fold1 で −0.00276 [−0.00492, −0.00062]・fold2 null = harness の fold1 noise floor ≈ 0.003 が Q-059 の SHUFL (−0.00306) をほぼ説明 (leakage ではない)。レース構成情報は fold1 で +0.001〜0.002・fold2 null。EP の効き目はレース内相対値だけで全部出る (EPD −0…
 - **NG-RRS1**(2026-09-19・done_primary・—): 4 段 gate (raw / 最強 null RMEAN 補正 / LANE 上 / LANE+GSHUF 補正) が両 fold で採用線超・CI 上端 < 0・3 seed 全負・非冗長 (LANE 0.741 / 0.623)。効き目の 6〜7 割は LANE と重なり独自部分 −0.005〜−0.007。noise floor は LANE 土台では出ない。cold 帯 fold1 −0.00075。本番 B2 / ROI / 封印窓 / as…
 - **NG-RRS2**(2026-09-19・done_primary・—): exact prod3 baseline を bit 再現した上で、RRS は production 土台で REAL (raw −0.0097 / −0.0103・RMEAN 補正 −0.0048 / −0.0061) だが LANE 上の増分ゼロ (+0.0000 / −0.0003)・Type B 線未達 (−0.0026 / −0.0011)。LANE 単体 −0.0121 / −0.0120 (RRS より大)。nightly 生成は bit …
 - **NG-LP1**(2026-09-20・done_primary・—): 
+- **NG-RS1**(2026-09-20・done_primary・—): 
 
 ## 4. Research Queue(優先順位付き — 正本 = NEXT_ACTIONS.md)
-# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-20 03:55(**RES-2026-09-AB = NG-LP1 / Q-064 = `SIMPLE_CAREER_PROD3_ADOPTABLE`・統合なし・STOP。次 = Q-065 Race Structure Map GO / Q-066 Dashboard 構造 OK / 統合設計は別 GO**)。旧: 2026-09-19 23:16(**Q-064 = 設計だけ(Owner 4)→ NG-LP1 Simple Career Prior gate 設計提出・fit 0・Owner 裁定待ち run GO 1〜5**)。旧: 2026-09-19 22:10(**RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・…
+# NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ) 最新更新: 2026-09-20 15:00(**RES-2026-09-AC = NG-RS1 / Q-065 GO-1 = `RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`・B2 不変・STOP。Q-064 LACP 統合設計提出 / Q-066 Explorer + Review Sheet**)。旧: 2026-09-20 03:55(**RES-2026-09-AB = NG-LP1 / Q-064 = `SIMPLE_CAREER_PROD3_ADOPTABLE`・統合なし・STOP。次 = Q-065 Race Structure Map GO / Q-066 Dashboard 構造 OK / 統合設計は別 GO**)。旧: 2026-09-19 23:16(**Q-064 = 設計だけ(Owner 4)→ NG-LP1 Simple Career Prior gate 設計提出・fit 0・Owner 裁定待ち run GO 1〜5**)。旧: 2026-09-1…
 
 ## 5. Passed(ゲート通過・採用済み)
 本番採用済み(ADOPT):
@@ -1261,19 +1270,20 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - #51 Q-064 kyotei: production B2 (prod3 41 列) は長期 as-of の選手 prior を欠き、単純な枠番補正の通算 as-of 2連対率 (LANE・lane_score) を 1 本足すだけで −0.012 / −0.0…(推奨: 開く (研究のみ・本番非接触・≈ 2 時間))
 - #52 Q-065 kyotei: Race Structure / Interaction Research Map (仮説 8 本・最優先 Attack Pressure / 1M Disruption State) を提出。GO-1 (記述 + 小 fit ≈…(推奨: 1 GO-1 を設計して回す)
 - #53 Q-066 kyotei: Research Dashboard (read-only・7+1 画面・source map 固定) の設計 + prototype Artifact + Streamlit MVP (8511) を提出。構造のまま育ててよいか(推奨: 1 構造 OK)
+- #54 Q-064 LACP production integration: 設計提出済 (design only)。W1-W2 (state を毎晩作るだけ) を先に作るか / final confirmation (dimension-matched place…(推奨: 1 W1-W2 先行 (最も可逆・本番の予測に影響しない))
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-19 | Q-062(NG-RRS1 = RRS adoption gate の run) | GO(型 B) — Owner 裁定: Q-061 契約どおり 1 回走らせる。production 非接触・結果を見て閾値 / null / seed / fold / label を変えない・ど…
-- 2026-09-19 | NG-RRS1(freeze 1e6403c) | **PASS = `RACER_RESIDUAL_ADOPTABLE`** — 凍結判定木 S4 の機械適用: raw −0.01711 / −0.01500・最強 null(RMEAN)補正 −0.01167 / −0.01287・LANE 上 −0.00…
-- 2026-09-19 | Q-063(NG-RRS2 = RRS × exact prod3 baseline + nightly as-of) | GO(1 OPEN・Owner・22 節) — 研究 / staging のみ。exact production baseline を再現してから RRS 3 列の 4 段 gate(A raw / B strongest-n…
-- 2026-09-19 | NG-RRS2 Track A(freeze 74dd472) | **PASS(baseline 再現 R1〜R4)→ gate = `RRS_PROD3_BELOW_LINE`** — production baseline 再現 = checkpoint sha 一致 / REF1 窓 p120 bit 一致 / train 窓 mu・sd 差 0・行数 2,…
 - 2026-09-19 | NG-RRS2 Track B(nightly as-of 生成) | **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`** — scoring / full ≡ incremental / idempotent / deterministic すべて bit 一致・日次 0.02 s・全再構築 235 s…
 - 2026-09-19 | Q-063 combined | **production integration confirmation を設計する価値 = いまは無い(機械)** — Owner 19 節の条件(Prediction = INCREMENTAL ∧ Operations ≠ BLOCKED)のうち前者を満たさない。次 = Q-064(LANE …
 - 2026-09-19 | Q-064(NG-LP1 = Simple Career Prior の exact prod3 adoption gate) | **設計のみ(4・Owner)→ 設計提出・fit 0・Owner 裁定待ち(run GO 1〜5)** — 候補 3 系統(raw1 / raw2 / lane・ep3 既存列・K=20 / N_MIN=10 / 同日除外・定義不変)・primary = SC bundle 5 列・b…
 - 2026-09-20 | Q-064(NG-LP1 = Simple Career Prior の exact prod3 adoption gate) | GO(2 = Core + D・Owner) — 基本 gate + 前回 RRS との直接比較 1 本まで。X1 / R6 は今回実施しない。production 非接触・結果後の feature 再設計禁止。freeze 4…
 - 2026-09-20 | NG-LP1 gate(freeze 4de5314・run 01:27 → 03:41・fit 54・失敗 0) | **`SIMPLE_CAREER_PROD3_ADOPTABLE`(判定木 S3・reasons なし)** — fit 前 = R1 / R4 / T1 leakage 10/10 / T2 sha / R2' 再利用 18 本 bit 一致 / R3 差 0 = 全 PASS。A 生 −…
 - 2026-09-20 | Q-064 closure | **統合なし・STOP・長期 career prior 研究は閉じる(Owner 指示)** — 次 = 統合設計は別 GO(5 列 / 3 列は Owner 裁定・学習表 + 推論組立の 2 経路 + nightly state)。研究の主戦場 = Race Structu…
+- 2026-09-20 | Q-065 GO-1(NG-RS1 = Race Structure / Attack Pressure) | GO(OPEN・Owner 昼) — 問い = 攻撃の pre-race 予測可能性 + **pre-race 状態で B2 の誤差が系統的に変わるか**。B2 不変・actual label を同 race の補正…
+- 2026-09-20 | NG-RS1 GO-1(run 14:46 → 14:47・LightGBM 38 fit) | **`RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`(S2)** — P1 / P2 / P3 PASS(AUC 0.666 / 0.670・lift 2.05 / 2.06・会場 24/24)・**P5 PASS**(Spearman 0.939…
+- 2026-09-20 | Q-064 LACP production integration | **設計のみ提出(Owner = DESIGN ONLY GO)** — 第一候補 = LACP 3 列(枠番補正の通算成績 + 出走数 + 欠損)。12 点(nightly 生成 / source / provenance / stale / hol…
+- 2026-09-20 | Q-066 Dashboard | 継続 GO(MVP = NOT FINAL UI) — 各チャートに 日本語 title / 説明 / 軸 / 単位 / N / 良い方向 / CI / 出典 を本文表示・「これが何を意味するか」追加・**Race Structure…
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -2052,7 +2062,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 
 # RESEARCH_STATUS — 研究状態の正本
 
-- 最新更新: **2026-09-20 03:55**(更新者: Claude / Owner 裁定 **Q-064 = 2 GO(Core + D)** の実行 = **RES-2026-09-AB = NG-LP1 = `SIMPLE_CAREER_PROD3_ADOPTABLE`**(凍結 gate の機械適用・freeze 4de5314・新規 fit 54・8,044 s・失敗 0・再利用 bundle 18 本 bit 一致・leakage 10/10)。生 −0.01215 / −0.01183・最強 null 補正後 −0.00909 / −0.00763・placebo 差 −0.00909 / −0.00877。RRS の 76% / 81% を再現・RRS 固有分 −0.0023 / −0.0019 = 線未達・SC − C3 ≈ 0・noise floor 5 列 −0.0031。**本番には足していない(統合なし)**。Q-053 観測 ③(02:00 retrain 後)= clean。次 = Race Structure / Interaction(Q-065 Map)+ Research Dashboard(Q-066 MVP)・統合は別 GO)
+- 最新更新: **2026-09-20 15:00**(更新者: Claude / Owner 裁定 **Q-065 GO-1 = OPEN / GO** の実行 = **RES-2026-09-AC = NG-RS1 = `RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`**(freeze 82dab27・LightGBM 38 fit・43 s)。攻撃 world は pre-race で読める(AUC 0.67・lift 2.05・会場 24/24)・B2 の誤差はその十分位で強く単調(Spearman 0.94 / 0.89・上位 − 下位 +0.043 / +0.033)。**ただし相対構成は絶対強さを超えず(ΔAUC ≈ 0)、会場天候 proxy でも局在が出る = interaction 特有ではない**。B2 不変・統合なし。並行 = Q-064 LACP 統合設計(design only)/ Q-066 Dashboard 更新 + Race Structure Explorer + Review Sheet)
+- 前回更新: **2026-09-20 03:55**(更新者: Claude / Owner 裁定 **Q-064 = 2 GO(Core + D)** の実行 = **RES-2026-09-AB = NG-LP1 = `SIMPLE_CAREER_PROD3_ADOPTABLE`**(凍結 gate の機械適用・freeze 4de5314・新規 fit 54・8,044 s・失敗 0・再利用 bundle 18 本 bit 一致・leakage 10/10)。生 −0.01215 / −0.01183・最強 null 補正後 −0.00909 / −0.00763・placebo 差 −0.00909 / −0.00877。RRS の 76% / 81% を再現・RRS 固有分 −0.0023 / −0.0019 = 線未達・SC − C3 ≈ 0・noise floor 5 列 −0.0031。**本番には足していない(統合なし)**。Q-053 観測 ③(02:00 retrain 後)= clean。次 = Race Structure / Interaction(Q-065 Map)+ Research Dashboard(Q-066 MVP)・統合は別 GO)
 - 前回更新: **2026-09-19 23:16**(更新者: Claude / Owner 裁定 **Q-064 = 4 設計だけ先に仕込む** の実行 = **NG-LP1 Simple Career Prior(長期 as-of 通算成績 C1 raw1 / C2 raw2 / C3 lane・primary = SC bundle 5 列)の exact prod3 adoption gate 設計提出・fit 0・score 列生成 0・production 非接触**。候補は ep3 既存列・定義不変・baseline = Q-063 bundle 再利用・null 5 本・strongest-null・両 fold・3 seed・label 6 段・Core 48 fit ≈ 2.1 h。run GO = Q-064 再裁定(1〜5・推奨 2)。Q-053 = HOLD(観測 ③ 未到達))
 - 前回更新: **2026-09-19 22:10**(更新者: Claude / Owner 裁定 **Q-063 = 1 OPEN / GO** の実行 = **RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)**。exact production baseline 再現 全 PASS → RRS は production 土台で REAL だが LANE 上の増分ゼロ = 線未達・nightly 生成はアルゴリズム上 FEASIBLE・入力表 4 本の nightly 化が work。統合なし。次 = Q-064(LANE 候補))
 - 前回更新: **2026-09-19 16:25**(更新者: Claude / Owner 裁定 **Q-062 = GO・型 B** の実行 = **RES-2026-09-Z = NG-RRS1 = `RACER_RESIDUAL_ADOPTABLE`**(凍結 gate の機械適用・freeze 1e6403c・新規 fit 12・再利用 102/102 差 0.0・leakage 10/10・1,972 s)。raw −0.01711 / −0.01500・最強 null(RMEAN)補正後 −0.01167 / −0.01287・LANE 上 −0.00520 / −0.00520・**Type B(LANE+GSHUF 補正後)−0.00746 / −0.00673**・全部 CI 上端 < 0・3 seed 全負・ratio 最大 0.74 = 非冗長。**production 非接触・統合なし・STOP**。次 = Q-063(本番土台での再現 + as-of 生成経路・研究のみ・Owner GO 待ち)。Q-053 = HOLD(観測 ③ 09-20 02:00 後)。前回: **2026-09-19 15:07**(更新者: Claude / Owner 裁定 2026-09-19 起床後「**Q-060 = 事後承認 / Q-061 = 設計のみ GO / Q-053 = HOLD 継続**」の実行 = **Q-061 設計提出(fit 0 本・production 非接触)**。候補の中立名 = **Racer Residual Signal**(ep_score・定義不変)。契約 = raw ≤ −0.003 ∧ **strongest-null 補正 excess ≤ −0.003**(null 5 本 GSHUF / SHUFL / SHUF / RSET / RMEAN・fold 別 argmin)∧ clustered paired CI 上端 < 0 ∧ 3 seed 全負 ∧ leakage hard gate(L1〜L8 + R0 + H0 再実行)∧ ratio 0.8 ∧ **LANE 上の incremental ≤ −0.003(+ 変種 B: GSHUF placebo 補正)**∧ 両 fold ∧ sealed holdout。label 6 種・判定木固定。run = **Q-062**(新規 fit 12・≈ 50 分・Owner GO 待ち)。
@@ -2079,6 +2090,13 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 - 前々回更新: 2026-09-10 16:10(Owner 研究指令 第 2 弾「AI と市場の意見差を較正し、本当に買えるエッジが現実的な頻度で残るか決着させる」完走。NG-T3D3 = 凍結判定ケース1(3連複・2連単・2連複 MARKET GATE CANDIDATE・3連単 REJECT)/ 実質ケース3 寄り(hit 較正は回復・表示価格 EV は残る・確定配当ベースの実現値は全券種 <1)/ Edge–Frequency Frontier・Time-to-Evidence(頻度は制約でない)/ 知人 Crosswalk 44 行 / forward collector 登録・稼働 / shadow 方式 A 稼働 / Historical Replay 設計。人間向け 5 分表示 = research/OWNER_VIEW.md。次 = NG-T3D4(オッズ帯条件付き λ + 実現値 CI gate)の Owner GO)
 - 前々回更新: 2026-09-10 11:50(Ticket-Space 完走・P0 復旧・T3D3 設計)
 - 本ファイルは Canonical Research State の入口。機械可読版 = `research_state.json`。人間向け表示 = 研究コンソール(Artifact 494f0be1… — 本ファイル群から生成される view であり正本ではない)
+
+## §0. 2026-09-20 15:00 — RES-2026-09-AC = NG-RS1 / Q-065 GO-1 = **`RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`**(凍結 gate・freeze 82dab27・COMPLETED・STOP・**B2 不変**)/ Q-064 LACP 統合設計提出(design only)/ Q-066 Dashboard 更新 + Review Sheet
+
+- 問い = 「pre-race の Attack Pressure で B2 の誤差が系統的に変化するか」→ **変化する(P80)。ただしその状態は 6 艇の相対構成を明示しなくても作れる(P81)**
+- 通った: P1 予測可能性 / P2 両 fold / P3 会場 24/24 / P5 B2 誤差の単調性 / F4 as-of 監査 / F5 label shuffle。落ちた: P4 相対 > 絶対 / F2 / F3 会場天候 proxy / F1(閾値)
+- B2 不変・統合なし・封印非接触。次は Owner 裁定(条件付き較正の feasibility / 契約を contrast 型に直して別窓で再判定 / W4 進入変動を単独テーマに / 保留)
+- 正本: FINDINGS P79 / P80 / P81・HYPOTHESES U-41 PARTIALLY SUPPORTED・registry NG-RS1 done_primary・lane-report `lane-reports/rs1_race_structure_go1_20260920.md`
 
 ## §0. 2026-09-20 03:55 — RES-2026-09-AB = NG-LP1 / Q-064 = **`SIMPLE_CAREER_PROD3_ADOPTABLE`**(凍結 gate・freeze 4de5314・新規 fit 54・8,044 s・失敗 0・COMPLETED・STOP・**統合なし**)
 
@@ -2395,7 +2413,19 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 
 # NEXT_ACTIONS — 現在優先すべき研究(3〜5件だけ)
 
-最新更新: 2026-09-20 03:55(**RES-2026-09-AB = NG-LP1 / Q-064 = `SIMPLE_CAREER_PROD3_ADOPTABLE`・統合なし・STOP。次 = Q-065 Race Structure Map GO / Q-066 Dashboard 構造 OK / 統合設計は別 GO**)。旧: 2026-09-19 23:16(**Q-064 = 設計だけ(Owner 4)→ NG-LP1 Simple Career Prior gate 設計提出・fit 0・Owner 裁定待ち run GO 1〜5**)。旧: 2026-09-19 22:10(**RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)・次 = Owner 判断 Q-064(LANE 候補・研究のみ)/ Q-053 HOLD**。旧: 2026-09-19 16:25(**RES-2026-09-Z = NG-RRS1 / Q-062 = `RACER_RESIDUAL_ADOPTABLE`・COMPLETED・STOP・統合なし・次 = Owner 判断 Q-063(本番土台での再現 + as-of 生成経路・研究のみ)/ Q-053 HOLD(観測 ③ 09-20 02:00 後)**。旧: 2026-09-19 15:07(**Q-060 事後承認 / Q-061 設計提出(RRS adoption gate 契約・fit 0 本)/ Q-062 起票(run GO・Owner 待ち)/ Q-053 HOLD 継続(最終観測 09-20 02:00 後)**。旧: 2026-09-19 08:08(**RES-2026-09-Y = NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`・COMPLETED・STOP・Q-059 の疑い = fold1 noise floor(leakage ではない)・次 = Owner 判断 Q-060 事後承認 + adoption gate 設計の GO**。旧: 2026-09-19 07:10(**RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点・他 flag は新情報側)・COMPLETED・STOP・次 = NG-EP4 / Q-060(Owner 就寝前指示で起動・研究のみ)・Q-053 = HOLD**。旧: 2026-09-19 01:04(**RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`(Case D)・COMPLETED・STOP・Q-053 = HOLD(observation ① clean)・次 = Owner 判断 Q-059(NG-EP3 = 長期 as-of 残差スコアの凍結再検証)**。旧: 2026-09-18 22:45(**RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy = `EXHIBITION_POLICY_PERSISTENT`・COMPLETED・STOP・Q-053 = HOLD 継続・Q-056 = BACKLOG のみ・次 = Owner 判断 Q-058(Phase 4 GO・arm a/b/c)**。旧: 2026-09-18 21:03 **RES-2026-09-U = NG-MH2 / Q-055 = `HANDOFF_B2_NULL`・COMPLETED・STOP**。旧: 2026-09-18 19:15 **RES-2026-09-T = NG-MH1 / Q-054 Motor Handoff = `HANDOFF_SIGNAL_CONFIRMED`・STOP・Q-053 = HOLD・次 = Q-055**。旧: 2026-09-18 18:10 **RES-2026-09-S = Q-052 / Q-047 / Q-043 完了・Q-053 待ち**。旧: 2026-09-18 17:20 **Q-051 = `Q051_BATCH1_READY`**。旧: 2026-09-18 16:19 Q-050 ② 計画提出 / 2026-09-18 15:36 **Q-050 Task 7 = `Q050_SUMINOE_CUTOVER_PASS`**。旧: 2026-09-14 **Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**)
+最新更新: 2026-09-20 15:00(**RES-2026-09-AC = NG-RS1 / Q-065 GO-1 = `RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`・B2 不変・STOP。Q-064 LACP 統合設計提出 / Q-066 Explorer + Review Sheet**)。旧: 2026-09-20 03:55(**RES-2026-09-AB = NG-LP1 / Q-064 = `SIMPLE_CAREER_PROD3_ADOPTABLE`・統合なし・STOP。次 = Q-065 Race Structure Map GO / Q-066 Dashboard 構造 OK / 統合設計は別 GO**)。旧: 2026-09-19 23:16(**Q-064 = 設計だけ(Owner 4)→ NG-LP1 Simple Career Prior gate 設計提出・fit 0・Owner 裁定待ち run GO 1〜5**)。旧: 2026-09-19 22:10(**RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)・次 = Owner 判断 Q-064(LANE 候補・研究のみ)/ Q-053 HOLD**。旧: 2026-09-19 16:25(**RES-2026-09-Z = NG-RRS1 / Q-062 = `RACER_RESIDUAL_ADOPTABLE`・COMPLETED・STOP・統合なし・次 = Owner 判断 Q-063(本番土台での再現 + as-of 生成経路・研究のみ)/ Q-053 HOLD(観測 ③ 09-20 02:00 後)**。旧: 2026-09-19 15:07(**Q-060 事後承認 / Q-061 設計提出(RRS adoption gate 契約・fit 0 本)/ Q-062 起票(run GO・Owner 待ち)/ Q-053 HOLD 継続(最終観測 09-20 02:00 後)**。旧: 2026-09-19 08:08(**RES-2026-09-Y = NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`・COMPLETED・STOP・Q-059 の疑い = fold1 noise floor(leakage ではない)・次 = Owner 判断 Q-060 事後承認 + adoption gate 設計の GO**。旧: 2026-09-19 07:10(**RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点・他 flag は新情報側)・COMPLETED・STOP・次 = NG-EP4 / Q-060(Owner 就寝前指示で起動・研究のみ)・Q-053 = HOLD**。旧: 2026-09-19 01:04(**RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`(Case D)・COMPLETED・STOP・Q-053 = HOLD(observation ① clean)・次 = Owner 判断 Q-059(NG-EP3 = 長期 as-of 残差スコアの凍結再検証)**。旧: 2026-09-18 22:45(**RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy = `EXHIBITION_POLICY_PERSISTENT`・COMPLETED・STOP・Q-053 = HOLD 継続・Q-056 = BACKLOG のみ・次 = Owner 判断 Q-058(Phase 4 GO・arm a/b/c)**。旧: 2026-09-18 21:03 **RES-2026-09-U = NG-MH2 / Q-055 = `HANDOFF_B2_NULL`・COMPLETED・STOP**。旧: 2026-09-18 19:15 **RES-2026-09-T = NG-MH1 / Q-054 Motor Handoff = `HANDOFF_SIGNAL_CONFIRMED`・STOP・Q-053 = HOLD・次 = Q-055**。旧: 2026-09-18 18:10 **RES-2026-09-S = Q-052 / Q-047 / Q-043 完了・Q-053 待ち**。旧: 2026-09-18 17:20 **Q-051 = `Q051_BATCH1_READY`**。旧: 2026-09-18 16:19 Q-050 ② 計画提出 / 2026-09-18 15:36 **Q-050 Task 7 = `Q050_SUMINOE_CUTOVER_PASS`**。旧: 2026-09-14 **Owner 裁定 Q-045 = GO / STAGED REPAIR・NO DIRECT CUTOVER 完走 = RES-2026-09-P / NG-Q045**。**最終ラベル `Q045_REPAIR_READY`**)
+
+## §0. 2026-09-20 15:00 — RES-2026-09-AC = NG-RS1 / Q-065 GO-1 = **`RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`**(凍結 gate・freeze 82dab27・COMPLETED・STOP・**B2 不変**)/ Q-064 LACP 統合設計提出(design only)/ Q-066 Dashboard 更新 + Review Sheet
+
+- Q-065 GO-1 完走。**CONFIRMED でないので state-conditioned correction / B2 augmentation には進まない**(契約)
+- 提出済: Q-064 LACP 統合設計(design only・12 点 + dimension-matched placebo・gate 未実行)/ Q-066 Dashboard 更新(Race Structure Explorer + 必須キャプション + Why + drill-down)+ Screen Review Sheet
+
+### Owner 判断
+
+- **Q-064 LACP**: 1 W1〜W2 だけ先に作る(state を毎晩作って 7 日観測・列は誰も読まない・最も可逆)/ 2 final confirmation を先に走らせる(2.3 h・研究のみ)/ 3 両方 / 4 保留
+- **Q-065 の次**: 1 条件付き較正の feasibility(interaction を名乗らない・≈ 1 h)/ 2 契約の F1 / F3 を contrast 型に直して**別の窓**で再判定 / 3 W4(進入変動・AUC 0.85〜0.88)を単独テーマに / 4 Race Structure を閉じる
+- **Q-066**: Screen Review Sheet に沿って「画面 N の ○○ が分からない」を番号で
+- Q-053(HOLD・観測 ①②③ clean・Batch 2 は別裁定)/ Q-050 ③ B2(据置)/ Q-056 / Q-041 / Q-038 / Q-036 / Q-006 / Q-007
 
 ## §0. 2026-09-20 03:55 — RES-2026-09-AB = NG-LP1 / Q-064 = **`SIMPLE_CAREER_PROD3_ADOPTABLE`**(凍結 gate・freeze 4de5314・新規 fit 54・8,044 s・失敗 0・COMPLETED・STOP・**統合なし**)
 
@@ -3724,6 +3754,10 @@ Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」�
 | 2026-09-20 | Q-064(NG-LP1 = Simple Career Prior の exact prod3 adoption gate) | GO(2 = Core + D・Owner) | 基本 gate + 前回 RRS との直接比較 1 本まで。X1 / R6 は今回実施しない。production 非接触・結果後の feature 再設計禁止。freeze 4de5314(hash 記録 6eda3d2)・tests 24 passed(壊して FAIL 4 通り)・smoke PASS(技術修正 2 回・契約値不変・fit 0) | research/Q064_FROZEN_PLAN.md / artifacts/research/nextgen/lp1/lp1_frozen.json |
 | 2026-09-20 | NG-LP1 gate(freeze 4de5314・run 01:27 → 03:41・fit 54・失敗 0) | **`SIMPLE_CAREER_PROD3_ADOPTABLE`(判定木 S3・reasons なし)** | fit 前 = R1 / R4 / T1 leakage 10/10 / T2 sha / R2' 再利用 18 本 bit 一致 / R3 差 0 = 全 PASS。A 生 −0.01215 / −0.01183・B 最強 null(GSHUF / SHUF)補正後 −0.00909 / −0.00763・G placebo −0.00909 / −0.00877(すべて CI < 0・3 seed 全負・両 fold)。D: RRS が SC の上に残す増分 −0.00234 / −0.00194 = 線未達・share_captured 0.758 / 0.812・SC − C3 ≈ 0・noise floor 5 列 −0.0031 | lane-reports/lp1_simple_career_gate_20260920.md / artifacts/research/nextgen/lp1/LP1_GATE.json / FINDINGS P76 P77 P78 |
 | 2026-09-20 | Q-064 closure | **統合なし・STOP・長期 career prior 研究は閉じる(Owner 指示)** | 次 = 統合設計は別 GO(5 列 / 3 列は Owner 裁定・学習表 + 推論組立の 2 経路 + nightly state)。研究の主戦場 = Race Structure / Interaction(Q-065 Research Map・planning only)+ Research Dashboard(Q-066・read-only MVP 8511) | ai-ops-os DECISION_QUEUE Q-064 CLOSED / Q-065 / Q-066 |
+| 2026-09-20 | Q-065 GO-1(NG-RS1 = Race Structure / Attack Pressure) | GO(OPEN・Owner 昼) | 問い = 攻撃の pre-race 予測可能性 + **pre-race 状態で B2 の誤差が系統的に変わるか**。B2 不変・actual label を同 race の補正に使わない・GNN 禁止・成功を ΔNLL −0.003 で決めない。freeze 82dab27・tests 20(壊して FAIL 4 通り) | research/Q065_FROZEN_PLAN.md / configs/research/q065_rs1_gate.json |
+| 2026-09-20 | NG-RS1 GO-1(run 14:46 → 14:47・LightGBM 38 fit) | **`RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`(S2)** | P1 / P2 / P3 PASS(AUC 0.666 / 0.670・lift 2.05 / 2.06・会場 24/24)・**P5 PASS**(Spearman 0.939 / 0.891・上位 − 下位 +0.043 / +0.033)。**P4 FAIL**(ΔAUC +0.0007 / −0.0009 = 相対は絶対を超えない)・**F3 FAIL**(会場天候 proxy でも局在)・F1 FAIL(Spearman 閾値・ただし上位ズレは 0.055 → 0.005 で消えている)・F4 / F5 PASS | lane-reports/rs1_race_structure_go1_20260920.md / artifacts/research/nextgen/rs1/RS1_GATE.json / FINDINGS P79 P80 P81 |
+| 2026-09-20 | Q-064 LACP production integration | **設計のみ提出(Owner = DESIGN ONLY GO)** | 第一候補 = LACP 3 列(枠番補正の通算成績 + 出走数 + 欠損)。12 点(nightly 生成 / source / provenance / stale / holdout / cold-start / duplicate / feature-order contract / rollback / shadow / final confirmation / staged rollout)。**最終 confirmation は 3 列の dimension-matched placebo 必須・gate 未実行**。B2 に pointer が無い / B2 学習に holdout 配線が無い ことを監査で発見 → work に計上(≈ 3.5〜4 日) | docs/superpowers/plans/2026-09-20-q064-lacp-production-integration-design.md |
+| 2026-09-20 | Q-066 Dashboard | 継続 GO(MVP = NOT FINAL UI) | 各チャートに 日本語 title / 説明 / 軸 / 単位 / N / 良い方向 / CI / 出典 を本文表示・「これが何を意味するか」追加・**Race Structure Explorer 実装**(6 フィルタ → イベント率 / 1 号艇崩れ / 外の受益 / B2 のズレ・CI 付き・集計前データ drill-down + CSV)・Screen Review Sheet 作成 | docs/superpowers/plans/2026-09-20-q066-screen-review-sheet.md / scripts/research/dashboard/app.py |
 
 
 
@@ -4220,11 +4254,19 @@ registry(`artifacts/research/experiment_registry.jsonl`)からの転記。NG-E1 
 
 # HYPOTHESES — 研究仮説台帳(正本)
 
-- 最新更新: **2026-09-20 03:55**(RES-2026-09-AB = NG-LP1 / Q-064 = **`SIMPLE_CAREER_PROD3_ADOPTABLE`**(freeze 4de5314)→ **U-40 = SUPPORTED(production 土台・本番に足す価値を諮る候補)/ U-39 の production 側 = SC に包含(RRS 固有分は線未達)**)/ 前回: **2026-09-19 22:10**(RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)・**U-39 = SUPPORTED(研究 harness)/ production 土台では BELOW_LINE(LANE に包含)**・U-40 新設(LANE 型 prior・候補))。前回:  / 旧: **2026-09-19 16:25**(RES-2026-09-Z = NG-RRS1 / Q-062 = `RACER_RESIDUAL_ADOPTABLE`・**U-39 = SUPPORTED(研究 harness 上・採用ゲート合格)**。production / 市場 / 封印窓は未検証。前回: 2026-09-19 08:08(RES-2026-09-Y = NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`・U-39 に「疑いの正体 = fold1 noise floor・EP はレース内相対成分」を追記。前回: 2026-09-19 07:10(RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点)・U-39 に結果を追記(単純説明では消えない・NG-EP4 で分解中)。前回: 2026-09-19 01:04(RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`・S-8 に B2 採用線未達を追記・**U-39** 新設(長期 as-of 残差スコアの B2 増分・gate 外観測 → Q-059)。前回: 2026-09-18 Q-050 Task 7・**U-33** 追加。前回: 2026-09-12 更新者: Claude / セッション: RES-2026-09-F — NG-VA1 で U-36a を **R-17 で否定**。**ID 衝突を解消**: 旧「U-36 会場 × 4 コース攻撃」= **U-36a**、旧「U-36 レース形成の感度マップ(H-C)」= **U-36b** に分離した(2026-09-11 の採番ミス)。新規 U-38 = 研究参照モデルの provenance 整合)
+- 最新更新: **2026-09-20 15:00**(RES-2026-09-AC = NG-RS1 / Q-065 GO-1 = **`RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`** → **U-41 新設 = PARTIALLY SUPPORTED**(状態は読めて B2 誤差とも連動するが interaction 特有ではない))/ 前回: **2026-09-20 03:55**(RES-2026-09-AB = NG-LP1 / Q-064 = **`SIMPLE_CAREER_PROD3_ADOPTABLE`**(freeze 4de5314)→ **U-40 = SUPPORTED(production 土台・本番に足す価値を諮る候補)/ U-39 の production 側 = SC に包含(RRS 固有分は線未達)**)/ 前回: **2026-09-19 22:10**(RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)・**U-39 = SUPPORTED(研究 harness)/ production 土台では BELOW_LINE(LANE に包含)**・U-40 新設(LANE 型 prior・候補))。前回:  / 旧: **2026-09-19 16:25**(RES-2026-09-Z = NG-RRS1 / Q-062 = `RACER_RESIDUAL_ADOPTABLE`・**U-39 = SUPPORTED(研究 harness 上・採用ゲート合格)**。production / 市場 / 封印窓は未検証。前回: 2026-09-19 08:08(RES-2026-09-Y = NG-EP4 / Q-060 = `SHUFFLE_CHANNEL_INCONCLUSIVE`・U-39 に「疑いの正体 = fold1 noise floor・EP はレース内相対成分」を追記。前回: 2026-09-19 07:10(RES-2026-09-X = NG-EP3 / Q-059 = `RACER_SIGNAL_LEAKAGE_SUSPECT`(harness placebo 1 点)・U-39 に結果を追記(単純説明では消えない・NG-EP4 で分解中)。前回: 2026-09-19 01:04(RES-2026-09-W = NG-EP2 / Q-058 = `EXHIBITION_POLICY_B2_NULL`・S-8 に B2 採用線未達を追記・**U-39** 新設(長期 as-of 残差スコアの B2 増分・gate 外観測 → Q-059)。前回: 2026-09-18 Q-050 Task 7・**U-33** 追加。前回: 2026-09-12 更新者: Claude / セッション: RES-2026-09-F — NG-VA1 で U-36a を **R-17 で否定**。**ID 衝突を解消**: 旧「U-36 会場 × 4 コース攻撃」= **U-36a**、旧「U-36 レース形成の感度マップ(H-C)」= **U-36b** に分離した(2026-09-11 の採番ミス)。新規 U-38 = 研究参照モデルの provenance 整合)
 - 位置づけ: Canonical Research State の一部。機械可読の骨格 = `research_state.json` の `hypotheses` 節(矛盾したらそちらが正)。表示用 view = 研究コンソール(Artifact)
 - **目的**: shin(Owner)の現場感覚・人間の定説・データ由来の仮説を全て1つの台帳に載せ、「どの感覚が確認され、どれが否定されたか」を一目で分かるようにする
 - 正直ラベルの規約: 小標本は「逸話」、確定オッズ由来は「diagnostic」、事後発見は「再登録要」と必ず付記。数値は出典ファイルから転記(捏造禁止・無い値は「記録なし」)
 - 分類: **UNTESTED**(未検証)/ **TESTING**(事前登録済みで検証枠にある)/ **SUPPORTED**(支持)/ **PARTIALLY SUPPORTED**(部分支持)/ **REJECTED**(否定・同一形の再提案禁止)
+
+## §0. 2026-09-20 15:00 — RES-2026-09-AC = NG-RS1 / Q-065 GO-1 = **`RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`**(凍結 gate・freeze 82dab27・COMPLETED・STOP・**B2 不変**)/ Q-064 LACP 統合設計提出(design only)/ Q-066 Dashboard 更新 + Review Sheet
+
+- **U-41(新設)= PARTIALLY SUPPORTED**: pre-race の状態(攻撃圧)は再現可能に推定でき(AUC 0.67・会場 24/24・**P79**)、その十分位で production B2 の誤差が強く単調に動く(Spearman 0.94 / 0.89・**P80**)。**ただし「6 艇の相対構成」でなくても作れ(ΔAUC ≈ 0)、会場・天候だけでもかなり再現できる(P81)= interaction 特有ではない**
+- 既存の棄却との整合: **R-7**(純粋外部性)/ **R-17**(会場別攻撃脆弱性の B2 増分)/ **EP2**(明示積項は有害)/ **I1**(攻撃 proxy 薄層)に続き、**明示的な相互作用が不要だった 4 例目**。B2 の 6 艇 attention が構成を吸収しているという読みを補強
+- 生き残る線: 「interaction」ではなく **「条件付き較正」**(B2 のセンター確率が中央へ圧縮されている = P80)。次サイクルの候補(Owner 裁定)
+
+---
 
 ## §0. 2026-09-20 03:55 — RES-2026-09-AB = NG-LP1 / Q-064 = **`SIMPLE_CAREER_PROD3_ADOPTABLE`**(凍結 gate・freeze 4de5314・新規 fit 54・8,044 s・失敗 0・COMPLETED・STOP・**統合なし**)
 
@@ -4656,6 +4698,14 @@ Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)�
 - 言えないこと: ROI / market / 封印窓 / production 全履歴窓(X1 未実施)/ production 材料版との定義差(R6 未実施)
 - 次: 統合は別 GO(学習表 + 推論組立の 2 経路 + nightly state・材料 results.parquet は本番 nightly にある)。5 列のままか C3 + 2 列に縮めるかは Owner 裁定。**研究としての長期 career prior はこれで閉じる**(Owner 指示: 以後は Race Structure へ)
 
+#### U-41. pre-race の「攻撃圧」状態は production B2 の系統誤差を局在化する — **PARTIALLY SUPPORTED(2026-09-20・NG-RS1 / Q-065 GO-1)**
+
+- 由来: Owner 指示 2026-09-20「単体 feature 発掘を終え、6 艇の組合せで何が起きるかへ」。Research Map(Q-065)の H-R1 + H-R7
+- 支持された部分: 攻撃 world の pre-race 予測可能性(AUC 0.666 / 0.670・lift 2.05・単調性 1.000・会場 24/24・両 fold)と、その十分位での B2 誤差の単調な変化(Spearman 0.939 / 0.891・上位 − 下位 +0.043 / +0.033・CI が 0 を含まない)
+- 支持されなかった部分: **相対構成は絶対強さを超えない**(ΔAUC +0.0007 / −0.0009)/ **会場・天候だけの proxy でも局在が出る**(Spearman 0.90 / 0.78)→ interaction 特有とは言えない
+- 判定: `RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`(凍結判定木 S2・reasons = STRENGTH_ONLY / F3_PROXY / F1_NOT_DESTROYED)
+- 次: **CONFIRMED でないので state-conditioned correction / B2 augmentation には進まない**(契約)。候補 = ①条件付き較正の feasibility(interaction を名乗らない)②契約の F1 / F3 を contrast 型に直して**別の窓**で再判定 ③W4(進入変動・AUC 0.85〜0.88)を単独テーマに。Owner 裁定
+
 #### U-34. Course Interaction × Tactical Profile(H-A: コース構造×攻め手の戦術特性×受け手/受益艇の戦術特性)
 - 仮説文: 展開の系統的な歪み(誰が 1 着を奪い、誰が 2 着に残り、誰が連れるか)は「Racer A × Racer B」の個人ペアではなく、**コース構造 × 攻め手のコース別戦術特性 × 受け手/受益艇の戦術特性**の組合せで説明できる。例: 3 コースに攻撃型がいる時の 1/2/4/5 コースへの影響、4 コース攻撃型 → 5 コースの受益、攻撃で 1 着率は落ちるが 2 着には残るスケール反転
 - なぜ有望か: NG-SOB1 で「攻め手プロファイル在席 → 受益候補艇の系統シフト」が 14 検定中 8 本・6 年間符号割れゼロで成立(in-sample・将来窓待ち)。NG-E10 の確認済み signature 7 件も「選手×コースの静的プロファイル」で表現できる型だった(P-4)。研究単位をコース×型に置けば個人ペアのサンプル枯渇(ペア再戦 n 中央値 1)を避けられる
@@ -5012,11 +5062,35 @@ Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO。**Task 7(実 cutover)�
 
 # FINDINGS — 研究発見台帳(Canonical Research State)
 
-- 最終更新: 2026-09-20 03:55(RES-2026-09-AB = NG-LP1 / Q-064 = **`SIMPLE_CAREER_PROD3_ADOPTABLE`**(凍結 gate・freeze 4de5314・COMPLETED・STOP・**統合なし**)・**P76 / P77 / P78**)/ 前回: 2026-09-19 22:10(RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)・**P73 / P74 / P75** 追加) / 旧: 2026-09-19 16:25(RES-2026-09-Z = NG-RRS1 / Q-062 Racer Residual Signal adoption gate = `RACER_RESIDUAL_ADOPTABLE`(両 fold・4 段 gate 全 PASS・統合なし)・**P72** 追加 / 旧: 2026-09-19 08:08(RES-2026-09-Y = NG-EP4 / Q-060 Shuffle Channel Decomposition = `SHUFFLE_CHANNEL_INCONCLUSIVE`(情報ゼロの列が fold1 で −0.0028 = harness の noise floor)・**P71** 追加 / 旧: 2026-09-19 07:10(RES-2026-09-X = NG-EP3 / Q-059 Racer Signal Identity = `RACER_SIGNAL_LEAKAGE_SUSPECT`(凍結規則・会場 × 日 shuffle placebo が fold1 で閾値ちょうど)・**P69 / P70** 追加 / 旧: 2026-09-19 01:04(RES-2026-09-W = NG-EP2 / Q-058 Exhibition Policy Phase 4 B2 gate = `EXHIBITION_POLICY_B2_NULL`(Case D)・**P67 / P68** 追加 / 旧: 2026-09-18 22:45 RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy persistence = `EXHIBITION_POLICY_PERSISTENT`・**P65 / P66** 追加 / 旧: 2026-09-18 21:03 RES-2026-09-U = NG-MH2 / Q-055 handoff state の B2 レベル増分 gate = `HANDOFF_B2_NULL`・**P64** 追加 / 旧: 2026-09-18 19:15 RES-2026-09-T = NG-MH1 / Q-054 Motor Handoff = `HANDOFF_SIGNAL_CONFIRMED`・**P62 / P63** 追加 / 旧: 2026-09-18 18:10 RES-2026-09-S = Q-052 cutover PASS / Q-047 holdout 契約 / Q-043 封印・**P61** 追加 / 旧: 2026-09-18 17:20 Q-051 = `Q051_BATCH1_READY`・**P59 / P60** / 旧: 2026-09-18 Q-050 Task 7 = 住之江 root cutover PASS・**P58** / 2026-09-12 … → NG-TS1 → NG-U2 / VENUE-V0 → **NG-VA1 + Q-029 気象 provenance 監査** 反映)
+- 最終更新: 2026-09-20 15:00(RES-2026-09-AC = NG-RS1 / Q-065 GO-1 = **`RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`**・**P79 / P80 / P81**)/ 前回: 2026-09-20 03:55(RES-2026-09-AB = NG-LP1 / Q-064 = **`SIMPLE_CAREER_PROD3_ADOPTABLE`**(凍結 gate・freeze 4de5314・COMPLETED・STOP・**統合なし**)・**P76 / P77 / P78**)/ 前回: 2026-09-19 22:10(RES-2026-09-AA = NG-RRS2 / Q-063 = **`RRS_PROD3_BELOW_LINE`**(Prediction)× **`RRS_NIGHTLY_FEASIBLE_WITH_WORK`**(Operations)(凍結 gate・freeze 74dd472・COMPLETED・STOP・**統合なし**)・**P73 / P74 / P75** 追加) / 旧: 2026-09-19 16:25(RES-2026-09-Z = NG-RRS1 / Q-062 Racer Residual Signal adoption gate = `RACER_RESIDUAL_ADOPTABLE`(両 fold・4 段 gate 全 PASS・統合なし)・**P72** 追加 / 旧: 2026-09-19 08:08(RES-2026-09-Y = NG-EP4 / Q-060 Shuffle Channel Decomposition = `SHUFFLE_CHANNEL_INCONCLUSIVE`(情報ゼロの列が fold1 で −0.0028 = harness の noise floor)・**P71** 追加 / 旧: 2026-09-19 07:10(RES-2026-09-X = NG-EP3 / Q-059 Racer Signal Identity = `RACER_SIGNAL_LEAKAGE_SUSPECT`(凍結規則・会場 × 日 shuffle placebo が fold1 で閾値ちょうど)・**P69 / P70** 追加 / 旧: 2026-09-19 01:04(RES-2026-09-W = NG-EP2 / Q-058 Exhibition Policy Phase 4 B2 gate = `EXHIBITION_POLICY_B2_NULL`(Case D)・**P67 / P68** 追加 / 旧: 2026-09-18 22:45 RES-2026-09-V = NG-EP1 / Q-057 Exhibition Policy persistence = `EXHIBITION_POLICY_PERSISTENT`・**P65 / P66** 追加 / 旧: 2026-09-18 21:03 RES-2026-09-U = NG-MH2 / Q-055 handoff state の B2 レベル増分 gate = `HANDOFF_B2_NULL`・**P64** 追加 / 旧: 2026-09-18 19:15 RES-2026-09-T = NG-MH1 / Q-054 Motor Handoff = `HANDOFF_SIGNAL_CONFIRMED`・**P62 / P63** 追加 / 旧: 2026-09-18 18:10 RES-2026-09-S = Q-052 cutover PASS / Q-047 holdout 契約 / Q-043 封印・**P61** 追加 / 旧: 2026-09-18 17:20 Q-051 = `Q051_BATCH1_READY`・**P59 / P60** / 旧: 2026-09-18 Q-050 Task 7 = 住之江 root cutover PASS・**P58** / 2026-09-12 … → NG-TS1 → NG-U2 / VENUE-V0 → **NG-VA1 + Q-029 気象 provenance 監査** 反映)
 - 位置づけ: `research_state.json` / `RESEARCH_STATUS.md` と同期した人間可読の発見集。矛盾したら json 側が正
 - 主な出典: `docs/ARCHITECTURE_FREEZE_v2.1.md` / `lane-reports/nextgen_audit_20260903.md` / `lane-reports/hansei_sg_kiryu_20260903.md` / `lane-reports/e10_externality_20260904.md` / `docs/experiments/structured_order_model/results_summary.md` / `docs/MODEL_STRATEGY.md` / `artifacts/research/experiment_registry.jsonl` / `docs/ANALYSIS_BACKLOG.md`
 - 書式: 各発見は必ず3問に答える — **【分かったこと】結局何が分かったか /【予測に効くか】未来の予測に効くか /【市場】市場は既に知っているか**
 - 正直ラベルの規約: 小標本は「n=◯逸話」、確定オッズ由来の数値は「diagnostic(診断用・ROI主張不可)」を必ず付ける。無い値は「記録なし」と書く
+
+## §0. 2026-09-20 15:00 — RES-2026-09-AC = NG-RS1 / Q-065 GO-1 = **`RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`**(凍結 gate・freeze 82dab27・COMPLETED・STOP・**B2 不変**)/ Q-064 LACP 統合設計提出(design only)/ Q-066 Dashboard 更新 + Review Sheet
+
+Owner 裁定 2026-09-20 昼(**Q-065 GO-1 = OPEN / GO**)を実行。契約(`rs1_frozen.json` / `Q065_FROZEN_PLAN.md`・freeze 82dab27)を結果を見ずに機械適用。panel 108,369 races(pre-race predictor 95 列 = 絶対 72 + 相対 17 + 会場天候 6・allowlist 完全一致・結果由来 0)・B2 は Q-063 の P3 bundle を**推論のみ**(50,926 races)。LightGBM 38 fit + logistic 2・43 s・失敗 0。**production 非接触・B2 不変・統合なし・STOP**。
+
+**P79 — 攻撃 world(3・4 コースの艇がまくり / まくり差しで 1 着)は pre-race の情報だけで再現可能に予測できる: AUC 0.6660 / 0.6704・上位十分位の lift 2.047 [1.949, 2.149] / 2.063 [1.965, 2.173]・十分位の単調性 1.000(6.8% → 37.4% / 6.1% → 36.0%)・**会場 24/24 で上位 20% − 下位 20% が正**。label shuffle 再学習は AUC 0.491 / 0.520(harness は偽の予測可能性を作らない)。記述: 進入変動(W4)は AUC 0.845 / 0.876・1 号艇崩れ(W2)0.706 / 0.716・外の受益(W3)0.689 / 0.703。【確定・2026-09-20・NG-RS1】**
+
+- 【分かったこと】①「荒れそうなレースか」はレース前に十分読める(倍率 2 倍・両 fold・全会場)②**進入の変動はほぼ読める**(AUC 0.85〜0.88)= 展示周回の進入が効いている ③1M 通過順が無いので「攻めて失敗した」は label に入らない(成立した攻撃のみ)
+- 【予測に効くか】状態としては読める。ただし **B2 に足す形で効くかは本サイクルでは測っていない**(GO-1 は B2 を変えない)
+- 【市場】未測定
+
+**P80 — pre-race 状態(攻撃圧)の十分位で、production B2 の誤差は強く単調に動く: Spearman(十分位, センターのズレ)= 0.939 / 0.891・1 枠のズレは逆向き −0.939 / −0.915・NLL は 1.000 / 0.976。センターのズレは −0.031 → +0.055(fold1)/ −0.025 → +0.041(fold2)。上位十分位 +0.05516 [0.03672, 0.07325] / +0.04147 [0.02256, 0.05994]・**上位 − 下位 +0.0429 [0.0325, 0.0538] / +0.0331 [0.0231, 0.0435]**。上位十分位の相対過小評価 +13.1% / +9.8%(全体は +1.7% / −0.9%)・過小評価の量の 80% / 94% が上位 3 十分位。【確定・2026-09-20・NG-RS1】**
+
+- 【分かったこと】**NG-E10 の「まくり系を 26% 過小評価」(全国平均)は、攻撃圧の高い側に偏在している**。B2 のセンター勝率は中央へ圧縮されており(較正の傾きの問題)、荒れそうなレースでは 1 枠を買いかぶり、センターを過小評価する。全体平均ではほぼ 0(+0.004 / −0.002)なので、**条件を切らないと見えない**
+- 【予測に効くか】条件付き較正(後処理・B2 不変)の入口。ただし P81 のとおり「相互作用でなければ作れない状態」ではない
+- 【市場】未測定(ROI / EV は本サイクルで禁止)
+
+**P81 — その状態は「6 艇の相対構成」でなくても作れる(= interaction 特有ではない): ΔAUC(相対込み − 絶対のみ)= +0.00067 [−0.00147, +0.00277] / −0.00091 [−0.00322, +0.00136] = ゼロ。誤差の局在も絶対のみでほぼ同じ(Spearman 0.867 / 0.794・上位ズレは**絶対のみの方が大きい** 0.0606 vs 0.0552 / 0.0471 vs 0.0415)。さらに**会場・天候だけの proxy でも局在が出る**(Spearman 0.903 / 0.782・上位ズレ +0.0247 [0.0084, 0.0410] / +0.0224 [0.0051, 0.0389])。判定 = `RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED`(S2)。【確定・2026-09-20・NG-RS1】**
+
+- 【分かったこと】①相対構成 17 本だけのロジスティック回帰でも AUC 0.645 / 0.653 = **情報としては強いが、6 艇分の絶対値 72 列の上では増分ゼロ**(木モデルが同じ構造を学ぶ)②**誤差の局在のかなりの部分が会場・天候で再現できる** = 「レース構造」と呼ぶ前に会場条件を差し引く必要がある ③**明示的な相互作用特徴は今回も不要だった**(EP2 の積項有害・I1 の薄層平均化・VA1 の会場再現に続く 4 例目)
+- 【方法論の限界(結果を見て判明・閾値は変えていない)】F1(score shuffle)と F3(会場天候 proxy)の判定式が「上位十分位のズレが 0 か」を見ている。B2 のセンター過小評価は**全国平均でも正**なので、どんなスコアで切っても上位群のズレは 0 から離れうる。**本来は contrast(上位 − 下位)で判定すべき**(その量は計算済み)。F1 の Spearman は十分位平均 10 点に対する順位相関で、閾値 0.3 はサンプルに対して厳しすぎた。次サイクルの設計で直す
+- 【市場】未測定
+
+---
 
 ## §0. 2026-09-20 03:55 — RES-2026-09-AB = NG-LP1 / Q-064 = **`SIMPLE_CAREER_PROD3_ADOPTABLE`**(凍結 gate・freeze 4de5314・新規 fit 54・8,044 s・失敗 0・COMPLETED・STOP・**統合なし**)
 
@@ -6595,7 +6669,7 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 
 ```json
 {
- "updated_at": "2026-09-20 03:55",
+ "updated_at": "2026-09-20 15:00",
  "updated_by": "Claude (レーン B・Q-064 設計提出・fit 0)",
  "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
  "architecture_version": "v2.1",
@@ -6611,7 +6685,7 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "id": "b2f41_prod2026_prod3",
   "note": "現状 Baseline と同一 (W1 第1波で Baseline を超える昇格なし。5実験とも主ゲートFAIL)"
  },
- "current_experiment": "RES-2026-09-AB (NG-LP1 / Q-064) = COMPLETED = SIMPLE_CAREER_PROD3_ADOPTABLE (凍結 gate の機械適用・freeze 4de5314・統合なし・STOP)。Owner 指示: 単体 feature の追加を既定にしない → 次 = Race Structure / Interaction (Q-065 Map・planning only) + Research Dashboard (Q-066 MVP)。統合設計は別 GO。Q-053 = HOLD (観測 ③ 02:00 後 = clean)",
+ "current_experiment": "RES-2026-09-AC (NG-RS1 / Q-065 GO-1) = COMPLETED = RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED (凍結 gate の機械適用・freeze 82dab27・B2 不変・統合なし・STOP)。並行 = Q-064 LACP 統合設計 (design only) / Q-066 Dashboard 更新 + Race Structure Explorer + Screen Review Sheet。Q-053 = HOLD",
  "current_experiment_note": "Q-064 = 設計提出済 (2026-09-19 23:16・NG-LP1 Simple Career Prior の exact prod3 adoption gate・fit 0・Owner 裁定待ち run GO 1〜5)。production baseline 再現 全 PASS (checkpoint sha / REF1 窓 p120 bit 一致 / train 窓 mu・sd 差 0・行数 2,017,260 一致 / recipe)。raw −0.00968 / −0.01028・最強 null (RMEAN) 補正 −0.00479 / −0.00612 = REAL。LANE 上の増分 +0.00000 / −0.00026 (CI ∋ 0)・Type B −0.00263 / −0.00109 = 線未達。LANE 単体 −0.01211 / −0.01203 (RRS より大)。Track B: bit 等価・決定的・idempotent・0.02 s/日・全再構築 235 s・入力表 4 本に nightly 更新経路なし。X1(production 窓そのまま・gate 外): train < 2026-07-01 全履歴 315,216 races・valid 1,859(学習時 log と一致)で P3 を再学習すると production checkpoint と p120 max|Δ| ≤ 3.4e-7・NLL 16 桁一致 = 再学習 identity 成立。評価窓 2026-07-15〜08-31(7,138 races・635 cluster)で RRS raw = P3EPfull − CKPT **−0.00791 [−0.01168, −0.00420]** 3 seed 全負(P3EPfull − P3full 同値)。raw のみで LANE 比較は無し(記述)",
  "experiments": {
   "registry_path": "artifacts/research/experiment_registry.jsonl",
@@ -6855,7 +6929,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   ],
   "partially_supported": [
    "4カド攻撃型は展開を作る (NG-E10: 攻撃スタイル型signature 6/9再現。NG-I1 (2026-09-04): proxy 2特徴は7件全員を分布の端で正しく捕捉=設計妥当、ただし薄層ゲートはFAIL=全選手一律の薄い補正では特異選手集中効果が平均化される)",
-   "U-36 会場 × 4 コース攻撃の交互作用は B2 が取り切れていない → 部分支持 (VENUE-V0: 全国 −1.153pp/SD・I²=0.60・前後期 rank ρ=+0.75・置換 p=0.005。ただしモデル非依存スケールでの結果であり B2 残差での確認は未実施 = NG-VA1)"
+   "U-36 会場 × 4 コース攻撃の交互作用は B2 が取り切れていない → 部分支持 (VENUE-V0: 全国 −1.153pp/SD・I²=0.60・前後期 rank ρ=+0.75・置換 p=0.005。ただしモデル非依存スケールでの結果であり B2 残差での確認は未実施 = NG-VA1)",
+   "U-41 pre-race の攻撃圧状態は B2 の系統誤差を局在化する — PARTIALLY SUPPORTED (2026-09-20・NG-RS1 = RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED・B2 不変)"
   ],
   "rejected": [
    "階級が予測に効く (全棄却)",
@@ -6929,7 +7004,10 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "P68 (観測・gate 外) 長期 as-of 残差スコア (ep_score / ab_score・Σ/(n+20)・race < t) を ME に足すと 3連単 NLL −0.015〜−0.017 (6 fit 全負) = 採用線の 5 倍・当日展示の増分の約 8 割。primary でないので採用せず NG-EP3 / Q-059 で凍結再検証 (専用 NC・as-of audit)",
   "P76 単純な長期 as-of 通算成績 5 列 (SC) は本番 41 列 legacy 土台で SIMPLE_CAREER_PROD3_ADOPTABLE (生 −0.01215 / −0.01183・最強 null 補正後 −0.00909 / −0.00763・両 fold・3 seed・leakage 10/10・再利用 bundle bit 一致)。統合なし",
   "P77 SC は RRS の 76% / 81% を再現し RRS に無い分 (−0.0048 / −0.0035) も持つ。RRS が SC の上に残す固有分 −0.0023 / −0.0019 は線未達 = RRS は不要",
-  "P78 SC bundle − C3 (LANE) ≈ 0 (CI ∋ 0) = C3 1 列 + 2 列に縮められる。情報ゼロ列 5 本の noise floor −0.0031 = 採用線と同じ大きさ → B (最強 null 補正) が防御線"
+  "P78 SC bundle − C3 (LANE) ≈ 0 (CI ∋ 0) = C3 1 列 + 2 列に縮められる。情報ゼロ列 5 本の noise floor −0.0031 = 採用線と同じ大きさ → B (最強 null 補正) が防御線",
+  "P79 攻撃 world は pre-race で再現可能に予測できる (AUC 0.666 / 0.670・上位十分位 lift 2.05・単調性 1.000・会場 24/24・label shuffle 0.49 / 0.52)",
+  "P80 pre-race 状態の十分位で production B2 の誤差が強く単調に動く (Spearman 0.939 / 0.891・上位 − 下位 +0.043 / +0.033・上位十分位の相対過小評価 +13.1% / +9.8%・全体はほぼ 0)",
+  "P81 その状態は 6 艇の相対構成でなくても作れる (ΔAUC ≈ 0) / 会場・天候 proxy でも局在が出る (Spearman 0.90 / 0.78) = interaction 特有ではない。明示的相互作用が不要だった 4 例目"
  ],
  "rejected_findings": [
   "選手の動的状態 (直近 k 走 − 自己ベースライン系 6 本) は B2 残差を説明する → 否定 (NG-PDS1・well-powered null・増分上限 0.00013 = 採用線の 1/23)。静的 latent (B2H REJECT) に続き動的も否定 = 選手個人の情報路線は閉鎖",
@@ -7695,13 +7773,19 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "n": 52,
    "item": "Q-065 kyotei: Race Structure / Interaction Research Map (仮説 8 本・最優先 Attack Pressure / 1M Disruption State) を提出。GO-1 (記述 + 小 fit ≈ 1 h・本番非接触) を開くか",
    "recommend": "1 GO-1 を設計して回す",
-   "status_20260920": "提出・Owner 裁定待ち (planning only・大規模 fit は Owner GO まで禁止)"
+   "status_20260920": "CLOSED (Owner 裁定 2026-09-20 昼 = GO-1 OPEN / GO → 同日 14:47 完走 = RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED・B2 不変・統合なし)"
   },
   {
    "n": 53,
    "item": "Q-066 kyotei: Research Dashboard (read-only・7+1 画面・source map 固定) の設計 + prototype Artifact + Streamlit MVP (8511) を提出。構造のまま育ててよいか",
    "recommend": "1 構造 OK",
-   "status_20260920": "提出・Owner 視覚レビュー待ち"
+   "status_20260920": "継続 GO (Owner 2026-09-20 昼 = MVP / NOT FINAL UI・必須キャプション + Why + Race Structure Explorer + drill-down 実装・Screen Review Sheet 提出 → Owner 視覚レビュー待ち)"
+  },
+  {
+   "n": 54,
+   "item": "Q-064 LACP production integration: 設計提出済 (design only)。W1-W2 (state を毎晩作るだけ) を先に作るか / final confirmation (dimension-matched placebo 込み・2.3 h) を先に走らせるか",
+   "recommend": "1 W1-W2 先行 (最も可逆・本番の予測に影響しない)",
+   "status_20260920": "設計提出・Owner 裁定待ち"
   }
  ],
  "w2_directives_owner_20260904": {
@@ -7846,7 +7930,7 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "architecture_vision_20260906": "Historical Player/Motor → Current Motor State → Current Environment State → Player Adjustment/Environmental Adaptation → 6艇Current State → Pressure×Resistance → Scenario Generator → P(Scenario)+P(Order|Scenario) → 120通りFundamental Probability → Calibration/Uncertainty → Market Evaluation → Scenario×Ticket Payoff → Sparse Value-weighted Portfolio → BET/NO BET。概念であり一括実装禁止",
   "human_facing": "日本語名称を主表示 (現在モーター状態/選手の調整能力/直前風変化/展開圧力×対応力/穴シナリオ/読めるレース/シナリオ分散買い)。内部IDは括弧の補助"
  },
- "next_actions": "Owner = ①Q-064 統合設計を開くか (5 列 / C3 + 2 列・X1 / R6 先行か) ②Q-065 GO point (1 GO-1 推奨) ③Q-066 構造 OK / Q-053 再裁定。AI 単独 = Owner 裁定待ち (大規模 fit 禁止)",
+ "next_actions": "Owner = ①Q-064 LACP (1 W1-W2 先行 / 2 final confirmation 先行 / 3 両方 / 4 保留) ②Q-065 の次 (1 条件付き較正 feasibility / 2 contrast 型で別窓 再判定 / 3 W4 進入変動 / 4 閉じる) ③Q-066 Review Sheet の feedback ④Q-053。AI 単独 = 裁定待ち",
  "model_identity_rule": "『同じモデル』と呼ぶには Model Weights + Feature Contract + Source Contract + Preprocessing Revision + Runtime Revision の 5 点が一致すること。weights が同じだけでは同じモデルと扱わない。『Raw B2』という呼称だけでモデルを参照することを禁ずる",
  "canonical_raw_b2": {
   "identity": "Q034_CLEAN_REPLICA",
@@ -10341,6 +10425,104 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
   "hypotheses": [
    "U-40 SUPPORTED (production 土台)",
    "U-39 production 側 = SC に包含"
+  ]
+ },
+ "res_2026_09_ac": {
+  "cycle": "RES-2026-09-AC",
+  "experiments": [
+   "NG-RS1"
+  ],
+  "q_id": "Q-065 GO-1",
+  "status": "COMPLETED",
+  "freeze_commit": "82dab27",
+  "freeze_hash_record": "2de3a14",
+  "owner_directive": "問い = 攻撃の pre-race 予測可能性 + pre-race 状態で B2 の誤差が系統的に変わるか。B2 不変・GNN 禁止・成功を ΔNLL −0.003 で決めない・CONFIRMED のときだけ次サイクルで補正 / augmentation",
+  "run": "2026-09-20 14:46:45 → 14:47:29 (43 s・LightGBM 38 fit + logistic 2・失敗 0)",
+  "panel": {
+   "races": 108369,
+   "predictors": 95,
+   "b2_inference_races": 50926,
+   "allowlist_exact_match": true,
+   "min_coverage": 0.9817
+  },
+  "criteria": {
+   "P1": {
+    "fold1": true,
+    "fold2": true
+   },
+   "P2": true,
+   "P3_venue_24_of_24": true,
+   "P4_relative_over_absolute": false,
+   "P5_monotonic_b2_error": true,
+   "P6_falsification": false
+  },
+  "key_numbers": {
+   "auc_AR_F3": [
+    0.666,
+    0.6704
+   ],
+   "auc_A_F3": [
+    0.6654,
+    0.6714
+   ],
+   "auc_F3_only": [
+    0.5394,
+    0.5463
+   ],
+   "auc_R_logit": [
+    0.6453,
+    0.6525
+   ],
+   "top_decile_lift": [
+    2.047,
+    2.063
+   ],
+   "dAUC_AR_minus_A": [
+    0.00067,
+    -0.00091
+   ],
+   "spearman_decile_gap34": [
+    0.939,
+    0.891
+   ],
+   "spearman_decile_gap1": [
+    -0.939,
+    -0.915
+   ],
+   "top_decile_gap34": [
+    0.05516,
+    0.04147
+   ],
+   "top_minus_bottom_gap34": [
+    0.04288,
+    0.03314
+   ],
+   "F3_proxy_spearman": [
+    0.903,
+    0.782
+   ],
+   "F5_label_shuffle_auc": [
+    0.4906,
+    0.52
+   ]
+  },
+  "label": "RACE_STRUCTURE_PREDICTABLE_BUT_ABSORBED",
+  "reasons": [
+   "STRENGTH_ONLY",
+   "F3_PROXY",
+   "F1_NOT_DESTROYED"
+  ],
+  "b2_changed": false,
+  "integration": "なし",
+  "contract_limitation": "F1 / F3 の判定式が「上位十分位のズレが 0 か」を見ている。B2 のセンター過小評価は全国平均でも正なので contrast (上位 − 下位) で判定すべきだった。閾値は変えていない",
+  "lane_report": "lane-reports/rs1_race_structure_go1_20260920.md",
+  "findings": [
+   "P79",
+   "P80",
+   "P81"
+  ],
+  "hypotheses": [
+   "U-41 PARTIALLY SUPPORTED"
   ]
  }
 }
