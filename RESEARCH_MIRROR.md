@@ -1296,8 +1296,6 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 市場アノマリー holdout 封印(captured 2026-09-01〜10-31 は閲覧禁止・2026-11-01 開封)は未決事項ではなく**遵守事項**
 
 ## 9. Decision Log(直近 10 裁定 — 正本 = DECISION_LOG.md・全文は下部に連結)
-- 2026-09-20 16:47 | 機械判定 | **FAIL(線未達)** — NG-RWC1 / Q-067 = `CALIBRATION_BELOW_LINE`(S4)。G1 / G2 / G3 いずれも向きと確実さは合格・大きさが線未達。freeze …
-- 2026-09-20 16:47 | Owner | **GO** — LACP(枠番補正の通算成績)= 選択肢 1。**毎晩の生成経路だけ先に作り 7 日 shadow 観測**。production prediction / B2 feature…
 - 2026-09-20 16:47 | Owner | **REJECT** — 研究 Dashboard 現行 UI。継ぎ足し改善・機能追加・Race Structure Explorer 追加を停止。原因分析 → 3 案 × 3 画面の静的 mock → …
 - 2026-09-20 16:47 | Owner | **HOLD** — Q-053(S-tier Batch 2 = 残り 20 会場)は現状維持。観測 3 回 clean を確認済み
 - 2026-09-28 13:0x | Owner | **GO** — NG-ESC1(Q-070 (1) E1)の凍結契約(計画書 §0 = 級 × 枠の期待ゲイン表の交互作用成分・十分位 contrast・lane 層内 strongest pl…
@@ -1306,6 +1304,8 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 - 2026-09-28 16:04 | 機械 | **FREEZE** — NG-LACP-FC(Q-069 (3) LACP final confirmation)freeze fa5809b(契約 JSON + Q069_FROZEN_PLAN + …
 - 2026-09-28 17:08 | Owner | **裁定** — 「推奨で進めて良さそうだね」= ①「一旦推奨で進めて良いよ」を 3 件まとめての GO と受け取った解釈を追認 ②**Q-070 = 閉じる**(E2 / E3 に進まない・交互…
 - 2026-09-28 17:32 | 機械判定 | **CONFIRMED** — NG-LACP-FC / Q-069 (3) = `LACP_PROD_CONFIRMED`(S5 = A ∧ B・freeze fa5809b・新規 fit 6・5,364 s…
+- 2026-09-28 17:49 | Owner | **GO** — Q-075 = (1) 段階的に始める(「LACP の本番化は進めよう」)。LACP 3 列の本番統合 = design §12 staged rollout: W3〜W8 + …
+- 2026-09-28 18:05 | Owner | **裁定** — 棚卸し 11 件「推奨で進めて問題ない」= 推奨どおり。**CLOSED 7** = Q-006 / Q-037 / Q-039 / Q-045 / Q-050 / Q-056 …
 
 ## 10. User-readable Summary(人間向け解説 — FINDINGS.md ④ より抽出)
 ## ④ 人間向け解説 — 結局この研究で何が分かっているのか
@@ -2447,7 +2447,7 @@ Q-046 が片付いたので、優先順位 **Q-046 ✅ → Q-045 → Q-043** の
 
 ## §0. 2026-09-28 17:32 — RES-2026-09-AF = NG-LACP-FC / Q-069 (3) = **`LACP_PROD_CONFIRMED`**(凍結 gate・freeze fa5809b・新規 fit 6・COMPLETED・STOP・**B2 不変・統合なし**)
 
-1. **Owner 判断**: ①**Q-075 = LACP 3 列の本番統合(design §12 staged rollout)を始めるか**(推奨 = 段階的に始める: W3 holdout 配線 / W4 pointer(挙動不変)/ W5〜W7 44 列の学習表・serve・contract・golden / W8 shadow → S2 shadow 7 日 → **S4 cutover は改めて裁定**。実装 ≈ 3.5〜4 日・本番の予測は S4 まで不変)②古い未裁定 11 件の棚卸し(提示済・番号で 閉じる / 残す)③Q-053 HOLD
+1. **Owner 判断**: ①**Q-075 = LACP 3 列の本番統合(design §12 staged rollout)を始めるか → Owner 裁定 17:49 = (1) 段階的に始める(GO)。次 = 実装計画提示 → 着手・S4 cutover は別裁定**(推奨 = 段階的に始める: W3 holdout 配線 / W4 pointer(挙動不変)/ W5〜W7 44 列の学習表・serve・contract・golden / W8 shadow → S2 shadow 7 日 → **S4 cutover は改めて裁定**。実装 ≈ 3.5〜4 日・本番の予測は S4 まで不変)②古い未裁定 11 件の棚卸し → **Owner 裁定 18:05 = 推奨どおり 7 閉 / 4 残(消化済・DECISION_QUEUE 反映)** ③Q-053 HOLD 継続 ④研究ボードの作り直し(Owner 指摘 9/28: 図を増やす・量を減らす・ID を消す・用語集を外す)= 進行中・表示のみ
 2. **AI が続けること**: ①Q-074 Stage 0(①〜⑥ = 文章取得・parse・公開時刻 vs 展示 vs 締切・年間レース数・閉本検査の準備・κ_w の下地。⑦ 採点器 = ローカル AI 導入は Owner GO 済・常駐化しない・.venv 非接触)②nightly step 8.2 LACP shadow / 8.3 text shadow の継続(誰も読まない)③Q-075 が GO なら W3〜W8 の実装計画(`/writing-plans`)から
 3. **やらないこと**: B2 の変更(切替は Q-075 以降の Owner 裁定)/ 単体 feature の新規探索(LACP で完結)/ 交互作用(級 × 枠 × 展示 ST)の再提案(U-43 REJECTED・Q-070 CLOSED)/ E2(市場)/ fold 平均
 
@@ -3818,6 +3818,8 @@ Owner 裁定 2026-09-15「Stage B = GO。**ただし桐生 1 経路のみ**」�
 | 2026-09-28 16:04 | 機械 | **FREEZE** | NG-LACP-FC(Q-069 (3) LACP final confirmation)freeze fa5809b(契約 JSON + Q069_FROZEN_PLAN + lacpfc_gate.py + tests 15 + 設計書)→ 入力 8 本の sha256 + panel 内容 hash を lacpfc_frozen.json に記録 9ab4b8b。prepare = R6a PASS / R6b 8 日 PASS(突合行は 4 列 bit 一致・max|Δ| 0)/ usable 行の被覆 100% / placebo joint PASS。smoke(構造のみ)PASS。run 15:56:04〜(新規 fit 6 本・P3full は rrs2 の checkpoint 再利用)。freeze 前に直した 2 点 = placebo 前提を学習に入る行に限定 / R6b の分母を panel 行に固定(閾値・判定木は不変) | Q-069 |
 | 2026-09-28 17:08 | Owner | **裁定** | 「推奨で進めて良さそうだね」= ①「一旦推奨で進めて良いよ」を 3 件まとめての GO と受け取った解釈を追認 ②**Q-070 = 閉じる**(E2 / E3 に進まない・交互作用の再提案禁止)③Q-074 の採点器 = (a) ローカル AI(Qwen3.5-9B 級・hash 固定・費用ゼロ・導入は Stage 0 ⑦ 直前・常駐化しない・.venv 非接触)④古い未裁定 11 件の棚卸し GO(1 件 3 行で次の報告) | Q-070 / Q-074 |
 | 2026-09-28 17:32 | 機械判定 | **CONFIRMED** | NG-LACP-FC / Q-069 (3) = `LACP_PROD_CONFIRMED`(S5 = A ∧ B・freeze fa5809b・新規 fit 6・5,364 s)。ΔNLL raw **-0.01127** [-0.01539, -0.00709](seed -0.01735 / -0.00775 / -0.00872)・placebo 補正後 **-0.00934** [-0.01298, -0.00569](seed -0.01051 / -0.00939 / -0.00811)・noise floor -0.00193 [-0.00471, +0.00083]。P3full 再利用 checkpoint = production と bit 一致。**統合なし・B2 不変・STOP**。次 = Q-075(design §12 staged rollout を Owner に諮る・推奨 = 段階的に始める・S4 cutover は別裁定) | Q-069 → Q-075 |
+| 2026-09-28 17:49 | Owner | **GO** | Q-075 = (1) 段階的に始める(「LACP の本番化は進めよう」)。LACP 3 列の本番統合 = design §12 staged rollout: W3〜W8 + S0 pointer(挙動不変)+ S2 shadow 7 日 → **S4 cutover は並走後に別裁定**。実装計画を提示してから着手 | Q-075 |
+| 2026-09-28 18:05 | Owner | **裁定** | 棚卸し 11 件「推奨で進めて問題ない」= 推奨どおり。**CLOSED 7** = Q-006 / Q-037 / Q-039 / Q-045 / Q-050 / Q-056 / Q-061(理由は DECISION_QUEUE 各 Status に 1 行)/ **残す 4** = Q-036(本番変更再開時に先頭 2 件)/ Q-038(LACP 本番化の再学習と 1 回に)/ Q-041(Q-038 と同時)/ Q-053(HOLD 継続)。同時に研究ボードの作り直し指示(図を増やす・量を減らす・ID を消す・用語集を外す)。本番非接触 | Q-006 / Q-036〜Q-041 / Q-045 / Q-050 / Q-053 / Q-056 / Q-061 |
 
 
 
@@ -6796,7 +6798,7 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
 
 ```json
 {
- "updated_at": "2026-09-28 17:32",
+ "updated_at": "2026-09-28 18:05",
  "updated_by": "Claude (レーン B・RES-2026-09-AE = NG-ESC1 / Q-070 (1) E1 完走 = ESC1_WEAK・B2 不変・統合なし)",
  "canonical_note": "本ファイルが機械可読の正本。人間可読の詳細は同ディレクトリの md 群。Artifact 494f0be1-a091-4cc3-b90f-72df7dc0b01d は view であり正本ではない",
  "architecture_version": "v2.1",
@@ -7789,7 +7791,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "n": 30,
    "item": "Q-036: System Integrity Audit v1 の S1/S2 整備 4 件 (silent fallback のログ化 / odds_pre の契約 / exh120 劣化経路の golden / manifest 無し artifact)",
    "recommend": "GO (①silent fallback のログ化 と ②odds_pre の契約 を先に)",
-   "status_20260912": "未裁定"
+   "status_20260912": "未裁定",
+   "status_20260928": "残す — 棚卸し 2026-09-28 18:05 Owner「推奨で進めて問題ない」 = 残す(本番変更再開時に先頭 2 件 (silent fallback のログ化 / odds_pre の契約) だけ)"
   },
   {
    "n": "Q-042",
@@ -7801,7 +7804,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "n": 32,
    "item": "Q-045 kyotei: LIVE LGB 1着系 24 artifact の motor semantics を是正するか (案 R1 = src/features.py の group key 是正 → 既存の週次再学習に corrected モデルを作らせる)。**src/features.py は B2 と共有されるため Q-038 の判断を内包する**",
    "recommend": "(a) GO。ただし Q-038 と 1 本に統合して裁定する。**R1 単独では features.parquet を 2 系統に分岐させない限り LGB 1着系だけを直せない**。精度改善は根拠にしない (桐生 −0.0017 / 住之江 +0.0111 で符号が逆) — 根拠は「契約と実装の意味を一致させる」こと。**時間トレンドを明示特徴として入れ直す設計 (U-18) を同時に決める**",
-   "status_20260913": "未裁定 (NG-Q044 で起票)"
+   "status_20260913": "未裁定 (NG-Q044 で起票)",
+   "status_20260928": "CLOSED — 棚卸し 2026-09-28 18:05 Owner「推奨で進めて問題ない」 = 閉じる(9/13 GO「段階的修理・直接切替なし」で実施済み。残り 20 会場は Q-053 に引き継ぎ)"
   },
   {
    "n": 33,
@@ -7824,7 +7828,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "status_20260915": "未裁定 (Q-048 Stage B 完了後に起票)",
    "status_20260918": "**前半完了 = `Q050_SUMINOE_READY`**(Owner 裁定 2026-09-18「Task 1〜6 + Task 8 まで GO / Task 7 = 実 cutover は HOLD」)。住之江固有の 3 問題(build 経路が allowlist 非対応 / S1-S9 ゲート外 / weekly retrain の無人 pointer 張り替え)をすべて解消。production recipe を 8/8 で再現したうえで shadow を測り直し、**旧 2.27% を破棄して 2.56% を新しい予告値**とした。会場単位 rollback を sandbox で往復実証。test 82 passed・production 無変更。**残るは Task 7 の実行承認のみ**",
    "status_20260918b": "**Task 7 完了 = `Q050_SUMINOE_CUTOVER_PASS`**(Owner 裁定 2026-09-18「Task 7 = GO / 学習窓 <= 2026-08-31」)。住之江 root の LIVE model が ARM C へ(`lgbm_v1_suminoe_armC_20260918_153428`・features physical)。smoke 8/8 × 4・identity abs_diff 0.0・実 production で rollback 往復・桐生不変・weekly retrain の穴 (P58) を cutover 前に是正・test 85。②S-tier 22 / ③B2 は未展開(別裁定)",
-   "status_20260918c": "**② S-tier 22 = Q-051 で裁定 (a=β / b=GO / c=据置) → Batch 0 + pilot gate 完走 = `Q051_BATCH1_READY`。cutover は Q-052**"
+   "status_20260918c": "**② S-tier 22 = Q-051 で裁定 (a=β / b=GO / c=据置) → Batch 0 + pilot gate 完走 = `Q051_BATCH1_READY`。cutover は Q-052**",
+   "status_20260928": "CLOSED — 棚卸し 2026-09-28 18:05 Owner「推奨で進めて問題ない」 = 閉じる(①住之江 root = 完了 / ②22 会場 = Q-053 へ移管 / ③B2 = Q-038 と一緒)"
   },
   {
    "n": 39,
@@ -7839,7 +7844,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "item": "Q-053 kyotei: S-tier Batch 2 (8 会場) の cutover GO",
    "recommend": "pilot (omura / gamagori) の運用結果を 2 晩見て clean なら 2〜3 会場ずつ GO。outcome 性能では評価しない",
    "reason": "Q-052 で移行の型 (staged candidate → gate → cutover → smoke → identity → rollback 往復) が実証済み。残るリスクは運用 (第 2 経路・cycle 境界・freshness) のみ",
-   "status_20260918": "未裁定 (2026-09-18 18:10 起票)"
+   "status_20260918": "未裁定 (2026-09-18 18:10 起票)",
+   "status_20260928": "残す — 棚卸し 2026-09-28 18:05 Owner「推奨で進めて問題ない」 = 残す(HOLD 継続。再開は Owner が「本番変更を再開する」と決めたとき)"
   },
   {
    "n": 41,
@@ -7851,13 +7857,15 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "n": 42,
    "item": "Q-053 kyotei: S-tier Batch 2 cutover",
    "recommend": "HOLD (Owner 裁定 2026-09-18 18:41)",
-   "status_20260918": "HOLD。pilot omura / gamagori の翌朝 09:15 後・翌晩 nightly 後 smoke 確認まで残り 20 会場展開禁止・桐生 / 住之江変更禁止"
+   "status_20260918": "HOLD。pilot omura / gamagori の翌朝 09:15 後・翌晩 nightly 後 smoke 確認まで残り 20 会場展開禁止・桐生 / 住之江変更禁止",
+   "status_20260928": "残す — 棚卸し 2026-09-28 18:05 Owner「推奨で進めて問題ない」 = 残す(HOLD 継続。再開は Owner が「本番変更を再開する」と決めたとき)"
   },
   {
    "n": 43,
    "item": "Q-056 kyotei: NG-MH3 (展示前 = 朝シグナル LightGBM 1着 physical model への handoff 増分・研究 only) を BACKLOG に置くか",
    "recommend": "(b) BACKLOG 起票のみ (ACTIVE にしない)",
-   "status_20260918": "未裁定 (21:10 起票・NG-MH2 closure)。根拠 = d_MH_M fold2 −0.00288 [−0.00486, −0.00089] / fold1 −0.00171 (CI が 0 を含む) → 期待値は低い"
+   "status_20260918": "未裁定 (21:10 起票・NG-MH2 closure)。根拠 = d_MH_M fold2 −0.00288 [−0.00486, −0.00089] / fold1 −0.00171 (CI が 0 を含む) → 期待値は低い",
+   "status_20260928": "CLOSED — 棚卸し 2026-09-28 18:05 Owner「推奨で進めて問題ない」 = 閉じる(2026-09-18 22:30 に BACKLOG 裁定済み。記録漏れ)"
   },
   {
    "n": 44,
@@ -7887,7 +7895,8 @@ NN は外挿するが、**z にすると reference 窓は +1.69〜+1.78 に収�
    "n": 48,
    "item": "Q-061 kyotei: 長期 as-of 残差スコア (ep_score) の adoption gate を設計するか (採用線に placebo 差し引き or 両 fold + placebo null を必須・B2 統合の是非を判定・統合は別 GO)",
    "recommend": "設計だけ GO (研究のみ)",
-   "status_20260919": "設計完了・Owner 裁定待ち (2026-09-19 15:06)。Owner 裁定 = 設計のみ GO → plan docs/superpowers/plans/2026-09-19-q061-racer-residual-adoption-gate.md + configs/research/q061_adoption_gate.json を提出 (fit 0 本)。候補の中立名 = Racer Residual Signal。run は Q-062"
+   "status_20260919": "設計完了・Owner 裁定待ち (2026-09-19 15:06)。Owner 裁定 = 設計のみ GO → plan docs/superpowers/plans/2026-09-19-q061-racer-residual-adoption-gate.md + configs/research/q061_adoption_gate.json を提出 (fit 0 本)。候補の中立名 = Racer Residual Signal。run は Q-062",
+   "status_20260928": "CLOSED — 棚卸し 2026-09-28 18:05 Owner「推奨で進めて問題ない」 = 閉じる(Q-062 (ADOPTABLE) / Q-063 (本番土台 = 線未達) で後続完了)"
   },
   {
    "n": 49,
